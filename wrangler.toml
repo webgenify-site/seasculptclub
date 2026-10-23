@@ -14,5 +14,7 @@ database_id = "60d8843a-2fb5-45af-8a65-d36026d91aca"
 # Plain (non-secret) settings
 [vars]
 SITE_URL = "https://seasculptclub.com"
-# Blog: add AIRTABLE_BASE_ID and AIRTABLE_TABLE here once the Sea Sculpt Club posts base is chosen.
+# Blog posts: Airtable base "Sea Sculpt Club Blog", table "Posts" (token is the AIRTABLE_TOKEN secret)
+AIRTABLE_BASE_ID = "appha5EL7Q92l0yuf"
+AIRTABLE_TABLE = "Posts"
 BOOKING_EMAIL_FROM = "Sea Sculpt Club <bookings@seasculptclub.com>"
