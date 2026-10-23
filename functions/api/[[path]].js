@@ -162,7 +162,11 @@ var require_catalog = __commonJS({
         // Stripe product: BOGO 50% OFF ($50)
         className: "BOGO 50% OFF (new members, 2 classes)",
         amount: 5e3,
-        maxQty: 1
+        maxQty: 1,
+        // The buyer gets a class code: 2 credits, 1 spot per booking, only for the buyer's own email,
+        // and the extra (free) class expires 21 days after purchase.
+        credits: 2,
+        codeRules: { ownerOnly: true, maxPerBooking: 1, expiring: { n: 1, days: 21 } }
       },
       "single": {
         kind: "pack",
@@ -302,11 +306,51 @@ var require_giftcodes = __commonJS({
       const t = (now || /* @__PURE__ */ new Date()).toISOString();
       return Object.entries(rec.holds || {}).reduce((n, [sid, h]) => n + (sid !== exceptSession && h.until > t ? h.n || 0 : 0), 0);
     }
+    function expiredLost(rec, now) {
+      const e = rec.expiring;
+      if (!e || !e.n || !e.expiresAt) return 0;
+      if ((now || /* @__PURE__ */ new Date()).toISOString() <= e.expiresAt) return 0;
+      const usedBefore = (rec.uses || []).filter((u) => u.at <= e.expiresAt).reduce((n, u) => n + (u.n || 0), 0);
+      return Math.max(0, e.n - usedBefore);
+    }
     function available(rec, now, exceptSession) {
-      return Math.max(0, (rec.credits || 0) - used(rec) - held(rec, now, exceptSession));
+      return Math.max(0, (rec.credits || 0) - used(rec) - held(rec, now, exceptSession) - expiredLost(rec, now));
+    }
+    function usableNow(rec, now, exceptSession) {
+      const a = available(rec, now, exceptSession);
+      return rec.maxPerBooking ? Math.min(a, rec.maxPerBooking) : a;
+    }
+    function expiringLeft(rec, now) {
+      const e = rec.expiring;
+      if (!e || !e.n || !e.expiresAt || (now || /* @__PURE__ */ new Date()).toISOString() > e.expiresAt) return null;
+      const n = Math.max(0, e.n - used(rec));
+      return n ? { n, expiresAt: e.expiresAt } : null;
     }
     async function createCodesForBooking(db, booking) {
       for (const it of booking.items || []) {
+        const cat = CATALOG[it.catalogId];
+        if (it.kind === "pack" && it.packCode && cat && cat.credits) {
+          const rules = cat.codeRules || {};
+          const start = Date.parse(booking.paidAt || booking.createdAt) || Date.now();
+          await db.setJSON(keyOf(it.packCode), {
+            code: it.packCode,
+            kind: "pack",
+            credits: cat.credits * (it.spots || 1),
+            uses: [],
+            holds: {},
+            maxPerBooking: rules.maxPerBooking || null,
+            ownerEmail: rules.ownerOnly ? String(booking.purchaser && booking.purchaser.email || "").toLowerCase() : null,
+            expiring: rules.expiring ? { n: rules.expiring.n, expiresAt: new Date(start + rules.expiring.days * 864e5).toISOString() } : null,
+            toName: booking.purchaser && booking.purchaser.name || "",
+            toEmail: booking.purchaser && booking.purchaser.email || "",
+            fromName: "",
+            fromEmail: "",
+            purchaseRef: booking.ref || null,
+            purchaseBookingId: booking.id,
+            giftName: it.className,
+            createdAt: (/* @__PURE__ */ new Date()).toISOString()
+          }, { onlyIfNew: true });
+        }
         if (it.kind !== "gift" || !Array.isArray(it.gifts)) continue;
         const credits = CATALOG[it.catalogId] && CATALOG[it.catalogId].credits || 0;
         for (const g of it.gifts) {
@@ -328,12 +372,16 @@ var require_giftcodes = __commonJS({
         }
       }
     }
-    async function lookup(db, code) {
+    async function lookup(db, code, email) {
       const c = normalizeCode(code);
-      if (!c) return { error: "That doesn't look like a Sea Sculpt Club eGift code. It looks like SSC-XXXX-XXXX." };
+      if (!c) return { error: "That doesn't look like a Sea Sculpt Club code. It looks like SSC-XXXX-XXXX." };
       const rec = await db.get(keyOf(c));
-      if (!rec) return { error: "We couldn't find that eGift code. Please check it and try again." };
-      return { code: c, rec, available: available(rec) };
+      if (!rec) return { error: "We couldn't find that code. Please check it and try again." };
+      const who = String(email || "").trim().toLowerCase();
+      if (rec.ownerEmail && who && who !== rec.ownerEmail) {
+        return { error: "This class code is for the person who bought it. Please enter the email you bought it with.", code: c };
+      }
+      return { code: c, rec, available: available(rec), usable: usableNow(rec) };
     }
     function planCoverage(lines, credits) {
       const spots = [];
@@ -354,14 +402,14 @@ var require_giftcodes = __commonJS({
     }
     async function spend(db, code, n, bookingId, ref) {
       return db.update(keyOf(code), (rec) => {
-        if (available(rec) < n) throw Object.assign(new Error("not_enough"), { code: "not_enough" });
+        if (usableNow(rec) < n) throw Object.assign(new Error("not_enough"), { code: "not_enough" });
         rec.uses = [...rec.uses || [], { n, bookingId, ref, at: (/* @__PURE__ */ new Date()).toISOString() }];
         return rec;
       });
     }
     async function hold(db, code, n, sessionId, until) {
       return db.update(keyOf(code), (rec) => {
-        if (available(rec, null, sessionId) < n) throw Object.assign(new Error("not_enough"), { code: "not_enough" });
+        if (usableNow(rec, null, sessionId) < n) throw Object.assign(new Error("not_enough"), { code: "not_enough" });
         rec.holds = { ...rec.holds || {}, [sessionId]: { n, until } };
         return rec;
       });
@@ -386,7 +434,13 @@ var require_giftcodes = __commonJS({
         return rec;
       });
     }
-    module.exports = { normalizeCode, keyOf, available, used, createCodesForBooking, lookup, planCoverage, spend, hold, confirmHold, releaseHold };
+    function emptyReason(rec) {
+      if (rec.expiring && expiredLost(rec) && rec.credits - used(rec) - expiredLost(rec) <= 0) {
+        return "The extra class on this code expired on " + new Date(rec.expiring.expiresAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/New_York" }) + ".";
+      }
+      return rec.kind === "pack" ? "This class code has already been fully used." : "This eGift code has already been fully used.";
+    }
+    module.exports = { emptyReason, normalizeCode, keyOf, available, usableNow, expiringLeft, expiredLost, used, createCodesForBooking, lookup, planCoverage, spend, hold, confirmHold, releaseHold };
   }
 });
 
@@ -404,7 +458,7 @@ var require_email = __commonJS({
       const first = (booking.purchaser.name || "").split(" ")[0] || "there";
       const lines = booking.items.map((it) => {
         if (it.kind === "class") {
-          const gc = it.giftCovered ? ` (${it.giftCovered} covered by your eGift)` : "";
+          const gc = it.giftCovered ? ` (${it.giftCovered} covered by your ${booking.giftRedemption && booking.giftRedemption.kind === "pack" ? "class code" : "eGift"})` : "";
           return {
             text: `${it.className}
   ${it.dateLabel} at ${it.time}
@@ -425,6 +479,20 @@ var require_email = __commonJS({
             html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong> \xD7 ${it.spots}<br>` + gl.map((x) => x.h).join("<br>") + `<br>You'll get a copy of each eGift when it's sent.</p>`
           };
         }
+        if (it.packCode) {
+          const cat = CATALOG[it.catalogId] || {}, rules = cat.codeRules || {};
+          const start = Date.parse(booking.paidAt || booking.createdAt) || Date.now();
+          const exp = rules.expiring ? new Date(start + rules.expiring.days * 864e5).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/New_York" }) : null;
+          const n = (cat.credits || 0) * (it.spots || 1);
+          const how = `Your class code: ${it.packCode}
+  To book, add any class to your cart at seasculptclub.com/classes and enter your code at checkout` + (rules.ownerOnly ? " (use this email)" : "") + `. It covers ${n} class ${n === 1 ? "spot" : "spots"}` + (rules.maxPerBooking === 1 ? ", one per booking" : "") + "." + (exp ? `
+  Your extra class must be booked by ${exp}.` : "");
+          return {
+            text: `${it.className}
+  ${how}`,
+            html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong><br>Your class code: <strong style="letter-spacing:.08em">${esc(it.packCode)}</strong><br>To book, add any class to your cart at <a href="https://seasculptclub.com/classes" style="color:#3D6789">seasculptclub.com/classes</a> and enter your code at checkout` + (rules.ownerOnly ? " (use this email)" : "") + `. It covers ${n} class ${n === 1 ? "spot" : "spots"}${rules.maxPerBooking === 1 ? ", one per booking" : ""}.` + (exp ? `<br>Your extra class must be booked by ${esc(exp)}.` : "") + `</p>`
+          };
+        }
         return {
           text: `${it.className} \xD7 ${it.spots}
   We'll reach out to schedule your classes.`,
@@ -439,7 +507,7 @@ Thank you for booking with Sea Sculpt Club! Here are your details:
 
 ` + lines.map((l) => l.text).join("\n\n") + (booking.giftRedemption ? `
 
-eGift ${booking.giftRedemption.code}: ${booking.giftRedemption.credits} class ${booking.giftRedemption.credits === 1 ? "credit" : "credits"} used` : "") + `
+${booking.giftRedemption.kind === "pack" ? "Class code" : "eGift"} ${booking.giftRedemption.code}: ${booking.giftRedemption.credits} class ${booking.giftRedemption.credits === 1 ? "credit" : "credits"} used` : "") + `
 
 Total paid: ${money(booking.amountTotal)}
 Booking reference: ${booking.ref}
@@ -448,7 +516,7 @@ Please bring your own mat. Questions? Just reply to this email.
 
 See you on the mat,
 Sea Sculpt Club`;
-      const html = `<div style="font-family:Georgia,serif;color:#12314F;max-width:520px"><p>Hi ${esc(first)},</p><p>Thank you for booking with Sea Sculpt Club! Here are your details:</p>` + lines.map((l) => l.html).join("") + (booking.giftRedemption ? `<p>eGift ${esc(booking.giftRedemption.code)}: ${booking.giftRedemption.credits} class ${booking.giftRedemption.credits === 1 ? "credit" : "credits"} used</p>` : "") + `<p>Total paid: <strong>${money(booking.amountTotal)}</strong><br>Booking reference: ${esc(booking.ref)}</p><p>Please bring your own mat. Questions? Just reply to this email.</p><p>See you on the mat,<br>Sea Sculpt Club</p></div>`;
+      const html = `<div style="font-family:Georgia,serif;color:#12314F;max-width:520px"><p>Hi ${esc(first)},</p><p>Thank you for booking with Sea Sculpt Club! Here are your details:</p>` + lines.map((l) => l.html).join("") + (booking.giftRedemption ? `<p>${booking.giftRedemption.kind === "pack" ? "Class code" : "eGift"} ${esc(booking.giftRedemption.code)}: ${booking.giftRedemption.credits} class ${booking.giftRedemption.credits === 1 ? "credit" : "credits"} used</p>` : "") + `<p>Total paid: <strong>${money(booking.amountTotal)}</strong><br>Booking reference: ${esc(booking.ref)}</p><p>Please bring your own mat. Questions? Just reply to this email.</p><p>See you on the mat,<br>Sea Sculpt Club</p></div>`;
       return { subject, text, html };
     }
     async function sendConfirmation(booking, env) {
@@ -539,7 +607,7 @@ var require_create_checkout = __commonJS({
     var { randomHex } = require_webcrypto();
     var { CATALOG, priceIdFor, describe } = require_catalog();
     var { store } = require_store();
-    var { lookup, planCoverage, spend, hold } = require_giftcodes();
+    var { lookup, planCoverage, spend, hold, emptyReason } = require_giftcodes();
     var { sendConfirmation } = require_email();
     var STRIPE_VERSION = "2026-03-25.dahlia; custom_checkout_payment_form_preview=v1";
     var INTEGRATION_ID = "538e8f4c-e01b-496b-96d2-98c3c2f2bee8";
@@ -668,12 +736,12 @@ var require_create_checkout = __commonJS({
       let gift = null;
       let chargeLines = lines.map((l) => ({ ...l, chargeQty: l.qty }));
       if (body.giftCode) {
-        const g = await lookup(store(event), body.giftCode);
+        const g = await lookup(store(event), body.giftCode, purchaser.email);
         if (g.error) return json(400, { error: g.error, code: "gift_invalid" });
-        const plan = planCoverage(lines, g.available);
-        if (!plan.classSpots) return json(400, { error: "eGift codes cover class spots. Add a class to your cart to use yours.", code: "gift_invalid" });
-        if (plan.n < 1) return json(400, { error: "This eGift code has already been fully used.", code: "gift_invalid" });
-        gift = { code: g.code, credits: plan.n, value: plan.value, cover: plan.cover };
+        const plan = planCoverage(lines, g.usable);
+        if (!plan.classSpots) return json(400, { error: "Codes cover class spots. Add a class to your cart to use yours.", code: "gift_invalid" });
+        if (plan.n < 1) return json(400, { error: emptyReason(g.rec), code: "gift_invalid" });
+        gift = { code: g.code, kind: g.rec.kind || "gift", credits: plan.n, value: plan.value, cover: plan.cover };
         chargeLines = lines.map((l) => ({ ...l, chargeQty: l.qty - (plan.cover[l.id] || 0) })).filter((l) => l.chargeQty > 0);
       }
       if (gift && !chargeLines.length) return freeBooking(event, { ref, mode, purchaser, lines, gift });
@@ -692,7 +760,7 @@ var require_create_checkout = __commonJS({
         return json(400, { error: `${missing.join(", ")} can't be booked online yet. Please email seasculptclub@gmail.com.`, code: "price_not_configured" });
       }
       const summary = lines.map((l) => describe(CATALOG[l.id], l.qty));
-      if (gift) summary.push(`eGift ${gift.code} covers ${gift.credits} ${gift.credits === 1 ? "spot" : "spots"}`);
+      if (gift) summary.push(`${gift.kind === "pack" ? "Class code" : "eGift"} ${gift.code} covers ${gift.credits} ${gift.credits === 1 ? "spot" : "spots"}`);
       const params = new URLSearchParams();
       params.append("ui_mode", hosted ? "hosted_page" : "form");
       params.append("mode", "payment");
@@ -724,6 +792,7 @@ var require_create_checkout = __commonJS({
       if (gift) {
         params.append("metadata[gift_code]", gift.code);
         params.append("metadata[gift_credits]", String(gift.credits));
+        params.append("metadata[gift_kind]", gift.kind);
         params.append("metadata[gift_cover]", Object.entries(gift.cover).map(([id, q]) => `${id}:${q}`).join(","));
         params.append("expires_at", String(Math.floor(Date.now() / 1e3) + 31 * 60));
       }
@@ -764,7 +833,7 @@ var require_create_checkout = __commonJS({
           await hold(store(event), gift.code, gift.credits, data.id, until);
         } catch (err) {
           await expireSession(secret, data.id);
-          if (err.code === "not_enough") return json(409, { error: "This eGift code was just used. Please check it and try again.", code: "gift_invalid" });
+          if (err.code === "not_enough") return json(409, { error: "This code was just used. Please check it and try again.", code: "gift_invalid" });
           console.error("Could not hold eGift credits:", err && err.message);
           return json(502, { error: "Checkout couldn't start. Please try again in a moment.", code: "gift_hold_failed" });
         }
@@ -777,7 +846,7 @@ var require_create_checkout = __commonJS({
           createdAt: (/* @__PURE__ */ new Date()).toISOString(),
           purchaser,
           lines: lines.map((l) => ({ ...l, ...pick(CATALOG[l.id]), giftCovered: gift ? gift.cover[l.id] || 0 : 0 })),
-          giftRedemption: gift ? { code: gift.code, credits: gift.credits, value: gift.value } : null,
+          giftRedemption: gift ? { code: gift.code, kind: gift.kind, credits: gift.credits, value: gift.value } : null,
           expectedAmount: chargeLines.reduce((n, l) => n + CATALOG[l.id].amount * l.chargeQty, 0)
         });
       } catch (err) {
@@ -805,7 +874,7 @@ var require_create_checkout = __commonJS({
       try {
         await spend(db, gift.code, gift.credits, id, ref);
       } catch (err) {
-        if (err.code === "not_enough") return json(409, { error: "This eGift code was just used. Please check it and try again.", code: "gift_invalid" });
+        if (err.code === "not_enough") return json(409, { error: "This code was just used. Please check it and try again.", code: "gift_invalid" });
         console.error("Could not use eGift credits:", err && err.message);
         return json(502, { error: "Booking couldn't be completed. Please try again in a moment.", code: "gift_spend_failed" });
       }
@@ -839,7 +908,7 @@ var require_create_checkout = __commonJS({
         stripeEventId: null,
         source: "egift",
         flags: [],
-        giftRedemption: { code: gift.code, credits: gift.credits, value: gift.value },
+        giftRedemption: { code: gift.code, kind: gift.kind, credits: gift.credits, value: gift.value },
         createdAt: now,
         paidAt: now,
         confirmation: { status: "pending" }
@@ -1124,6 +1193,8 @@ var require_gifts = __commonJS({
     }
     function prepareGifts(booking) {
       for (const it of booking.items || []) {
+        const cat = require_catalog().CATALOG[it.catalogId];
+        if (it.kind === "pack" && cat && cat.credits && !it.packCode) it.packCode = newCode();
         if (it.kind !== "gift" || !Array.isArray(it.gifts)) continue;
         it.gifts = it.gifts.map((g) => ({ ...g, code: g.code || newCode(), status: g.status || "scheduled", tries: g.tries || 0 }));
       }
@@ -1224,6 +1295,7 @@ var require_stripe_webhook = __commonJS({
       }).filter(Boolean);
       const giftRedemption = md.gift_code ? {
         code: md.gift_code,
+        kind: md.gift_kind || "gift",
         credits: parseInt(md.gift_credits, 10) || 0,
         value: lines.reduce((n, l) => n + l.unitAmount * (l.giftCovered || 0), 0)
       } : null;
@@ -1666,7 +1738,7 @@ var require_admin_bookings = __commonJS({
       return "\uFEFF" + rows.map((row) => row.map(cell).join(",")).join("\r\n");
     }
     exports._toCsv = toCsv;
-    var { available, used } = require_giftcodes();
+    var { available, used, expiringLeft, expiredLost } = require_giftcodes();
     async function listGiftCards(db) {
       const { blobs } = await db.list({ prefix: "giftcodes/" });
       const out = [];
@@ -1674,7 +1746,8 @@ var require_admin_bookings = __commonJS({
         const r = await db.get(b.key);
         if (!r) continue;
         const left = available(r);
-        out.push({ ...r, used: used(r), left, held: Math.max(0, (r.credits || 0) - used(r) - left) });
+        const lost = expiredLost(r);
+        out.push({ ...r, used: used(r), left, expired: lost, expiringLeft: expiringLeft(r), held: Math.max(0, (r.credits || 0) - used(r) - lost - left) });
       }
       return out.sort((x, y) => String(y.createdAt).localeCompare(String(x.createdAt)));
     }
@@ -1928,7 +2001,7 @@ var require_send_gifts = __commonJS({
 var require_gift_code = __commonJS({
   "../cf/src/functions/gift-code.js"(exports) {
     var { store } = require_store();
-    var { lookup } = require_giftcodes();
+    var { lookup, emptyReason, expiringLeft } = require_giftcodes();
     var { sha256, toHex } = require_webcrypto();
     var MAX_FAILS = 20;
     var WINDOW_MS = 15 * 60 * 1e3;
@@ -1953,14 +2026,25 @@ var require_gift_code = __commonJS({
       const db = store(event);
       const lim = await limiter(event, db);
       if (lim.blocked) return json(429, { error: "Too many tries. Please wait 15 minutes, or email seasculptclub@gmail.com." });
-      const r = await lookup(db, body.code);
+      const r = await lookup(db, body.code, body.email);
       if (r.error) {
-        lim.rec.count += 1;
-        await db.setJSON(lim.key, lim.rec);
-        return json(404, { error: r.error });
+        if (!r.code) {
+          lim.rec.count += 1;
+          await db.setJSON(lim.key, lim.rec);
+        }
+        return json(r.code ? 403 : 404, { error: r.error });
       }
-      if (r.available < 1) return json(409, { error: "This eGift code has already been fully used.", code: r.code, creditsLeft: 0, credits: r.rec.credits });
-      return json(200, { ok: true, code: r.code, creditsLeft: r.available, credits: r.rec.credits });
+      if (r.usable < 1) return json(409, { error: emptyReason(r.rec), code: r.code, creditsLeft: 0, credits: r.rec.credits });
+      return json(200, {
+        ok: true,
+        code: r.code,
+        kind: r.rec.kind || "gift",
+        creditsLeft: r.available,
+        usableNow: r.usable,
+        credits: r.rec.credits,
+        perBooking: r.rec.maxPerBooking || null,
+        expiring: expiringLeft(r.rec)
+      });
     };
   }
 });

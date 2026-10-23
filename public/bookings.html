@@ -77,7 +77,7 @@
   <div class="tabs" role="tablist">
     <button role="tab" data-view="bookings" aria-selected="true">Bookings</button>
     <button role="tab" data-view="recovered" aria-selected="false">Past payments (before booking records)</button>
-    <button role="tab" data-view="giftcards" aria-selected="false">eGift cards</button>
+    <button role="tab" data-view="giftcards" aria-selected="false">eGift &amp; class codes</button>
     <button role="tab" data-view="forms" aria-selected="false">Form messages</button>
   </div>
   <div class="toolbar">
@@ -143,12 +143,14 @@
   }
   function renderGiftCards() {
     var rows = data.giftcards || [];
-    if (!rows.length) { $("list").innerHTML = '<div class="empty">No eGift cards yet. Each eGift bought on the website appears here with its code and how many class credits are left.</div>'; return; }
+    if (!rows.length) { $("list").innerHTML = '<div class="empty">No codes yet. Each eGift or BOGO offer bought on the website appears here with its code and how many class credits are left.</div>'; return; }
     $("list").innerHTML = '<section class="group"><div class="scroll"><table><thead><tr><th>Code</th><th>eGift</th><th>Credits left</th><th>For</th><th>From</th><th>Used on</th><th>Bought</th></tr></thead><tbody>' +
       rows.map(function (c) {
         var uses = (c.uses || []).map(function (u) { return esc(u.ref || u.bookingId) + ' (' + u.n + (u.n === 1 ? " spot" : " spots") + ', ' + esc(new Date(u.at).toLocaleDateString()) + ')'; });
         return '<tr><td class="mono"><strong>' + esc(c.code) + '</strong></td><td>' + esc(c.giftName || "") + '</td>' +
-          '<td><strong>' + c.left + '</strong> of ' + c.credits + (c.held ? '<br><small>' + c.held + ' held by an open checkout</small>' : "") + '</td>' +
+          '<td><strong>' + c.left + '</strong> of ' + c.credits + (c.held ? '<br><small>' + c.held + ' held by an open checkout</small>' : "") +
+            (c.expiringLeft ? '<br><small>extra class expires ' + esc(new Date(c.expiringLeft.expiresAt).toLocaleDateString()) + '</small>' : "") +
+            (c.expired ? '<br><small>' + c.expired + ' expired unused</small>' : "") + (c.ownerEmail ? '<br><small>buyer only · 1 per booking</small>' : "") + '</td>' +
           '<td>' + esc(c.toName) + '<br><small>' + esc(c.toEmail) + '</small></td><td>' + esc(c.fromName) + '<br><small>' + esc(c.fromEmail) + '</small></td>' +
           '<td>' + (uses.length ? uses.join("<br>") : '<span class="notes">Not used yet</span>') + '</td>' +
           '<td>' + esc(new Date(c.createdAt).toLocaleDateString()) + (c.purchaseRef ? '<br><small>' + esc(c.purchaseRef) + '</small>' : "") + '</td></tr>';
@@ -196,7 +198,7 @@
           var r = x.r, flags = r.flags || [], notes = r.notes || [];
           var status = '<span class="pill">' + esc(r.status) + '</span>' + (r.livemode === false ? ' <span class="pill test">test</span>' : "") +
             (flags.length ? ' <span class="pill check">check</span>' : "") + '<br><small>' + money(r.amountTotal) + ((r.items || []).length > 1 ? ' order total' : '') + '</small>' +
-            (r.giftRedemption ? '<br><small>eGift <span class="mono">' + esc(r.giftRedemption.code) + '</span>: ' + r.giftRedemption.credits + (r.giftRedemption.credits === 1 ? " spot" : " spots") + (x.it.giftCovered ? ' (' + x.it.giftCovered + ' here)' : '') + '</small>' : "") +
+            (r.giftRedemption ? '<br><small>' + (r.giftRedemption.kind === "pack" ? "Class code" : "eGift") + ' <span class="mono">' + esc(r.giftRedemption.code) + '</span>: ' + r.giftRedemption.credits + (r.giftRedemption.credits === 1 ? " spot" : " spots") + (x.it.giftCovered ? ' (' + x.it.giftCovered + ' here)' : '') + '</small>' : "") +
             (r.confirmation && r.confirmation.status ? '<br><small>Email: ' + esc(r.confirmation.status.replace("_", " ")) + '</small>' : "");
           var refUrl = r.paymentIntent ? "https://dashboard.stripe.com/" + (r.livemode === false ? "test/" : "") + "payments/" + encodeURIComponent(r.paymentIntent) : null;
           return '<tr><td><strong>' + esc(r.purchaser.name) + '</strong>' + (r.ref ? '<br><small>' + esc(r.ref) + '</small>' : "") +
@@ -217,7 +219,7 @@
     $("checkOnlyWrap").hidden = v !== "recovered";
     $("classFilter").hidden = v === "forms" || v === "giftcards"; $("showTest").parentNode.hidden = v === "forms" || v === "giftcards";
     $("viewNote").textContent = v === "giftcards"
-      ? "Every eGift code sold on the website. Each credit covers one spot in any class; leftover credits stay on the code."
+      ? "Every eGift code and BOGO class code sold on the website. Each credit covers one spot in any class; leftover credits stay on the code."
       : v === "forms"
       ? "Newsletter signups and messages sent through the website, newest first. Each one is also emailed to you once email is set up."
       : v === "bookings"

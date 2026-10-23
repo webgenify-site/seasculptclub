@@ -56,7 +56,7 @@
         '<label>Phone<input name="phone" type="tel" autocomplete="tel" required maxlength="30"></label>' +
         '<div class="cart-attendees"></div>' +
         '<div class="cart-code" hidden>' +
-          '<label for="cartGiftCode">Have an eGift code?</label>' +
+          '<label for="cartGiftCode">Have an eGift or class code?</label>' +
           '<div class="cart-code-row"><input id="cartGiftCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="SSC-XXXX-XXXX">' +
           '<button type="button" class="cart-code-apply">Apply</button></div>' +
           '<p class="cart-code-msg" role="status" aria-live="polite"></p>' +
@@ -133,12 +133,12 @@
     var cov = coverage();
     creditEl.hidden = !cov.n;
     if (cov.n) {
-      creditEl.querySelector("span").textContent = "eGift (" + cov.n + (cov.n === 1 ? " class spot)" : " class spots)");
+      creditEl.querySelector("span").textContent = (giftState.kind === "pack" ? "Class code (" : "eGift (") + cov.n + (cov.n === 1 ? " class spot)" : " class spots)");
       creditEl.querySelector("strong").textContent = "−" + money(cov.value);
     }
     totalLabel.textContent = cov.n ? "Total" : "Subtotal";
     totalEl.textContent = money(total() - cov.value);
-    if (step === "details") checkoutBtn.textContent = cov.n && total() - cov.value === 0 ? "Book with eGift" : "Continue to payment";
+    if (step === "details") checkoutBtn.textContent = cov.n && total() - cov.value === 0 ? (giftState.kind === "pack" ? "Book with code" : "Book with eGift") : "Continue to payment";
     checkoutBtn.disabled = !cart.length;
     msg.textContent = "";
     if (!cart.length && step === "details") showStep("cart");
@@ -319,19 +319,20 @@
   /* ---------- eGift code ---------- */
   function applyCode() {
     var code = codeInput.value.trim();
-    if (!code) { codeMsg.textContent = "Enter the code from your eGift email."; codeInput.focus(); return; }
+    if (!code) { codeMsg.textContent = "Enter the code from your email."; codeInput.focus(); return; }
     codeBtn.disabled = true; codeMsg.className = "cart-code-msg"; codeMsg.textContent = "Checking…";
-    fetch("/api/gift-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code }) })
+    fetch("/api/gift-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code, email: F.email.value.trim() }) })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (x) {
         if (!x.ok) { giftState = null; codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = x.d.error || "That code didn't work."; render(); return; }
-        giftState = { code: x.d.code, creditsLeft: x.d.creditsLeft };
+        giftState = { code: x.d.code, creditsLeft: x.d.usableNow != null ? x.d.usableNow : x.d.creditsLeft, total: x.d.creditsLeft, kind: x.d.kind, expiring: x.d.expiring };
         codeInput.value = x.d.code;
         render();
         var cov = coverage();
         codeMsg.className = "cart-code-msg is-good";
         codeMsg.innerHTML = "&#10003; " + esc(x.d.code) + " covers " + cov.n + (cov.n === 1 ? " class spot" : " class spots") +
-          (x.d.creditsLeft > cov.n ? " (" + (x.d.creditsLeft - cov.n) + " left for next time)" : "") +
+          (x.d.creditsLeft > cov.n ? " (" + (x.d.creditsLeft - cov.n) + " left for next time" + (x.d.perBooking ? ", " + x.d.perBooking + " per booking" : "") + ")" : "") +
+          (x.d.expiring ? ". Book your extra class by " + new Date(x.d.expiring.expiresAt).toLocaleDateString("en-US", { month: "long", day: "numeric" }) + "." : "") +
           ' <button type="button" class="cart-code-remove">Remove</button>';
         track("redeem_egift", { credits: cov.n });
       })
@@ -489,7 +490,7 @@
     try { sessionStorage.removeItem(DETAILS_KEY); } catch (e) {}
     closeDrawer(); render();
     checkoutBtn.textContent = "Checkout";
-    showThanks("Your eGift covered it. Your confirmation (ref " + esc(d.ref || "") + ") is on its way to your email.");
+    showThanks("Your code covered it. Your confirmation (ref " + esc(d.ref || "") + ") is on its way to your email.");
   }
 
   /* ---------- return from a completed payment ---------- */
