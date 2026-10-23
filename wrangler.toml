@@ -18,3 +18,18 @@ SITE_URL = "https://seasculptclub.com"
 AIRTABLE_BASE_ID = "appha5EL7Q92l0yuf"
 AIRTABLE_TABLE = "Posts"
 BOOKING_EMAIL_FROM = "Sea Sculpt Club <bookings@seasculptclub.com>"
+
+# ---- Preview deployments (e.g. the "sandbox" branch → sandbox.seasculptclub-website.pages.dev) ----
+# Used for Stripe test-mode (sandbox) testing: its own database, so tests never mix with real bookings.
+# Preview secrets (Stripe sk_test_/pk_test_ keys, test webhook secret, ADMIN_PASSWORD, RESEND_API_KEY)
+# are added in Cloudflare → Settings → Variables and Secrets → Preview.
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "sea-sculpt-bookings-sandbox"
+database_id = "904aa218-ff7f-4d30-81ca-f394c933f4e2"
+
+[env.preview.vars]
+SITE_URL = "https://sandbox.seasculptclub-website.pages.dev"
+AIRTABLE_BASE_ID = "appha5EL7Q92l0yuf"
+AIRTABLE_TABLE = "Posts"
+BOOKING_EMAIL_FROM = "Sea Sculpt Club <bookings@seasculptclub.com>"
