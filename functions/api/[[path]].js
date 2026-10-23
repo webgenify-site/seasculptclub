@@ -1403,64 +1403,73 @@ var require_admin_bookings = __commonJS({
 // ../cf/src/functions/get-posts.js
 var require_get_posts = __commonJS({
   "../cf/src/functions/get-posts.js"(exports) {
-    exports.handler = async function(event, context) {
+    var json = (statusCode, body, cache) => ({
+      statusCode,
+      headers: { "Content-Type": "application/json", "Cache-Control": cache || "no-store" },
+      body: JSON.stringify(body)
+    });
+    var pick = (f, names) => {
+      for (const n of names) if (f[n] != null && f[n] !== "") return f[n];
+      return null;
+    };
+    var slugify = (s) => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    function isPublished(f) {
+      if (f.Published === true) return true;
+      const status = f.Status && (typeof f.Status === "string" ? f.Status : f.Status.name);
+      return String(status || "").trim().toLowerCase() === "published";
+    }
+    function imageUrl(att) {
+      const a = Array.isArray(att) ? att[0] : null;
+      if (!a) return "";
+      return a.thumbnails && a.thumbnails.full && a.thumbnails.full.url || a.url || "";
+    }
+    function toPost(record) {
+      const f = record.fields || {};
+      const title = pick(f, ["Title", "Blog Title"]);
+      if (!title || !isPublished(f)) return null;
+      const date = String(pick(f, ["Date", "Publish Date"]) || (record.createdTime || "").slice(0, 10));
+      return {
+        id: record.id,
+        slug: pick(f, ["Slug"]) || slugify(title),
+        title: String(title).trim(),
+        date: date.slice(0, 10),
+        excerpt: pick(f, ["Excerpt"]) || "",
+        image: imageUrl(pick(f, ["Image", "Featured Image"])),
+        body: pick(f, ["Body", "Content"]) || ""
+      };
+    }
+    exports.handler = async function() {
       const token = process.env.AIRTABLE_TOKEN;
       const baseId = process.env.AIRTABLE_BASE_ID;
       const table = process.env.AIRTABLE_TABLE || "Posts";
-      if (!token || !baseId) {
-        return {
-          statusCode: 500,
-          body: JSON.stringify({
-            error: "Missing AIRTABLE_TOKEN or AIRTABLE_BASE_ID in the Cloudflare settings (Settings \u2192 Variables and Secrets)."
-          })
-        };
-      }
+      if (!token || !baseId) return json(200, { posts: [], note: "Blog not connected to Airtable yet (AIRTABLE_TOKEN / AIRTABLE_BASE_ID)." });
       try {
-        const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(
-          table
-        )}?filterByFormula=${encodeURIComponent("{Published}=1")}&sort[0][field]=Date&sort[0][direction]=desc`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) {
-          const errText = await res.text();
-          return {
-            statusCode: res.status,
-            body: JSON.stringify({ error: "Airtable request failed", details: errText })
-          };
+        const records = [];
+        let offset = null;
+        for (let page = 0; page < 10; page++) {
+          const qs = new URLSearchParams({ pageSize: "100" });
+          if (offset) qs.set("offset", offset);
+          const res = await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(table)}?${qs}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!res.ok) {
+            const details = await res.text();
+            console.error("Airtable request failed", res.status, details.slice(0, 300));
+            return json(502, { error: "Airtable request failed", status: res.status });
+          }
+          const data = await res.json();
+          records.push(...data.records || []);
+          if (!data.offset) break;
+          offset = data.offset;
         }
-        const data = await res.json();
-        const posts = (data.records || []).map(function(record) {
-          const f = record.fields || {};
-          const title = f.Title || "Untitled";
-          const slug = f.Slug || title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-          return {
-            id: record.id,
-            slug,
-            title,
-            date: f.Date || "",
-            excerpt: f.Excerpt || "",
-            image: f.Image && f.Image[0] ? f.Image[0].url : "",
-            body: f.Body || ""
-          };
-        });
-        return {
-          statusCode: 200,
-          headers: {
-            "Content-Type": "application/json",
-            // Cache briefly at the edge so repeat visits are fast without
-            // needing a full rebuild; adjust as needed.
-            "Cache-Control": "public, max-age=60"
-          },
-          body: JSON.stringify({ posts })
-        };
+        const posts = records.map(toPost).filter(Boolean).sort((a, b) => b.date.localeCompare(a.date));
+        return json(200, { posts }, "public, max-age=60");
       } catch (err) {
-        return {
-          statusCode: 500,
-          body: JSON.stringify({ error: "Unexpected error", details: String(err) })
-        };
+        console.error("get-posts failed", err);
+        return json(500, { error: "Unexpected error" });
       }
     };
+    exports._toPost = toPost;
   }
 });
 
