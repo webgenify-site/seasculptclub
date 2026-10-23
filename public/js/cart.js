@@ -55,9 +55,16 @@
         '<label>Email<input name="email" type="email" autocomplete="email" required maxlength="200"></label>' +
         '<label>Phone<input name="phone" type="tel" autocomplete="tel" required maxlength="30"></label>' +
         '<div class="cart-attendees"></div>' +
+        '<div class="cart-code" hidden>' +
+          '<label for="cartGiftCode">Have an eGift code?</label>' +
+          '<div class="cart-code-row"><input id="cartGiftCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="SSC-XXXX-XXXX">' +
+          '<button type="button" class="cart-code-apply">Apply</button></div>' +
+          '<p class="cart-code-msg" role="status" aria-live="polite"></p>' +
+        '</div>' +
         '<p class="cart-details-error" role="alert"></p>' +
       '</form>' +
       '<div class="cart-foot">' +
+        '<div class="cart-credit" hidden><span></span><strong></strong></div>' +
         '<div class="cart-total"><span>Subtotal</span><strong></strong></div>' +
         '<p class="cart-msg" role="alert"></p>' +
         '<button type="button" class="cl-btn cl-btn-fill cart-checkout">Checkout</button>' +
@@ -88,8 +95,23 @@
   var detailsErr = shell.querySelector(".cart-details-error");
   var step = "cart";
   // Note: form.name is the form's own name attribute, so fields are looked up explicitly.
+  var codeBox = shell.querySelector(".cart-code"), codeInput = shell.querySelector("#cartGiftCode");
+  var codeBtn = shell.querySelector(".cart-code-apply"), codeMsg = shell.querySelector(".cart-code-msg");
+  var creditEl = shell.querySelector(".cart-credit"), totalLabel = shell.querySelector(".cart-total span");
+  var giftState = null; // { code, creditsLeft } once a valid eGift code is applied
   var F = { name: details.querySelector('input[name="name"]'), email: details.querySelector('input[name="email"]'), phone: details.querySelector('input[name="phone"]') };
 
+  // Same rule as the server: each eGift credit covers one class spot, most expensive spots first.
+  function coverage() {
+    if (!giftState) return { n: 0, value: 0 };
+    var spots = [];
+    cart.forEach(function (l) { var it = CATALOG[l.id]; if (it.kind === "class") for (var i = 0; i < l.qty; i++) spots.push(it.amount); });
+    spots.sort(function (a, b) { return b - a; });
+    var n = Math.min(giftState.creditsLeft, spots.length), v = 0;
+    for (var i = 0; i < n; i++) v += spots[i];
+    return { n: n, value: v };
+  }
+  function hasClass() { return cart.some(function (l) { return CATALOG[l.id].kind === "class"; }); }
   function render() {
     countEl.textContent = count();
     fab.classList.toggle("has-items", count() > 0);
@@ -107,7 +129,16 @@
           '</div></div>';
       }).join("");
     }
-    totalEl.textContent = money(total());
+    if (giftState && !hasClass()) { giftState = null; codeMsg.textContent = ""; }
+    var cov = coverage();
+    creditEl.hidden = !cov.n;
+    if (cov.n) {
+      creditEl.querySelector("span").textContent = "eGift (" + cov.n + (cov.n === 1 ? " class spot)" : " class spots)");
+      creditEl.querySelector("strong").textContent = "−" + money(cov.value);
+    }
+    totalLabel.textContent = cov.n ? "Total" : "Subtotal";
+    totalEl.textContent = money(total() - cov.value);
+    if (step === "details") checkoutBtn.textContent = cov.n && total() - cov.value === 0 ? "Book with eGift" : "Continue to payment";
     checkoutBtn.disabled = !cart.length;
     msg.textContent = "";
     if (!cart.length && step === "details") showStep("cart");
@@ -177,6 +208,7 @@
       }
     });
     attendeesEl.innerHTML = (html ? '<h3>Who&rsquo;s coming?</h3>' + html : "") + (gh ? '<h3>Gift details</h3>' + gh : "");
+    codeBox.hidden = !html; // eGift codes cover class spots
     detailsErr.textContent = "";
   }
   // Spot 1 follows the purchaser's name until it's edited by hand.
@@ -222,7 +254,7 @@
     body.hidden = isDetails; details.hidden = !isDetails;
     shell.querySelector(".cart-head h2").textContent = isDetails ? "Checkout" : "Your Cart";
     checkoutBtn.textContent = isDetails ? "Continue to payment" : "Checkout";
-    if (isDetails) { buildDetails(); (F.name.value ? details.querySelector("input[data-line]") || F.phone : F.name).focus(); }
+    if (isDetails) { buildDetails(); render(); (F.name.value ? details.querySelector("input[data-line]") || F.phone : F.name).focus(); }
   }
   shell.querySelector(".cart-back").addEventListener("click", function () { showStep("cart"); });
   details.addEventListener("submit", function (e) { e.preventDefault(); checkoutBtn.click(); });
@@ -284,6 +316,35 @@
   shell.querySelector(".cart-drawer .cart-x").addEventListener("click", closeDrawer);
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && drawer.classList.contains("open")) closeDrawer(); });
 
+  /* ---------- eGift code ---------- */
+  function applyCode() {
+    var code = codeInput.value.trim();
+    if (!code) { codeMsg.textContent = "Enter the code from your eGift email."; codeInput.focus(); return; }
+    codeBtn.disabled = true; codeMsg.className = "cart-code-msg"; codeMsg.textContent = "Checking…";
+    fetch("/api/gift-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) {
+        if (!x.ok) { giftState = null; codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = x.d.error || "That code didn't work."; render(); return; }
+        giftState = { code: x.d.code, creditsLeft: x.d.creditsLeft };
+        codeInput.value = x.d.code;
+        render();
+        var cov = coverage();
+        codeMsg.className = "cart-code-msg is-good";
+        codeMsg.innerHTML = "&#10003; " + esc(x.d.code) + " covers " + cov.n + (cov.n === 1 ? " class spot" : " class spots") +
+          (x.d.creditsLeft > cov.n ? " (" + (x.d.creditsLeft - cov.n) + " left for next time)" : "") +
+          ' <button type="button" class="cart-code-remove">Remove</button>';
+        track("redeem_egift", { credits: cov.n });
+      })
+      .catch(function () { codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = "Couldn't check the code right now. Please try again."; })
+      .then(function () { codeBtn.disabled = false; });
+  }
+  codeBtn.addEventListener("click", applyCode);
+  codeInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); applyCode(); } });
+  codeMsg.addEventListener("click", function (e) {
+    if (!e.target.closest(".cart-code-remove")) return;
+    giftState = null; codeInput.value = ""; codeMsg.textContent = ""; render(); codeInput.focus();
+  });
+
   /* ---------- checkout ---------- */
   function loadStripe() {
     return new Promise(function (resolve, reject) {
@@ -309,7 +370,7 @@
   function requestSession(mode) {
     return fetch("/api/create-checkout", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: cart, mode: mode, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {} })
+      body: JSON.stringify({ items: cart, mode: mode, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, giftCode: giftState ? giftState.code : undefined })
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
         if (!r.ok) {
@@ -336,6 +397,7 @@
     checkoutBtn.disabled = true; checkoutBtn.textContent = "Opening secure checkout…";
     var alt = pay.querySelector(".cart-hosted"); if (alt) alt.disabled = true;
     return requestSession("hosted").then(function (d) {
+      if (d.free) { closePay(); bookedWithGift(d); return; }
       if (!d.url) { var er = new Error("Checkout isn't available right now."); er.friendly = true; er.code = "no_url"; throw er; }
       rememberPending();
       window.location.href = d.url;
@@ -365,6 +427,7 @@
     track("begin_checkout", { currency: "USD", value: total() / 100, items: gaItems(cart) });
     requestSession("embedded")
       .then(function (d) {
+        if (d.free) { bookedWithGift(d); return; }
         return loadStripe().then(function () {
           var stripe = window.Stripe(d.publishableKey, { betas: ["custom_checkout_payment_form_1"] });
           if (typeof stripe.initCheckoutFormSdk !== "function") throw new Error("checkout_form_unavailable");
@@ -390,7 +453,11 @@
         });
       })
       .catch(function (err) {
-        if (err && (err.code === "invalid_details" || err.code === "price_not_configured")) {
+        if (err && err.code === "gift_invalid") {
+          closePay(); openDrawer(); if (step !== "details") showStep("details");
+          giftState = null; codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = err.message; render();
+          checkoutBtn.disabled = !cart.length; codeInput.focus();
+        } else if (err && (err.code === "invalid_details" || err.code === "price_not_configured")) {
           // Something the customer can fix (or an item not bookable online): stay on the details step.
           closePay(); openDrawer(); if (step !== "details") showStep("details");
           detailsErr.textContent = err.message;
@@ -407,6 +474,24 @@
       });
   });
 
+  function showThanks(text) {
+    var note = document.createElement("div");
+    note.className = "cart-thanks"; note.setAttribute("role", "status");
+    note.innerHTML = '<div><strong>You&rsquo;re booked &mdash; thank you!</strong> ' + text + '</div>' +
+      '<button type="button" aria-label="Dismiss">&times;</button>';
+    note.querySelector("button").addEventListener("click", function () { note.remove(); });
+    document.body.appendChild(note);
+  }
+  // Everything was covered by an eGift: booked without payment.
+  function bookedWithGift(d) {
+    track("purchase", { transaction_id: d.ref, currency: "USD", value: 0, coupon: "egift", items: gaItems(cart) });
+    cart = []; save(cart); giftState = null; codeInput.value = ""; codeMsg.textContent = "";
+    try { sessionStorage.removeItem(DETAILS_KEY); } catch (e) {}
+    closeDrawer(); render();
+    checkoutBtn.textContent = "Checkout";
+    showThanks("Your eGift covered it. Your confirmation (ref " + esc(d.ref || "") + ") is on its way to your email.");
+  }
+
   /* ---------- return from a completed payment ---------- */
   var q = new URLSearchParams(location.search);
   if (q.get("checkout") === "complete") {
@@ -417,12 +502,7 @@
     }
     cart = []; save(cart);
     try { sessionStorage.removeItem(DETAILS_KEY); } catch (e) {}
-    var note = document.createElement("div");
-    note.className = "cart-thanks"; note.setAttribute("role", "status");
-    note.innerHTML = '<div><strong>You&rsquo;re booked &mdash; thank you!</strong> Your booking confirmation and receipt are on their way to your email.</div>' +
-      '<button type="button" aria-label="Dismiss">&times;</button>';
-    note.querySelector("button").addEventListener("click", function () { note.remove(); });
-    document.body.appendChild(note);
+    showThanks("Your booking confirmation and receipt are on their way to your email.");
     history.replaceState(null, "", location.pathname + location.hash);
   }
 

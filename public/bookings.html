@@ -77,6 +77,7 @@
   <div class="tabs" role="tablist">
     <button role="tab" data-view="bookings" aria-selected="true">Bookings</button>
     <button role="tab" data-view="recovered" aria-selected="false">Past payments (before booking records)</button>
+    <button role="tab" data-view="giftcards" aria-selected="false">eGift cards</button>
     <button role="tab" data-view="forms" aria-selected="false">Form messages</button>
   </div>
   <div class="toolbar">
@@ -84,7 +85,6 @@
     <label><input type="checkbox" id="showTest"> Show test-mode bookings</label>
     <label id="checkOnlyWrap" hidden><input type="checkbox" id="checkOnly"> Only ones that need checking</label>
     <span class="spacer"></span>
-    <button class="btn" id="importNetlify" title="One-time: copy bookings saved on the old Netlify site">Import from Netlify</button>
     <button class="btn" id="refresh">Refresh</button>
     <button class="btn fill" id="csv">Download CSV</button>
   </div>
@@ -97,7 +97,7 @@
 (function () {
   var API = "/api/admin-bookings";
   var PW_KEY = "sscAdminPw";
-  var view = "bookings", data = { bookings: null, recovered: null, forms: null };
+  var view = "bookings", data = { bookings: null, recovered: null, forms: null, giftcards: null };
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   var money = function (c) { return c == null ? "" : "$" + (c / 100).toFixed(2); };
@@ -141,8 +141,22 @@
           '<td>' + esc(r.email && r.email.status ? r.email.status.replace("_", " ") : "") + '</td></tr>';
       }).join("") + '</tbody></table></div></section>';
   }
+  function renderGiftCards() {
+    var rows = data.giftcards || [];
+    if (!rows.length) { $("list").innerHTML = '<div class="empty">No eGift cards yet. Each eGift bought on the website appears here with its code and how many class credits are left.</div>'; return; }
+    $("list").innerHTML = '<section class="group"><div class="scroll"><table><thead><tr><th>Code</th><th>eGift</th><th>Credits left</th><th>For</th><th>From</th><th>Used on</th><th>Bought</th></tr></thead><tbody>' +
+      rows.map(function (c) {
+        var uses = (c.uses || []).map(function (u) { return esc(u.ref || u.bookingId) + ' (' + u.n + (u.n === 1 ? " spot" : " spots") + ', ' + esc(new Date(u.at).toLocaleDateString()) + ')'; });
+        return '<tr><td class="mono"><strong>' + esc(c.code) + '</strong></td><td>' + esc(c.giftName || "") + '</td>' +
+          '<td><strong>' + c.left + '</strong> of ' + c.credits + (c.held ? '<br><small>' + c.held + ' held by an open checkout</small>' : "") + '</td>' +
+          '<td>' + esc(c.toName) + '<br><small>' + esc(c.toEmail) + '</small></td><td>' + esc(c.fromName) + '<br><small>' + esc(c.fromEmail) + '</small></td>' +
+          '<td>' + (uses.length ? uses.join("<br>") : '<span class="notes">Not used yet</span>') + '</td>' +
+          '<td>' + esc(new Date(c.createdAt).toLocaleDateString()) + (c.purchaseRef ? '<br><small>' + esc(c.purchaseRef) + '</small>' : "") + '</td></tr>';
+      }).join("") + '</tbody></table></div></section>';
+  }
   function render() {
     if (view === "forms") return renderForms();
+    if (view === "giftcards") return renderGiftCards();
     var records = data[view] || [];
     var showTest = $("showTest").checked, checkOnly = $("checkOnly").checked, filter = $("classFilter").value;
     var groups = {};
@@ -182,6 +196,7 @@
           var r = x.r, flags = r.flags || [], notes = r.notes || [];
           var status = '<span class="pill">' + esc(r.status) + '</span>' + (r.livemode === false ? ' <span class="pill test">test</span>' : "") +
             (flags.length ? ' <span class="pill check">check</span>' : "") + '<br><small>' + money(r.amountTotal) + ((r.items || []).length > 1 ? ' order total' : '') + '</small>' +
+            (r.giftRedemption ? '<br><small>eGift <span class="mono">' + esc(r.giftRedemption.code) + '</span>: ' + r.giftRedemption.credits + (r.giftRedemption.credits === 1 ? " spot" : " spots") + (x.it.giftCovered ? ' (' + x.it.giftCovered + ' here)' : '') + '</small>' : "") +
             (r.confirmation && r.confirmation.status ? '<br><small>Email: ' + esc(r.confirmation.status.replace("_", " ")) + '</small>' : "");
           var refUrl = r.paymentIntent ? "https://dashboard.stripe.com/" + (r.livemode === false ? "test/" : "") + "payments/" + encodeURIComponent(r.paymentIntent) : null;
           return '<tr><td><strong>' + esc(r.purchaser.name) + '</strong>' + (r.ref ? '<br><small>' + esc(r.ref) + '</small>' : "") +
@@ -200,8 +215,10 @@
     view = v;
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-view") === v)); });
     $("checkOnlyWrap").hidden = v !== "recovered";
-    $("classFilter").hidden = v === "forms"; $("showTest").parentNode.hidden = v === "forms";
-    $("viewNote").textContent = v === "forms"
+    $("classFilter").hidden = v === "forms" || v === "giftcards"; $("showTest").parentNode.hidden = v === "forms" || v === "giftcards";
+    $("viewNote").textContent = v === "giftcards"
+      ? "Every eGift code sold on the website. Each credit covers one spot in any class; leftover credits stay on the code."
+      : v === "forms"
       ? "Newsletter signups and messages sent through the website, newest first. Each one is also emailed to you once email is set up."
       : v === "bookings"
       ? "Confirmed bookings, saved automatically when Stripe confirms a payment."
@@ -216,7 +233,7 @@
       return r.blob().then(function (b) {
         var a = document.createElement("a");
         a.href = URL.createObjectURL(b);
-        a.download = view === "recovered" ? "sea-sculpt-past-payments.csv" : view === "forms" ? "sea-sculpt-form-messages.csv" : "sea-sculpt-bookings.csv";
+        a.download = view === "recovered" ? "sea-sculpt-past-payments.csv" : view === "forms" ? "sea-sculpt-form-messages.csv" : view === "giftcards" ? "sea-sculpt-egift-cards.csv" : "sea-sculpt-bookings.csv";
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
       });
@@ -245,19 +262,6 @@
   $("logout").addEventListener("click", function () { logout(); });
   $("refresh").addEventListener("click", function () { load(view, true).then(render).catch(function (e) { if (e.message !== "auth") $("appErr").textContent = e.message; }); });
   $("csv").addEventListener("click", downloadCsv);
-  // One-time move: copies bookings from the old Netlify site (safe to press again; nothing is duplicated).
-  $("importNetlify").addEventListener("click", function () {
-    var btn = $("importNetlify"); btn.disabled = true; $("appErr").textContent = ""; $("viewNote").textContent = "Copying bookings from the old Netlify site…";
-    fetch(API + "?action=import-netlify", { method: "POST", headers: { "x-admin-password": pw() }, cache: "no-store" })
-      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok) throw new Error(d.error || "Import didn't work.");
-        $("viewNote").textContent = "Imported " + d.imported + " booking" + (d.imported === 1 ? "" : "s") + " from Netlify" +
-          (d.alreadyHere ? " (" + d.alreadyHere + " were already here)" : "") + (d.formMessages ? ", plus " + d.formMessages + " form messages" : "") + ".";
-        data.bookings = null; data.forms = null; return load(view, true).then(render);
-      }); })
-      .catch(function (e) { $("viewNote").textContent = ""; if (e.message !== "auth") $("appErr").textContent = e.message; })
-      .then(function () { btn.disabled = false; });
-  });
   $("classFilter").addEventListener("change", render);
   $("showTest").addEventListener("change", render);
   $("checkOnly").addEventListener("change", render);

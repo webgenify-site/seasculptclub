@@ -710,3 +710,21 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .gc-blue{--bow:#5D8BB3;--bow-edge:#2F5473;}
 .gc-butter{--bow:#F7CEDB;--bow-edge:#DDA0B6;}
 @media(max-width:700px){.gc-bow svg{left:-50px;top:-45px;width:100px;}}
+
+/* eGift code box in the cart */
+.cart-code{margin:4px 0 14px;padding:14px;border:1px dashed rgba(18,49,79,.3);border-radius:8px;background:#F7FBFF;}
+.cart-code[hidden]{display:none;}
+.cart-code label{margin:0 0 8px !important;}
+.cart-code-row{display:flex;gap:8px;}
+.cart-code-row input{margin:0 !important;flex:1;min-width:0;text-transform:uppercase;letter-spacing:.06em;}
+.cart-code-apply{flex-shrink:0;min-height:44px;padding:0 18px;border:1px solid var(--c-navy,#12314F);border-radius:999px;background:#fff;color:var(--c-navy,#12314F);font:500 .72rem 'Jost',sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;}
+.cart-code-apply:hover{background:var(--c-navy,#12314F);color:#fff;}
+.cart-code-apply:disabled{opacity:.5;cursor:wait;}
+.cart-code-msg{margin:8px 0 0;font-size:.85rem;line-height:1.45;color:#4A6683;}
+.cart-code-msg:empty{display:none;}
+.cart-code-msg.is-good{color:#1F6B4A;}
+.cart-code-msg.is-bad{color:#A2401B;}
+.cart-code-remove{margin-left:6px;padding:0;border:0;background:none;color:#4A6683;font:inherit;font-size:.8rem;text-decoration:underline;cursor:pointer;}
+.cart-credit{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:.9rem;color:#1F6B4A;}
+.cart-credit[hidden]{display:none;}
+.cart-credit strong{font:500 1.15rem 'Cormorant Garamond',serif;}
