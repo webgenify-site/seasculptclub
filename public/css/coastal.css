@@ -1,0 +1,712 @@
+/* =====================================================================
+   Sea Sculpt Club — Coastal identity (shared design system)
+   Loaded after style.css on every page.
+   Recurring treatments:
+     1. Sunlit water as immersive photographic bands   (.water-band)
+     2. Pale sand surfaces + low-contrast palm shadows  (.sand-surface, .palm-shade)
+     3. Broad butter/ivory cabana stripes in the menu bar only
+   ===================================================================== */
+:root{
+  --c-blue:#B7D7F2;
+  --c-butter:#FFF9BE;
+  --c-stripe:#F7E8A6;          /* butter, one step deeper so stripes read on ivory */
+  --c-navy:#3D6789;
+  --c-ink:#1E3A55;             /* body text: navy, darkened for contrast */
+  --c-ivory:#FBF8F1;
+  --c-sand:#F2EBDF;
+  --c-rule:rgba(61,103,137,.2);
+  --c-radius:4px;
+  --c-gutter:clamp(20px,5vw,72px);
+}
+body{background:var(--c-ivory);color:var(--c-ink);}
+p{color:inherit;}
+
+/* ---------- Typography ---------- */
+h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:500;color:var(--c-ink);letter-spacing:.005em;}
+.eyebrow{color:var(--c-navy);}
+.script{font-size:1em;}
+
+
+/* ---------- Header: soft cabana stripes ---------- */
+header{background:rgba(255,249,190,.96);border-bottom:0;box-shadow:none;}
+.navlinks a{color:var(--c-ink);}
+.navlinks a:hover,.navlinks a.active{border-color:var(--c-navy);}
+.nav-cta-wrap .btn-fill{background:var(--c-blue);color:var(--c-ink);}
+
+/* ---------- Footer: deep navy ---------- */
+footer{position:relative;background:var(--c-ink);}
+footer h4{color:var(--c-butter);}
+
+/* ---------- Surfaces ---------- */
+.sand-surface{background-color:var(--c-ivory);background-image:url("../assets/tex-sand-seamless.jpg");background-size:2800px auto;background-repeat:repeat;}
+.ivory-surface{background:var(--c-ivory);}
+.paper-surface{background:#fff;}
+.palm-shade{position:relative;isolation:isolate;overflow-x:clip;}
+.palm-shade::before{content:"";position:absolute;z-index:-1;pointer-events:none;
+  width:min(560px,62vw);aspect-ratio:3/4;top:-90px;right:-140px;
+  background:url("../assets/palm-soft.webp") right top/contain no-repeat;opacity:.16;transform:rotate(-8deg);}
+.palm-shade.is-left::before{right:auto;left:-160px;transform:rotate(12deg) scaleX(-1);}
+
+/* ---------- Water band (immersive) ---------- */
+.water-band{position:relative;isolation:isolate;color:#fff;overflow:hidden;
+  background:var(--c-navy) url("../assets/band-water.jpg") center 40%/cover no-repeat;}
+.water-band::before{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(90deg,rgba(30,58,85,.72) 0%,rgba(30,58,85,.45) 48%,rgba(30,58,85,.18) 100%);}
+.water-band h2,.water-band h3{color:#fff;}
+.water-band .eyebrow{color:var(--c-butter);}
+.water-band p{color:rgba(255,255,255,.92);}
+
+/* ---------- Buttons ---------- */
+.btn-coast{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 28px;border-radius:var(--c-radius);
+  font:500 .74rem/1 'Jost',sans-serif;letter-spacing:.16em;text-transform:uppercase;border:1px solid transparent;cursor:pointer;transition:background .25s,color .25s,border-color .25s;}
+.btn-coast.is-blue{background:var(--c-blue);color:var(--c-ink);}
+.btn-coast.is-blue:hover{background:#A3CAEB;}
+.btn-coast.is-navy{background:var(--c-navy);color:#fff;}
+.btn-coast.is-navy:hover{background:#2F5473;}
+.btn-coast.is-ghost{border-color:rgba(255,255,255,.75);color:#fff;}
+.btn-coast.is-ghost:hover{background:#fff;color:var(--c-ink);}
+.btn-coast:focus-visible{outline:2px solid var(--c-butter);outline-offset:3px;}
+
+/* ---------- Editorial helpers ---------- */
+.ed-wrap{max-width:1240px;margin:0 auto;padding:0 var(--c-gutter);}
+.ed-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:36px;}
+.ed-head h2{font-size:clamp(2rem,3.6vw,2.9rem);line-height:1.08;margin-top:10px;}
+.ed-head .ed-link{white-space:nowrap;}
+.ed-link{font:500 .72rem/1.4 'Jost',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--c-ink);border-bottom:1px solid var(--c-ink);padding-bottom:4px;}
+.ed-link:hover{color:var(--c-navy);border-color:var(--c-stripe);}
+.ed-fig{margin:0;overflow:hidden;border-radius:var(--c-radius);background:var(--c-sand);}
+.ed-fig img{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* ---------- Inner-page heroes: grainy sand surface (all pages) ---------- */
+.page-hero{background-color:var(--c-ivory) !important;background-image:url("../assets/tex-sand-seamless.jpg") !important;background-size:2800px auto !important;}
+.page-hero .page-hero-wave{display:none;}
+.page-hero h1 .script{color:var(--c-navy);}
+.page-hero p{color:var(--c-ink);}
+
+/* Crisper images & quieter cards across the site */
+.hx-card,.hx-option,.pv-card,.co-card,.co-form,.co-done,.pv-book-card,.hubspot-form-card,.review-card,.value-card,.cl-pack,.hx-signup{border-radius:var(--c-radius) !important;box-shadow:none !important;}
+.hx-img,.hx-option figure,.pv-card-photo,.pv-hero-photo,.co-hero-photo,.co-gallery figure,.co-vendor-photo,.hx-portrait,.home-privates-photo,.split-photo img,.collab-photo,.cl-feature-img,.cl-feature-img img,.pv-frame-wrap{border-radius:var(--c-radius) !important;box-shadow:none !important;}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important;}
+}
+@media(max-width:760px){
+  .ed-head{flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:24px;}
+  .palm-shade::before{width:70vw;right:-30vw;top:-40px;opacity:.07;}
+  .water-band::before{background:linear-gradient(180deg,rgba(30,58,85,.7),rgba(30,58,85,.5));}
+}
+
+/* =================== HOMEPAGE COMPOSITION =================== */
+/* upcoming cards on sand */
+#upcoming{padding:72px 0 80px;}
+#upcoming .hx-card{border-color:var(--c-rule);background:#fff;}
+#upcoming .hx-img{aspect-ratio:4/5;}
+.hx-tag.is-class{background:var(--c-blue);}
+.hx-tag.is-event{background:var(--c-butter);border:1px solid #EEE19A;}
+.btn.hx-book{border-radius:var(--c-radius);background:var(--c-blue);border-color:var(--c-blue);color:var(--c-ink);}
+.btn.hx-book:hover{background:var(--c-navy);border-color:var(--c-navy);color:#fff;}
+.hx-buy .cl-date{border-radius:var(--c-radius);}
+
+/* reviews: photo meets the left viewport edge */
+.ed-reviews{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:stretch;gap:0;}
+.ed-reviews-photo{border-radius:0 !important;min-height:520px;}
+.ed-reviews-photo img{object-position:50% 35%;}
+.ed-reviews-copy{padding:72px var(--c-gutter) 72px clamp(28px,5vw,80px);max-width:720px;display:flex;flex-direction:column;justify-content:center;}
+.ed-reviews-copy h2{font-size:clamp(2rem,3.4vw,2.7rem);margin:10px 0 6px;}
+.ed-reviews-copy .hx-rating{margin:0 0 26px;}
+.ed-reviews .hx-review{background:transparent;border-left:2px solid var(--c-stripe);border-radius:0;padding:4px 0 4px 22px;margin:0 0 24px;}
+.ed-reviews .hx-review blockquote{font-size:1.2rem;color:var(--c-ink);}
+.ed-reviews .ed-link{align-self:flex-start;margin-top:6px;}
+
+/* ways: asymmetric 12-col composition */
+.ed-ways{padding:88px 0 96px;}
+.ed-ways-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:28px 32px;align-items:start;}
+.ed-way{display:block;color:var(--c-ink);}
+.ed-way .ed-fig{transition:opacity .3s;}
+.ed-way:hover .ed-fig{opacity:.92;}
+.ed-way-copy{padding-top:16px;max-width:420px;}
+.ed-way h3{font-size:1.8rem;margin:0 0 6px;}
+.ed-way p{margin:0 0 12px;line-height:1.6;color:var(--c-ink);}
+.ed-way.is-wide{grid-column:1/span 7;}
+.ed-way.is-wide .ed-fig{aspect-ratio:16/10;}
+.ed-way.is-tall{grid-column:9/span 4;grid-row:1/span 2;margin-top:64px;}
+.ed-way.is-tall .ed-fig{aspect-ratio:3/4;}
+.ed-way.is-tall img{object-position:22% 50%;}
+.ed-way.is-offset{grid-column:3/span 5;}
+.ed-way.is-offset .ed-fig{aspect-ratio:4/3;}
+
+/* water invitation */
+.ed-invite{padding:120px 0 150px;}
+.ed-invite h2{font-size:clamp(2.4rem,5vw,3.8rem);line-height:1.05;margin:12px 0 10px;max-width:640px;}
+.ed-invite p{font-size:1.1rem;margin:0 0 30px;max-width:460px;}
+.ed-invite-actions{display:flex;gap:14px;flex-wrap:wrap;}
+
+/* meet amanda: portrait overlaps the water band above */
+.ed-amanda{padding:0 0 88px;}
+.ed-amanda .hx-amanda{max-width:1080px;align-items:end;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);}
+.ed-amanda .hx-portrait{margin-top:-96px;aspect-ratio:4/5;position:relative;z-index:1;border:6px solid var(--c-ivory);}
+.ed-amanda .hx-amanda>div{padding-bottom:12px;}
+.ed-amanda h2 .script{color:var(--c-navy);}
+.ed-amanda p{color:var(--c-ink);}
+
+/* partners */
+.hx-partners{padding:72px 0 56px;}
+.hx-partners .hx-head{margin-bottom:28px;}
+
+/* signup on sand with hand-drawn palms meeting the right edge */
+.ed-signup{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:var(--c-sand);align-items:stretch;}
+.ed-signup-art{order:2;margin:0;min-height:340px;}
+.ed-signup-art img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;display:block;}
+.ed-signup-copy{display:flex;align-items:center;padding:56px var(--c-gutter);background-image:url("../assets/tex-sand-seamless.jpg");background-size:2800px auto;}
+.ed-signup .hx-signup{grid-template-columns:1fr;background:transparent;border:0;padding:0;margin:0;max-width:520px;gap:18px;}
+.ed-signup .hx-signup h3{font-size:2rem;}
+.ed-signup .hx-signup p{color:var(--c-ink);}
+.ed-signup input[type=email]{border-radius:var(--c-radius) !important;background:#fff;}
+
+@media(max-width:980px){
+  .ed-reviews{grid-template-columns:1fr;}
+  .ed-reviews-photo{min-height:0;aspect-ratio:16/10;}
+  .ed-reviews-copy{padding:48px var(--c-gutter) 56px;}
+  .ed-ways-grid{grid-template-columns:1fr 1fr;gap:28px 20px;}
+  .ed-way.is-wide{grid-column:1/-1;}
+  .ed-way.is-tall{grid-column:1/2;grid-row:auto;margin-top:0;}
+  .ed-way.is-offset{grid-column:2/3;margin-top:56px;}
+  .ed-way.is-offset .ed-fig{aspect-ratio:3/4;}
+  .ed-amanda .hx-amanda{grid-template-columns:1fr;}
+  .ed-amanda .hx-portrait{max-width:420px;}
+}
+@media(max-width:600px){
+  #upcoming{padding:52px 0 56px;}
+  .ed-ways{padding:56px 0 64px;}
+  .ed-ways-grid{grid-template-columns:1fr;}
+  .ed-way.is-tall,.ed-way.is-offset{grid-column:1/-1;margin-top:0;}
+  .ed-way.is-tall .ed-fig{aspect-ratio:4/5;}
+  .ed-invite{padding:80px 0 120px;}
+  .ed-invite-actions .btn-coast{flex:1 1 100%;}
+  .ed-amanda .hx-portrait{margin-top:-72px;}
+  .ed-signup{grid-template-columns:1fr;}
+  .ed-signup-art{order:0;min-height:0;aspect-ratio:16/9;}
+  .ed-signup-copy{padding:40px var(--c-gutter) 48px;}
+}
+
+/* =================== PARTIES COMPOSITION =================== */
+.pt-split{padding:84px 0 !important;}
+.pt-split .split-photo img{border-radius:var(--c-radius);}
+.cl-private{background:var(--c-ivory) !important;}
+/* full-width photographic moment, statement over the quiet sky */
+.ed-moment{position:relative;height:clamp(320px,46vw,620px);overflow:hidden;background:var(--c-navy);}
+.ed-moment img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 62%;}
+.ed-moment::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(30,58,85,.42) 0%,rgba(30,58,85,.08) 45%,rgba(30,58,85,0) 70%);}
+.ed-moment-copy{position:relative;z-index:1;padding-top:clamp(36px,6vw,80px);}
+.ed-moment-line{margin:0;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(2rem,4.6vw,3.8rem);line-height:1.05;color:#fff;}
+.ed-moment-line .script{color:var(--c-butter);}
+/* pricing sits on the stripe; keep it quiet */
+.pp{padding-top:64px;}
+/* editorial photo mosaic, meeting the viewport edges */
+.editorial-photo-strip{display:grid !important;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:clamp(120px,14vw,220px);gap:6px;padding:0 !important;margin:0 !important;max-width:none !important;}
+.editorial-photo-strip .strip-photo{border-radius:0 !important;overflow:hidden;aspect-ratio:auto !important;height:auto !important;}
+.editorial-photo-strip .strip-photo img{width:100%;height:100%;object-fit:cover;display:block;border-radius:0 !important;}
+.editorial-photo-strip .strip-photo:nth-child(1){grid-column:1/span 3;grid-row:span 2;}
+.editorial-photo-strip .strip-photo:nth-child(2){grid-column:4/span 5;grid-row:span 1;}
+.editorial-photo-strip .strip-photo:nth-child(3){grid-column:9/span 4;grid-row:1/span 1;}
+.editorial-photo-strip .strip-photo:nth-child(4){grid-column:4/span 2;grid-row:span 1;}
+.editorial-photo-strip .strip-photo:nth-child(5){grid-column:6/span 3;grid-row:span 1;}
+.editorial-photo-strip .strip-photo:nth-child(6){grid-column:9/span 4;grid-row:2/span 1;}
+/* inquiry: water header, form overlaps it on a quiet surface */
+.pt-inquire{background:var(--c-ivory);padding-bottom:88px;}
+.pt-inquire-band{padding:84px 0 150px;}
+.pt-inquire-band h2{font-size:clamp(2.1rem,4vw,3.1rem);margin:10px 0 10px;}
+.pt-inquire-band p{margin:0;max-width:520px;}
+.pt-inquire-grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:32px;align-items:start;margin-top:-104px;position:relative;z-index:1;}
+.pt-inquire-art{aspect-ratio:3/4;margin-top:48px;}
+.pt-inquire-grid .hubspot-form-card{margin:0;background:#fff;border:1px solid var(--c-rule);padding:36px;}
+@media(max-width:900px){
+  .pt-inquire-grid{grid-template-columns:1fr;}
+  .pt-inquire-art{display:none;}
+  .editorial-photo-strip{grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:clamp(110px,28vw,200px);}
+  .editorial-photo-strip .strip-photo:nth-child(1){grid-column:1/span 3;grid-row:span 2;}
+  .editorial-photo-strip .strip-photo:nth-child(2){grid-column:4/span 3;}
+  .editorial-photo-strip .strip-photo:nth-child(3){grid-column:4/span 3;}
+  .editorial-photo-strip .strip-photo:nth-child(4){grid-column:1/span 2;}
+  .editorial-photo-strip .strip-photo:nth-child(5){grid-column:3/span 4;}
+  .editorial-photo-strip .strip-photo:nth-child(3){grid-row:auto;}
+  .editorial-photo-strip .strip-photo:nth-child(6){grid-column:1/span 6;grid-row:auto;}
+}
+@media(max-width:600px){
+  .pt-split{padding:56px 0 !important;}
+  .pt-inquire-band{padding:56px 0 120px;}
+  .pt-inquire-grid .hubspot-form-card{padding:22px 16px;}
+  .ed-moment{height:clamp(260px,80vw,420px);}
+}
+
+/* =================== PRIVATES COMPOSITION =================== */
+.pv-hero{padding:64px 0 96px;}
+.pv-hero-grid{align-items:center;}
+.pv-hero-actions{align-items:center;gap:22px;}
+.pv-hero-media{position:relative;padding:0 0 56px 56px;}
+.pv-hero-photo{aspect-ratio:4/5;max-height:600px;margin-left:auto;}
+.pv-hero-accent{position:absolute;left:0;bottom:0;width:42%;aspect-ratio:3/4;margin:0;overflow:hidden;border-radius:var(--c-radius);border:6px solid var(--c-ivory);}
+.pv-hero-accent img{width:100%;height:100%;object-fit:cover;display:block;}
+/* sessions: three clearly distinct options */
+.pv-options{padding:88px 0 96px;}
+.pv-options h2 .script{color:var(--c-navy);}
+.pv-card{border:1px solid var(--c-rule);border-top:4px solid var(--c-blue);}
+#virtual.pv-card{border-top-color:var(--c-navy);}
+.pv-card-consult{border-top-color:var(--c-stripe) !important;background:var(--c-ivory) !important;}
+.pv-card p{color:var(--c-ink);}
+.pv-tag{border-radius:2px;}
+#virtual .pv-tag{background:var(--c-navy);color:#fff;}
+.pv-card-consult .pv-tag{background:var(--c-butter);border:1px solid #EEE19A;}
+.pv-book{border-radius:var(--c-radius) !important;}
+/* booking: sunlit water band, Setmore on a quiet ivory surface */
+.pv-book-section.water-band{background:var(--c-navy) url("../assets/band-water.jpg") center 40%/cover no-repeat !important;padding:96px 0 104px;}
+.pv-book-section .pv-book-card{background:var(--c-ivory);border:1px solid rgba(255,255,255,.5);}
+.pv-book-section h2 .script{color:var(--c-butter);}
+.pv-tab{border-radius:var(--c-radius);background:#fff;}
+.pv-tab.is-active{background:var(--c-navy);border-color:var(--c-navy);}
+.pv-ask-toggle span{color:var(--c-ink);border-color:var(--c-ink);}
+@media(max-width:980px){
+  .pv-hero-media{padding:0 0 40px 40px;max-width:560px;}
+  .pv-hero-photo{aspect-ratio:4/3;}
+  .pv-hero-accent{width:34%;}
+}
+@media(max-width:600px){
+  .pv-hero{padding:40px 0 72px;}
+  .pv-hero-media{padding:0 0 32px 28px;}
+  .pv-hero-photo{aspect-ratio:4/5;}
+  .pv-hero-accent{width:38%;border-width:4px;}
+  .pv-options{padding:56px 0 64px;}
+  .pv-book-section.water-band{padding:64px 0 72px;}
+}
+
+/* =================== CARRY-THROUGH: other pages =================== */
+/* Classes */
+.cl-hero{background-color:var(--c-ivory) !important;background-image:url("../assets/tex-sand-seamless.jpg") !important;background-size:2800px auto !important;}
+.cl-events{background:var(--c-ivory) !important;}
+.cl-packs{background:#fff !important;}
+.cl-faq{background:var(--c-ivory) !important;}
+.cl-btn{border-radius:var(--c-radius) !important;}
+.cl-btn-fill{background:var(--c-blue);}
+.cl-event-img{border-radius:var(--c-radius) !important;}
+.cl-close::after{background:linear-gradient(90deg,rgba(30,58,85,.66) 0%,rgba(30,58,85,.28) 55%,rgba(30,58,85,.05) 100%) !important;}
+/* Collaborate */
+.co-tint{background-color:var(--c-ivory) !important;background-image:url("../assets/tex-sand-seamless.jpg");background-size:2800px auto;}
+.co-butter{background:var(--c-butter) !important;}
+.co-section#ways{position:relative;}
+.co-card{border-top:4px solid var(--c-blue) !important;}
+/* Shared section buttons: squarer, brand-consistent */
+.btn{border-radius:var(--c-radius);}
+
+/* =====================================================================
+   OCT 17 — Homepage "Join the Club" banner + elevated class packs
+   ===================================================================== */
+:root{
+  --shadow-mag:0 1px 2px rgba(30,58,85,.06),0 12px 24px -14px rgba(30,58,85,.20),0 30px 56px -32px rgba(30,58,85,.26);
+  --shadow-lift:0 1px 3px rgba(30,58,85,.07),0 20px 38px -22px rgba(30,58,85,.28),0 46px 80px -46px rgba(30,58,85,.26);
+}
+/* Join the Club banner (whole banner links to the email signup) */
+.club-banner{display:block;position:relative;background:var(--c-ink);line-height:0;}
+.club-banner img{display:block;width:100%;height:auto;}
+.club-banner:focus-visible{outline:3px solid var(--c-butter);outline-offset:-6px;}
+@media(max-width:600px){.club-banner img{height:300px;object-fit:cover;object-position:50% 50%;}}
+
+/* Class packs: light blue stage, white cards, navy accents, butter only as a detail */
+.cl-packs{background:var(--c-blue) !important;background-image:none !important;padding:clamp(76px,9vw,120px) 0 !important;}
+.cl-packs-head{text-align:center;max-width:640px;margin:0 auto 48px !important;}
+.cl-packs-head .eyebrow{color:var(--c-navy);}
+.cl-packs-head h2{color:var(--c-ink);}
+.cl-packs-head h2 .script{color:var(--c-navy);font-size:1.08em;}
+.cl-packs .cl-packs-sub{display:inline-block;margin-top:18px !important;padding:9px 18px;border-radius:999px;background:#fff;color:var(--c-ink);font-size:.92rem;box-shadow:var(--shadow-mag);}
+.cl-btn-navy{background:var(--c-navy);color:#fff;}
+.cl-btn-navy:hover{background:#2F5473;}
+.cl-offer{position:relative;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px 48px;align-items:center;
+  background:#fff;border-radius:var(--c-radius);padding:34px 42px 34px 46px;margin:0 0 64px;box-shadow:var(--shadow-lift);overflow:hidden;}
+.cl-offer::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--c-navy);}
+.cl-offer-tag{display:inline-block;margin-bottom:12px;padding:6px 11px;border-radius:2px;background:var(--c-butter);
+  font:500 .6rem/1 'Jost',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--c-ink);}
+.cl-offer .cl-label{color:var(--c-navy);}
+.cl-offer h3{font-size:clamp(1.9rem,3vw,2.4rem);margin:6px 0 10px;color:var(--c-ink);}
+.cl-offer-terms{margin:0;font-size:.92rem;line-height:1.6;color:#4A6683;}
+.cl-offer-buy{display:flex;align-items:center;justify-content:flex-end;gap:24px;flex-wrap:wrap;padding-left:36px;border-left:1px solid rgba(61,103,137,.16);}
+.cl-offer-buy .cl-pack-price{margin:0 !important;font-size:3rem;line-height:1;color:var(--c-ink);}
+.cl-offer-buy .cl-btn{min-width:180px;}
+.cl-compare-head{margin:0 0 24px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;}
+.cl-compare-head h3{font-size:1.8rem;margin:0;color:var(--c-ink);}
+.cl-compare-head p{margin:0;color:var(--c-ink);opacity:.85;}
+.cl-compare{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:28px !important;align-items:stretch;}
+.cl-compare .cl-pack{display:grid !important;grid-template-rows:auto auto auto auto 1fr auto;align-items:start;
+  padding:38px 34px 32px;background:#fff;border:0;border-top:4px solid var(--c-blue);border-radius:var(--c-radius) !important;
+  box-shadow:var(--shadow-mag) !important;transition:transform .3s,box-shadow .3s;}
+.cl-compare .cl-pack:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift) !important;}
+.cl-pack-name{font:500 1.8rem/1.15 'Cormorant Garamond',serif;margin:0 0 14px;color:var(--c-ink);}
+.cl-pack-name .cl-label{margin-bottom:10px;color:var(--c-navy);}
+.cl-compare .cl-pack-price{font-size:3.4rem;margin:0 0 18px !important;line-height:1;color:var(--c-ink);}
+.cl-pack-per,.cl-pack-save,.cl-pack-terms{margin:0 !important;padding:12px 0;border-top:1px solid rgba(61,103,137,.16);font-size:.95rem;color:var(--c-ink);}
+.cl-pack-per strong{font-weight:600;}
+.cl-pack-save{font-weight:500;color:var(--c-navy);}
+.cl-pack-save.is-none{font-weight:400;color:#4A6683;}
+.cl-pack-terms{color:#4A6683;border-bottom:1px solid rgba(61,103,137,.16);margin-bottom:26px !important;}
+.cl-compare .cl-btn{width:100%;margin-top:0;}
+.cl-compare .cl-btn-fill{background:var(--c-blue);color:var(--c-ink);}
+.cl-compare .cl-btn-fill:hover{background:var(--c-navy);color:#fff;}
+.cl-compare .cl-pack-best{border-top-color:var(--c-navy);box-shadow:var(--shadow-lift) !important;transform:translateY(-12px);}
+.cl-compare .cl-pack-best:hover{transform:translateY(-15px);}
+.cl-compare .cl-best{background:var(--c-navy);color:#fff;}
+.cl-packs .cl-packs-fine{margin-top:36px !important;text-align:center;color:var(--c-ink);}
+.cl-packs-fine strong{font-weight:600;}
+@media(max-width:980px){
+  .cl-offer{grid-template-columns:1fr;}
+  .cl-offer-buy{justify-content:flex-start;padding-left:0;border-left:0;padding-top:20px;border-top:1px solid rgba(61,103,137,.16);}
+  .cl-compare{grid-template-columns:1fr !important;max-width:460px;margin:0 auto;}
+  .cl-compare .cl-pack-best{transform:none;}
+  .cl-compare .cl-pack-best:hover{transform:translateY(-3px);}
+}
+@media(max-width:600px){
+  .cl-offer{padding:28px 22px 26px 28px;}
+  .cl-offer-buy .cl-btn{flex:1 1 100%;}
+}
+@media (prefers-reduced-motion:reduce){
+  .cl-compare .cl-pack{transition:none !important;}
+  .cl-compare .cl-pack:hover,.cl-compare .cl-pack-best{transform:none;}
+}
+
+/* =====================================================================
+   OCT 17 (b) — atmosphere pass: soft decorative edges, sunlit shadows,
+   striped menu bar, banner after video, closing mantra
+   ===================================================================== */
+:root{
+  /* sunlight from the upper left: shadows fall gently down and to the right */
+  --sun-soft:2px 6px 14px -8px rgba(30,58,85,.14),10px 24px 48px -26px rgba(30,58,85,.24);
+  --sun-lift:3px 8px 18px -10px rgba(30,58,85,.16),14px 34px 64px -34px rgba(30,58,85,.30);
+  --c-stripe-soft:#FBEFB0;
+}
+/* Menu bar: broad butter + white cabana stripes, words kept crisp */
+header{background-color:#FFFDF4 !important;
+  background-image:repeating-linear-gradient(90deg,var(--c-stripe-soft) 0 56px,#FFFDF4 56px 112px) !important;
+  border-bottom:1px solid rgba(61,103,137,.14) !important;
+  box-shadow:0 10px 24px -20px rgba(30,58,85,.35);}
+header .navlinks>a,header .nav-dropdown>a{color:var(--c-ink) !important;font-weight:500;
+  text-shadow:0 0 6px #FFFDF4,0 0 12px #FFFDF4,0 0 2px #FFFDF4;}
+header .brand img{filter:drop-shadow(0 0 6px rgba(255,253,244,.95)) drop-shadow(0 0 2px rgba(255,253,244,.95));}
+header .nav-dropdown-menu{background:#FFFDF4;box-shadow:var(--sun-soft);}
+header .nav-dropdown-menu a{text-shadow:none !important;}
+@media(max-width:1024px){
+  header .navlinks{background:#FFFDF4 !important;box-shadow:none;}
+  header .navlinks.open{box-shadow:var(--sun-lift);}
+  header .navlinks a{text-shadow:none !important;}
+}
+
+/* Join the Club banner, directly under the video */
+.club-banner{display:block;position:relative;line-height:0;background:var(--c-ink);}
+.club-banner img{display:block;width:100%;height:auto;}
+.club-banner:focus-visible{outline:3px solid var(--c-butter);outline-offset:-6px;}
+@media(max-width:600px){.club-banner img{height:300px;object-fit:cover;object-position:46% 50%;}}
+
+/* Palm atmosphere: feathered asset (alpha fades to 0 on every side), kept inside
+   its own section so the next section never slices it with a hard line */
+.palm-shade{position:relative;isolation:isolate;overflow-x:clip;overflow-y:visible;}
+.palm-shade::before{top:0 !important;bottom:0 !important;height:auto !important;aspect-ratio:auto !important;
+  width:min(620px,58vw) !important;right:-60px !important;transform:none !important;
+  background-position:right top !important;background-size:contain !important;opacity:.16 !important;}
+.palm-shade.is-left::before{right:auto !important;left:-60px !important;transform:scaleX(-1) !important;background-position:right top !important;}
+@media(max-width:760px){.palm-shade::before{width:80vw !important;right:-24vw !important;opacity:.10 !important;}}
+
+/* Fall accents: let leaves and their drop shadows breathe vertically */
+.cl-hero,.cl-events,.cl-schedule{overflow:visible !important;overflow-x:clip !important;}
+.cl-fall .f{filter:drop-shadow(4px 10px 12px rgba(90,50,10,.16));}
+
+/* Sunlit, consistent decorative shadows (photos keep crisp edges) */
+.pv-hero-photo,.co-hero-photo{box-shadow:var(--sun-lift) !important;}
+.split-photo img,.hx-portrait,.cl-feature-img{box-shadow:var(--sun-soft) !important;}
+.cl-offer,.cl-compare .cl-pack-best{box-shadow:var(--sun-lift) !important;}
+.cl-packs-sub,.cl-compare .cl-pack{box-shadow:var(--sun-soft) !important;}
+.cl-compare .cl-pack:hover{box-shadow:var(--sun-lift) !important;}
+
+/* Signup: brand photo (crisp) beside the sand panel */
+.ed-signup-art{min-height:0 !important;height:clamp(420px,42vw,600px);}
+.ed-signup-art img{object-position:50% 30% !important;}
+@media(max-width:600px){.ed-signup-art{height:auto;aspect-ratio:4/5;}.ed-signup-art img{object-position:50% 25% !important;}}
+
+/* Closing mantra, just above the footer on every page */
+.mantra.mantra-close{background:var(--c-blue);color:var(--c-ink);padding:56px 0;text-align:center;}
+.mantra.mantra-close .wrap{justify-content:center;gap:18px 26px;}
+.mantra.mantra-close .mantra-words{margin:0;max-width:none;color:var(--c-ink);font-size:clamp(1.35rem,2.6vw,2rem);}
+.mantra.mantra-close .mantra-words .script{color:var(--c-navy);}
+.mantra.mantra-close .mantra-shell{width:54px;height:auto;opacity:.85;}
+@media(max-width:600px){.mantra.mantra-close{padding:44px 0;}.mantra.mantra-close .wrap{flex-direction:column;}}
+/* banner (16:9 artwork): keep the words centred, trim only sky/sand */
+.club-banner img{max-height:min(760px,56.25vw);object-fit:cover;object-position:50% 55%;}
+/* signup: palms drawn in the sand */
+.ed-signup-art img{object-position:50% 62% !important;}
+@media(max-width:600px){.ed-signup-art img{object-position:50% 60% !important;}}
+/* Classes: "Find your fall flow" header on plain ivory (no texture) */
+.cl-hero{background-image:none !important;background-color:var(--c-ivory) !important;}
+/* Homepage: upcoming events as a dated list (matches the Classes schedule), no leaves */
+.hx-list{background:#fff;padding:8px clamp(20px,3vw,40px);border-radius:var(--c-radius);box-shadow:var(--sun-soft);}
+.hx-list .cl-dates{border-top:0;}
+.hx-list .cl-dates li:last-child{border-bottom:0;}
+.hx-list .cl-dates .cl-link{white-space:nowrap;}
+.hx-list .hx-empty{padding:28px 0;margin:0;}
+
+/* =====================================================================
+   Light motion (fade-up on scroll, banner settle, soft hover lift)
+   Uses the separate `translate` property so card lifts/transforms stay intact.
+   ===================================================================== */
+@media (prefers-reduced-motion:no-preference){
+  .ss-motion .ss-reveal{opacity:0;translate:0 18px;
+    transition:opacity .7s ease var(--ss-delay,0ms),translate .7s cubic-bezier(.2,.7,.2,1) var(--ss-delay,0ms);}
+  .ss-motion .ss-reveal.is-in{opacity:1;translate:0 0;}
+  .club-banner{overflow:hidden;}
+  .club-banner img{animation:ssBannerSettle 2.4s cubic-bezier(.2,.7,.2,1) both;}
+  @keyframes ssBannerSettle{from{scale:1.06;opacity:.6;}to{scale:1;opacity:1;}}
+  .hx-card,.pv-card,.co-card,.value-card,.review-card,.cl-event-img,.mw-card{transition:translate .35s ease,box-shadow .35s ease;}
+  .hx-card:hover,.pv-card:hover,.co-card:hover,.value-card:hover,.cl-event-img:hover{translate:0 -4px;}
+  .btn,.btn-coast,.cl-btn,.pp2-btn,.pp-btn{transition:background .25s,color .25s,translate .25s ease,box-shadow .25s ease;}
+  .btn:hover,.btn-coast:hover,.cl-btn:hover,.pp2-btn:hover,.pp-btn:hover{translate:0 -2px;}
+}
+/* Instagram feed */
+.ss-insta{background:var(--c-blue) !important;}
+.ss-insta .script{color:var(--c-navy);}
+.ss-insta .taggbox-widget-container{margin-top:32px;border-radius:var(--c-radius);overflow:hidden;background:#fff;box-shadow:var(--sun-soft);}
+.ss-insta-link{text-align:center;margin:26px 0 0;}
+.ss-insta-link a{font:500 .72rem/1.4 'Jost',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--c-ink);border-bottom:1px solid var(--c-ink);padding-bottom:4px;}
+/* Banner: full 16:9 artwork with a real "Join the Club" button over it */
+.club-banner{position:relative;display:block;line-height:0;}
+.club-banner img{max-height:none !important;height:auto;object-fit:initial;}
+.club-banner-btn{position:absolute;left:50%;top:68.5%;transform:translate(-50%,-50%);z-index:1;
+  display:inline-flex;align-items:center;justify-content:center;line-height:1;
+  padding:clamp(10px,1.25vw,18px) clamp(26px,3.2vw,48px);border:1.5px solid rgba(255,255,255,.9);border-radius:999px;
+  background:rgba(255,255,255,.10);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  color:#fff;font:400 clamp(.78rem,1.45vw,1.35rem)/1 'Cormorant Garamond',Georgia,serif;letter-spacing:.2em;text-transform:uppercase;
+  text-shadow:0 1px 10px rgba(10,30,50,.35);transition:background .3s,color .3s,border-color .3s;}
+.club-banner-btn:hover{background:rgba(255,255,255,.92);color:var(--c-ink);text-shadow:none;}
+.club-banner-btn:focus-visible{outline:2px solid var(--c-butter);outline-offset:4px;}
+@media(max-width:600px){
+  .club-banner img{height:300px !important;object-fit:cover;object-position:50% 50%;}
+  .club-banner-btn{top:74%;padding:8px 20px;font-size:.72rem;}
+}
+/* Classes: featured events three across */
+.cl-event-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;max-width:1180px !important;gap:40px 36px !important;}
+@media(max-width:900px){.cl-event-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:24px 16px !important;}}
+@media(max-width:680px){.cl-event-grid{grid-template-columns:1fr !important;max-width:440px !important;gap:56px !important;}}
+
+/* ===== Oct 19 photo updates ===== */
+/* Privates hero: new studio photo */
+.pv-hero-photo img{object-position:50% 38%;}
+#virtual .pv-card-photo img{object-position:50% 22%;}
+#consultation .pv-card-photo img{object-position:50% 28%;}
+/* Homepage: privates tile + founder portrait */
+.ed-way.is-tall img{object-position:34% 50% !important;}
+.ed-amanda .hx-portrait img{object-position:50% 34%;}
+/* About: boardwalk photo */
+.about-figure img{aspect-ratio:4/5;object-fit:cover;object-position:50% 40%;width:100%;}
+/* "Meet us on the mat": beach cobra, same wide crop, deeper overlay */
+.cl-close img{object-position:50% 55% !important;}
+.cl-close::after{background:linear-gradient(90deg,rgba(18,40,62,.72) 0%,rgba(18,40,62,.45) 50%,rgba(18,40,62,.22) 100%) !important;}
+@media(max-width:680px){.cl-close img{aspect-ratio:16/10;object-fit:cover;}}
+
+/* Classes: Pumpkins & Pilates photo in the header */
+.cl-hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(32px,5vw,72px);align-items:center;}
+.cl-hero-photo{margin:0;position:relative;z-index:1;}
+.cl-hero-photo img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;object-position:50% 70%;border-radius:var(--c-radius);box-shadow:var(--sun-lift);}
+.cl-hero .cl-fall{z-index:2;}
+.cl-hero .h-p{right:auto;left:49%;bottom:22px;width:170px;}
+.cl-hero .h-lr{top:6px;width:170px;}
+@media(max-width:900px){
+  .cl-hero-grid{grid-template-columns:1fr;}
+  .cl-hero-photo{max-width:620px;}
+  .cl-hero .h-p{left:auto;right:6%;bottom:18px;width:120px;}
+}
+
+/* Parties collage: show every photo whole (no chopped heads or edges) */
+.editorial-photo-strip{display:block !important;columns:3 260px;column-gap:8px;padding:8px !important;background:var(--c-ivory);}
+.editorial-photo-strip .strip-photo{display:block;break-inside:avoid;margin:0 0 8px !important;grid-column:auto !important;grid-row:auto !important;height:auto !important;}
+.editorial-photo-strip .strip-photo img{width:100% !important;height:auto !important;object-fit:initial !important;}
+@media(max-width:600px){.editorial-photo-strip{columns:2 150px;column-gap:6px;padding:6px !important;}.editorial-photo-strip .strip-photo{margin-bottom:6px !important;}}
+
+/* Collaborate: header photo melts into the sand on both sides */
+.co-hero-photo{box-shadow:none !important;border-radius:0 !important;overflow:visible !important;background:transparent !important;}
+.co-hero-photo img{border-radius:0 !important;box-shadow:none !important;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 16%,#000 84%,transparent 100%),linear-gradient(180deg,transparent 0,#000 8%,#000 92%,transparent 100%);
+  -webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent 0,#000 16%,#000 84%,transparent 100%),linear-gradient(180deg,transparent 0,#000 8%,#000 92%,transparent 100%);mask-composite:intersect;}
+
+/* ===== Oct 19 (b) ===== */
+/* Home hero photo: softer highlights */
+.hero::before{filter:brightness(.9) contrast(1.04) saturate(1.08) !important;}
+/* "Meet us on the mat": taller band so more of the photo shows */
+.cl-close{min-height:clamp(560px,50vw,760px) !important;}
+.cl-close img{object-position:50% 52% !important;}
+@media(max-width:680px){.cl-close img{aspect-ratio:4/5 !important;object-position:50% 45% !important;}}
+/* Privates cards: less empty studio wall above */
+#consultation .pv-card-photo img{object-position:50% 46% !important;}
+#virtual .pv-card-photo img{object-position:50% 52% !important;}
+/* Privates hero: accent photo removed, photo stands alone */
+.pv-hero-media{padding:0 !important;}
+/* Blog header: palm + water photo (moved from Privates) */
+.blog-hero-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:48px;align-items:center;}
+.blog-hero-photo{margin:0;justify-self:end;width:min(320px,100%);}
+.blog-hero-photo img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:var(--c-radius);box-shadow:var(--sun-lift);}
+@media(max-width:760px){.blog-hero-grid{grid-template-columns:1fr;}.blog-hero-photo{justify-self:start;width:200px;}}
+/* Parties gallery: two balanced, centred rows; every photo whole */
+.editorial-photo-strip.pt-gallery{display:flex !important;flex-direction:column;gap:10px;columns:auto !important;max-width:1180px !important;margin:0 auto !important;padding:clamp(32px,4vw,56px) clamp(16px,3vw,24px) !important;background:transparent;}
+.pt-gallery-row{display:flex;gap:10px;align-items:flex-start;}
+.pt-gallery .strip-photo{margin:0 !important;min-width:0;border-radius:var(--c-radius) !important;overflow:hidden;box-shadow:var(--sun-soft);}
+.pt-gallery .strip-photo img{display:block;width:100% !important;height:auto !important;}
+@media(max-width:600px){.pt-gallery-row,.editorial-photo-strip.pt-gallery{gap:6px;}}
+/* Collaborate: header photo back to its original framed look (no fade) */
+.co-hero-photo{border-radius:22px !important;overflow:hidden !important;box-shadow:var(--sun-lift) !important;}
+.co-hero-photo img{-webkit-mask-image:none !important;mask-image:none !important;border-radius:0 !important;}
+/* Banner tagline as live text + fully clear button */
+.club-banner-tag{position:absolute;left:0;right:0;top:60.4%;transform:translateY(-50%);margin:0;z-index:1;text-align:center;
+  color:#fff;font:400 clamp(1.15rem,3.35vw,4rem)/1 'Cormorant Garamond',Georgia,serif;letter-spacing:.045em;
+  text-shadow:0 2px 14px rgba(8,24,40,.45);}
+.club-banner-btn{background:transparent !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;}
+.club-banner-btn:hover{background:rgba(255,255,255,.95) !important;}
+@media(max-width:600px){.club-banner-tag{font-size:1.15rem;top:60.4%;}}
+
+/* ===== Oct 20 ===== */
+/* Sand texture: full-resolution seamless tile shown 1:1 (sharper grain) */
+.sand-surface,.page-hero,.cl-private.sand-surface,.ed-signup-copy,.co-tint{background-size:2800px auto !important;}
+/* Solid light blue sections (smooth, no texture) */
+.solid-blue{background:var(--c-blue) !important;background-image:none !important;}
+.solid-blue::before{display:none !important;}
+.solid-blue .eyebrow{color:var(--c-navy);}
+.solid-blue p{color:var(--c-ink);}
+.solid-blue h2 .script{color:var(--c-navy);}
+.solid-blue .btn-fill{background:var(--c-navy) !important;color:#fff !important;}
+.solid-blue .btn-fill:hover{background:#2F5473 !important;}
+.solid-blue .btn-outline{border-color:var(--c-ink);color:var(--c-ink);}
+.solid-blue .chip{background:#fff;color:var(--c-ink);border-color:transparent;}
+.pt-inquire.is-blue{background:var(--c-blue) !important;}
+.pv-options.solid-blue .pv-card{background:#fff;border-color:transparent;box-shadow:var(--sun-soft) !important;}
+.hx-partners.solid-blue .hx-more a{color:var(--c-ink);}
+/* Home "Move with Purpose": far less white wash over the photo */
+.hero .hero-overlay{background:linear-gradient(90deg,rgba(234,242,251,.62) 0%,rgba(234,242,251,.45) 26%,rgba(234,242,251,.16) 46%,rgba(234,242,251,0) 62%) !important;}
+.hero h1,.hero .tagline,.hero .eyebrow{text-shadow:0 1px 12px rgba(255,255,255,.55);}
+@media(max-width:900px){.hero .hero-overlay{background:linear-gradient(0deg,rgba(234,242,251,.88) 0%,rgba(234,242,251,.7) 40%,rgba(234,242,251,.2) 66%,rgba(234,242,251,0) 84%) !important;}}
+/* Home: Classes / Privates / Parties on one line */
+.ed-ways.solid-blue{padding:clamp(64px,8vw,104px) 0;}
+.mw-head{text-align:center;max-width:640px;margin:0 auto clamp(36px,4vw,56px);}
+.mw-head h2{font-size:clamp(2.2rem,4.2vw,3.2rem);line-height:1.08;margin:10px 0 0;}
+.mw-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(18px,2.4vw,34px);align-items:stretch;}
+.mw-card{display:flex;flex-direction:column;height:100%;background:#fff;color:var(--c-ink);border-radius:var(--c-radius);box-shadow:var(--sun-soft);overflow:hidden;transition:translate .35s ease,box-shadow .35s ease;}
+.mw-card:hover{translate:0 -4px;box-shadow:var(--sun-lift);}
+.mw-fig{position:relative;margin:0;aspect-ratio:4/5;overflow:hidden;}
+.mw-fig img{width:100%;height:100%;object-fit:cover;display:block;}
+.mw-card:nth-child(2) .mw-fig img{object-position:35% 50%;}
+.mw-fig::after{content:"";position:absolute;inset:12px;border:1px solid rgba(255,255,255,.75);pointer-events:none;}
+.mw-copy{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;padding:24px 22px 28px;}
+.mw-num{font:500 .66rem/1 'Jost',sans-serif;letter-spacing:.24em;color:var(--c-navy);}
+.mw-copy h3{font-size:clamp(1.6rem,2.3vw,2.1rem);margin:12px 0 8px;}
+.mw-copy p{margin:0 0 20px;line-height:1.6;max-width:300px;color:var(--c-ink);}
+.mw-btn{margin-top:auto;}
+@media(max-width:820px){.mw-grid{grid-template-columns:1fr;max-width:480px;margin:0 auto;}.mw-fig{aspect-ratio:4/3;}}
+/* Wellness header photo */
+.well-hero-photo{width:min(380px,100%);}
+.well-hero-photo img{aspect-ratio:4/5;object-position:50% 50%;}
+
+/* ===== eGift cards (Classes page, under class packs) ===== */
+.cl-gift{background:var(--c-ivory);padding:clamp(64px,8vw,104px) 0;}
+.cl-gift-head{text-align:center;max-width:620px;margin:0 auto 40px !important;}
+.cl-gift-head h2{color:var(--c-ink);}
+.cl-gift-head h2 .script{color:var(--c-navy);}
+.cl-gift-sub{margin-top:12px !important;color:var(--c-ink);}
+.cl-gift-grid{display:grid;grid-template-columns:repeat(2,minmax(0,300px));justify-content:center;gap:28px;}
+.cl-gift-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:38px 30px 30px;border-radius:12px;
+  background:linear-gradient(145deg,#C9E2F6 0%,var(--c-blue) 55%,#A6CBEB 100%);box-shadow:var(--sun-lift);overflow:hidden;}
+.cl-gift-card::after{content:"";position:absolute;inset:10px;border:1px solid rgba(255,255,255,.7);border-radius:8px;pointer-events:none;}
+.cl-gift-card::before{content:"Sea Sculpt Club";position:absolute;top:14px;right:18px;font:italic 400 .9rem/1 'Cormorant Garamond',serif;color:rgba(30,58,85,.55);}
+.cl-gift-tag{font:500 .6rem/1 'Jost',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--c-navy);background:var(--c-butter);padding:6px 10px;border-radius:2px;}
+.cl-gift-card h3{font:500 1.9rem/1.1 'Cormorant Garamond',serif;color:var(--c-ink);margin:16px 0 4px;}
+.cl-gift-price{font:500 3.2rem/1 'Cormorant Garamond',serif;color:var(--c-ink);margin:6px 0 22px !important;}
+.cl-gift-card .cl-btn{position:relative;z-index:1;width:100%;}
+.cl-gift-fine{margin-top:28px !important;text-align:center;font-size:.85rem;color:#4A6683;}
+@media(max-width:640px){.cl-gift-grid{grid-template-columns:1fr;max-width:320px;margin:0 auto;}}
+
+/* ===== eGift cards that look like real gift cards ===== */
+.cl-gift-grid{display:grid;grid-template-columns:repeat(2,minmax(0,380px));justify-content:center;gap:clamp(28px,4vw,56px);}
+.cl-gift-item{display:flex;flex-direction:column;align-items:stretch;gap:16px;}
+.gc{position:relative;aspect-ratio:1.586;border-radius:16px;overflow:hidden;isolation:isolate;color:var(--c-ink);
+  box-shadow:0 2px 4px rgba(30,58,85,.10),12px 26px 44px -22px rgba(30,58,85,.45),0 0 0 1px rgba(255,255,255,.35) inset;
+  transform:rotate(-2deg);transition:transform .45s cubic-bezier(.2,.7,.2,1),box-shadow .45s;}
+.cl-gift-item:nth-child(2) .gc{transform:rotate(2deg);}
+.cl-gift-item:hover .gc{transform:rotate(0) translateY(-6px);box-shadow:0 2px 4px rgba(30,58,85,.10),16px 34px 56px -24px rgba(30,58,85,.5),0 0 0 1px rgba(255,255,255,.35) inset;}
+.gc-blue{background:linear-gradient(135deg,#D7EAF9 0%,#B7D7F2 45%,#8FBDE4 100%);}
+.gc-butter{background:linear-gradient(135deg,#FFFCE0 0%,#FFF3A6 50%,#F5DF7A 100%);}
+/* sheen + soft waves */
+.gc::before{content:"";position:absolute;inset:0;z-index:0;background:linear-gradient(115deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.45) 45%,rgba(255,255,255,0) 60%);}
+.gc-waves{position:absolute;left:-10%;right:-10%;bottom:-18%;height:62%;z-index:0;opacity:.55;
+  background:
+    radial-gradient(120% 60% at 50% 100%,rgba(61,103,137,.20) 0 38%,transparent 39%),
+    radial-gradient(90% 50% at 20% 100%,rgba(255,255,255,.55) 0 40%,transparent 41%),
+    radial-gradient(90% 50% at 85% 100%,rgba(255,255,255,.45) 0 36%,transparent 37%);}
+/* satin ribbon wrapped around the card */
+.gc-ribbon-v,.gc-ribbon-h{position:absolute;z-index:1;background:linear-gradient(90deg,#2F5473,#3D6789 45%,#5A86AA 55%,#3D6789);}
+.gc-butter .gc-ribbon-v,.gc-butter .gc-ribbon-h{background:linear-gradient(90deg,#E0B9C7,#F2CAD7 45%,#FBE3EB 55%,#F2CAD7);}
+.gc-ribbon-v{top:0;bottom:0;right:22%;width:18px;}
+.gc-ribbon-h{left:0;right:0;top:30%;height:18px;background:linear-gradient(180deg,#2F5473,#3D6789 45%,#5A86AA 55%,#3D6789);}
+.gc-butter .gc-ribbon-h{background:linear-gradient(180deg,#E0B9C7,#F2CAD7 45%,#FBE3EB 55%,#F2CAD7);}
+/* bow where the ribbons cross */
+.gc-bow{position:absolute;z-index:2;right:calc(22% + 9px);top:calc(30% + 9px);width:0;height:0;}
+.gc-bow::before,.gc-bow::after{content:"";position:absolute;top:-17px;width:34px;height:34px;border:7px solid #3D6789;border-radius:60% 60% 60% 10%;
+  background:rgba(255,255,255,.08);box-shadow:2px 3px 6px rgba(20,40,60,.25);}
+.gc-bow::before{right:2px;transform:rotate(-30deg);}
+.gc-bow::after{left:2px;transform:scaleX(-1) rotate(-30deg);}
+.gc-bow i{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:5px;background:#2F5473;box-shadow:0 2px 4px rgba(20,40,60,.3);z-index:1;}
+.gc-butter .gc-bow::before,.gc-butter .gc-bow::after{border-color:#E7BFCD;}
+.gc-butter .gc-bow i{background:#D9A9BA;}
+.gc-logo{position:absolute;z-index:3;left:7%;top:9%;width:30%;height:auto;opacity:.95;}
+.gc-label{position:absolute;z-index:3;left:7%;bottom:30%;font:500 .62rem/1 'Jost',sans-serif;letter-spacing:.26em;text-transform:uppercase;}
+.gc-amount{position:absolute;z-index:3;left:7%;bottom:9%;font:500 clamp(2.4rem,4.6vw,3.3rem)/1 'Cormorant Garamond',serif;}
+.gc-what{position:absolute;z-index:3;right:7%;bottom:10%;font:italic 400 1.15rem/1 'Cormorant Garamond',serif;}
+.cl-gift-meta{display:flex;justify-content:space-between;align-items:baseline;padding:4px 4px 0;}
+.cl-gift-meta h3{margin:0;font:500 1.5rem/1.1 'Cormorant Garamond',serif;color:var(--c-ink);}
+.cl-gift-meta .cl-gift-price{font:500 1.5rem/1 'Cormorant Garamond',serif;color:var(--c-ink);margin:0 !important;}
+.cl-gift-item .cl-btn{width:100%;}
+@media(max-width:700px){.cl-gift-grid{grid-template-columns:minmax(0,340px);}}
+@media (prefers-reduced-motion:reduce){.gc{transition:none;}.cl-gift-item:hover .gc{transform:rotate(-2deg);}}
+/* old flat card styles no longer used */
+.cl-gift-card{display:none;}
+
+/* Gift details in the cart */
+.cart-gift textarea{display:block;width:100%;margin-top:6px;padding:10px 14px;border:1px solid rgba(18,49,79,.25);border-radius:6px;font:inherit;font-size:.95rem;text-transform:none;letter-spacing:0;resize:vertical;background:#fff;color:var(--c-ink);}
+.cart-gift label em{font-style:normal;text-transform:none;letter-spacing:0;opacity:.75;}
+.cart-gift-when{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:4px 0 10px;}
+.cart-gift-when-label{flex:1 0 100%;font:500 .7rem 'Jost',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#4A6683;}
+.cart-details .cart-radio{display:inline-flex !important;align-items:center;gap:6px;margin:0 !important;font:400 .95rem 'Jost',sans-serif !important;text-transform:none !important;letter-spacing:0 !important;color:var(--c-ink) !important;}
+.cart-details .cart-radio input{display:inline-block;width:auto;min-height:0;margin:0;accent-color:var(--c-navy);}
+.cart-gift-when input[type="date"]{display:inline-block;width:auto;min-height:40px;margin:0;}
+.cart-gift-when input[type="date"]:disabled{opacity:.45;}
+.cart-gift-note{margin:0 0 4px;font-size:.78rem;line-height:1.45;color:#4A6683;}
+.gc-ribbon-h{top:46%;}
+.gc-bow{top:calc(46% + 9px);}
+.gc-logo{width:28%;top:8%;}
+
+/* Classes header: main button, then the three smaller links on one row beneath it */
+.cl-actions.cl-actions-stack{display:flex;flex-direction:column;align-items:flex-start;gap:18px;}
+.cl-actions-sub{display:flex;flex-wrap:wrap;gap:6px 26px;}
+.cl-actions-sub .cl-link{padding:6px 0;}
+
+/* eGift bows: soft, puffy satin bow drawn as artwork */
+.gc-bow{position:absolute;z-index:2;right:calc(22% + 9px);top:calc(46% + 9px);width:0;height:0;}
+.gc-bow::before,.gc-bow::after,.gc-bow i{display:none !important;}
+.gc-bow svg{position:absolute;left:-46px;top:-37px;width:92px;height:auto;overflow:visible;filter:drop-shadow(1px 3px 3px rgba(20,40,60,.28));}
+.gc-bow .l{fill:var(--bow);stroke:var(--bow-edge);stroke-width:2;}
+.gc-bow .t{fill:var(--bow-edge);}
+.gc-bow .s{fill:none;stroke:rgba(255,255,255,.55);stroke-width:3;stroke-linecap:round;}
+.gc-bow .k{fill:var(--bow-edge);}
+.gc-bow .h{fill:rgba(255,255,255,.6);}
+.gc-blue{--bow:#4F7CA3;--bow-edge:#2F5473;}
+.gc-butter{--bow:#F4C6D4;--bow-edge:#D99AB0;}
+.cl-gift-item:hover .gc-bow svg{animation:gcWiggle .7s ease;}
+@keyframes gcWiggle{0%,100%{transform:rotate(0)}30%{transform:rotate(-6deg)}60%{transform:rotate(5deg)}}
+@media (prefers-reduced-motion:reduce){.cl-gift-item:hover .gc-bow svg{animation:none;}}
+/* cuter, puffier bows */
+.gc-bow svg{left:-62px;top:-56px;width:124px;}
+.gc-bow .l{stroke-width:2.5;stroke-linejoin:round;}
+.gc-bow .f{fill:none;stroke:var(--bow-edge);stroke-width:2.2;stroke-linecap:round;opacity:.55;}
+.gc-bow .s{stroke:rgba(255,255,255,.7);stroke-width:4;}
+.gc-bow .t{stroke:var(--bow-edge);stroke-width:1;stroke-linejoin:round;}
+.gc-blue{--bow:#5D8BB3;--bow-edge:#2F5473;}
+.gc-butter{--bow:#F7CEDB;--bow-edge:#DDA0B6;}
+@media(max-width:700px){.gc-bow svg{left:-50px;top:-45px;width:100px;}}

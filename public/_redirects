@@ -1,0 +1,5 @@
+# Cloudflare Pages short addresses (pages keep their file names)
+/private   /privates     200
+/parties   /bachelorette 200
+/events      /classes 301
+/events.html /classes 301

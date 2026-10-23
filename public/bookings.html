@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Bookings | Sea Sculpt Club</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#12314F;--soft:#4A6683;--line:rgba(18,49,79,.12);--pale:#EEF5FC;--butter:#FFE9A6;--warn:#A2401B;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:#F7FAFD;color:var(--navy);font:400 15px/1.5 'Jost',system-ui,sans-serif;}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 28px;background:#fff;border-bottom:1px solid var(--line);}
+  header img{height:46px;}
+  h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:500;margin:0;}
+  main{max-width:1240px;margin:0 auto;padding:28px;}
+  button,select,input{font:inherit;}
+  .btn{min-height:40px;padding:0 18px;border:1px solid var(--navy);border-radius:999px;background:#fff;color:var(--navy);cursor:pointer;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;}
+  .btn.fill{background:var(--navy);color:#fff;}
+  .btn:disabled{opacity:.5;cursor:default;}
+  .login{max-width:380px;margin:12vh auto;padding:32px;background:#fff;border:1px solid var(--line);border-radius:12px;}
+  .login h1{font-size:2rem;margin-bottom:6px;}
+  .login label{display:block;margin:18px 0 6px;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);}
+  .login input{width:100%;min-height:44px;padding:0 14px;border:1px solid rgba(18,49,79,.25);border-radius:6px;margin-bottom:16px;}
+  .err{color:var(--warn);font-size:.9rem;margin:10px 0 0;}
+  .err:empty{display:none;}
+  .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .tabs button{border-radius:999px;border:1px solid var(--line);background:#fff;padding:8px 16px;cursor:pointer;color:var(--navy);}
+  .tabs button[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:22px;}
+  .toolbar select{min-height:40px;padding:0 12px;border:1px solid rgba(18,49,79,.25);border-radius:6px;background:#fff;color:var(--navy);}
+  .toolbar label{font-size:.85rem;color:var(--soft);display:flex;gap:6px;align-items:center;}
+  .spacer{flex:1;}
+  .note{background:var(--pale);border-radius:8px;padding:12px 16px;margin:0 0 18px;font-size:.9rem;color:var(--soft);}
+  .group{margin:0 0 30px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .group-head{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;padding:16px 20px;border-bottom:1px solid var(--line);}
+  .group-head h2{font-size:1.45rem;}
+  .group-head .meta{color:var(--soft);font-size:.9rem;}
+  .group-head .count{margin-left:auto;font-weight:500;}
+  .scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;}
+  th{text-align:left;font-weight:500;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);padding:10px 14px;background:#FAFCFE;white-space:nowrap;}
+  td{padding:11px 14px;border-top:1px solid var(--line);vertical-align:top;}
+  td.mono{font-family:ui-monospace,Menlo,monospace;font-size:.78rem;word-break:break-all;min-width:160px;}
+  a.ref{color:var(--navy);}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.72rem;background:#E5F3EA;color:#1E6B3A;white-space:nowrap;}
+  .pill.test{background:var(--butter);color:var(--navy);}
+  .pill.check{background:#FBE7DF;color:var(--warn);}
+  .flags{margin:6px 0 0;padding:0;list-style:none;color:var(--warn);font-size:.8rem;}
+  .notes{color:var(--soft);font-size:.8rem;margin-top:4px;}
+  .empty{padding:40px;text-align:center;color:var(--soft);background:#fff;border:1px dashed var(--line);border-radius:12px;}
+  @media(max-width:700px){main{padding:16px;} header{padding:14px 16px;}}
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<header>
+  <img src="assets/logo.png" alt="Sea Sculpt Club">
+  <button class="btn" id="logout" hidden>Log out</button>
+</header>
+
+<section class="login" id="loginBox">
+  <h1>Bookings</h1>
+  <p style="color:var(--soft);margin:0">Enter the admin password to view attendees.</p>
+  <form id="loginForm">
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" required>
+    <button class="btn fill" type="submit" style="width:100%">View bookings</button>
+    <p class="err" id="loginErr" role="alert"></p>
+  </form>
+</section>
+
+<main id="app" hidden>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-view="bookings" aria-selected="true">Bookings</button>
+    <button role="tab" data-view="recovered" aria-selected="false">Past payments (before booking records)</button>
+    <button role="tab" data-view="forms" aria-selected="false">Form messages</button>
+  </div>
+  <div class="toolbar">
+    <select id="classFilter" aria-label="Filter by class and date"><option value="">All classes and dates</option></select>
+    <label><input type="checkbox" id="showTest"> Show test-mode bookings</label>
+    <label id="checkOnlyWrap" hidden><input type="checkbox" id="checkOnly"> Only ones that need checking</label>
+    <span class="spacer"></span>
+    <button class="btn" id="importNetlify" title="One-time: copy bookings saved on the old Netlify site">Import from Netlify</button>
+    <button class="btn" id="refresh">Refresh</button>
+    <button class="btn fill" id="csv">Download CSV</button>
+  </div>
+  <p class="note" id="viewNote"></p>
+  <p class="err" id="appErr" role="alert"></p>
+  <div id="list"></div>
+</main>
+
+<script>
+(function () {
+  var API = "/api/admin-bookings";
+  var PW_KEY = "sscAdminPw";
+  var view = "bookings", data = { bookings: null, recovered: null, forms: null };
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var money = function (c) { return c == null ? "" : "$" + (c / 100).toFixed(2); };
+  function pw() { try { return sessionStorage.getItem(PW_KEY) || ""; } catch (e) { return ""; } }
+
+  function call(params) {
+    return fetch(API + "?" + new URLSearchParams(params), { headers: { "x-admin-password": pw() }, cache: "no-store" });
+  }
+  function load(v, force) {
+    if (data[v] && !force) return Promise.resolve(data[v]);
+    $("appErr").textContent = ""; $("list").innerHTML = '<p class="note">Loading…</p>';
+    return call({ view: v }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (r.status === 401) { logout("Wrong password."); throw new Error("auth"); }
+        if (!r.ok) throw new Error(d.error || "Couldn't load bookings.");
+        data[v] = d.records || []; return data[v];
+      });
+    });
+  }
+
+  // eGift rows: recipient, code, when it sends, and whether it went out.
+  function giftCell(gifts) {
+    var label = { scheduled: "scheduled", sent: "sent", failed: "failed, retrying", not_sent: "not sent: email it by hand" };
+    return gifts.map(function (g) {
+      return '<div style="margin-bottom:8px"><strong>For ' + esc(g.toName) + '</strong> &lt;' + esc(g.toEmail) + '&gt;<br>' +
+        '<small>Code <span class="mono">' + esc(g.code || "?") + '</span> · ' + (g.sendOn === "now" ? "send now" : "sends " + esc(g.sendOn)) +
+        ' · ' + esc(label[g.status] || g.status || "") + '</small>' + (g.message ? '<br><small>&ldquo;' + esc(g.message) + '&rdquo;</small>' : "") + '</div>';
+    }).join("");
+  }
+  function groupKey(r, it) { return (it.className || "Unknown") + "||" + (it.date || it.dateLabel || ""); }
+  var FORM_NAMES = { contact: "Contact", newsletter: "Newsletter signup", "private-inquiry": "Private session question" };
+  function renderForms() {
+    var rows = data.forms || [];
+    if (!rows.length) { $("list").innerHTML = '<div class="empty">No form messages yet. Newsletter signups and messages from the website appear here.</div>'; return; }
+    $("list").innerHTML = '<section class="group"><div class="scroll"><table><thead><tr><th>Received</th><th>Form</th><th>Name</th><th>Email</th><th>Message and details</th><th>Emailed</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        var f = r.fields || {}, extra = Object.keys(f).filter(function (k) { return ["name", "email", "message"].indexOf(k) < 0; });
+        return '<tr><td>' + esc(new Date(r.createdAt).toLocaleString()) + '</td><td>' + esc(FORM_NAMES[r.form] || r.form) + '</td><td>' + esc(f.name || "") + '</td>' +
+          '<td><a class="ref" href="mailto:' + esc(f.email || "") + '">' + esc(f.email || "") + '</a></td>' +
+          '<td>' + (f.message ? esc(f.message).replace(/\n/g, "<br>") : "") + (extra.length ? '<div class="notes">' + extra.map(function (k) { return esc(k) + ": " + esc(f[k]); }).join("<br>") + '</div>' : "") + '</td>' +
+          '<td>' + esc(r.email && r.email.status ? r.email.status.replace("_", " ") : "") + '</td></tr>';
+      }).join("") + '</tbody></table></div></section>';
+  }
+  function render() {
+    if (view === "forms") return renderForms();
+    var records = data[view] || [];
+    var showTest = $("showTest").checked, checkOnly = $("checkOnly").checked, filter = $("classFilter").value;
+    var groups = {};
+    records.forEach(function (r) {
+      if (!showTest && r.livemode === false) return;
+      if (checkOnly && !(r.flags && r.flags.length)) return;
+      (r.items && r.items.length ? r.items : [{ className: "Unknown item", spots: "" }]).forEach(function (it) {
+        var k = groupKey(r, it);
+        (groups[k] = groups[k] || { item: it, rows: [] }).rows.push({ r: r, it: it });
+      });
+    });
+    // filter options
+    var keys = Object.keys(groups).sort(function (a, b) {
+      var da = groups[a].item.date || "9999", db = groups[b].item.date || "9999";
+      return da === db ? a.localeCompare(b) : da.localeCompare(db);
+    });
+    var sel = $("classFilter"), cur = sel.value;
+    sel.innerHTML = '<option value="">All classes and dates</option>' + keys.map(function (k) {
+      var g = groups[k].item; return '<option value="' + esc(k) + '">' + esc(g.className + (g.dateLabel ? " · " + g.dateLabel : "")) + '</option>';
+    }).join("");
+    sel.value = keys.indexOf(cur) >= 0 ? cur : "";
+    var shown = filter && groups[filter] ? [filter] : keys;
+    if (!shown.length) {
+      $("list").innerHTML = '<div class="empty">' + (view === "bookings"
+        ? "No bookings yet. They appear here automatically after each confirmed payment."
+        : "No past payments to show.") + '</div>';
+      return;
+    }
+    $("list").innerHTML = shown.map(function (k) {
+      var g = groups[k], it = g.item;
+      var spots = g.rows.reduce(function (n, x) { return n + (+x.it.spots || 0); }, 0);
+      return '<section class="group"><div class="group-head"><h2>' + esc(it.className) + '</h2>' +
+        '<span class="meta">' + esc([it.dateLabel, it.time, it.location].filter(Boolean).join(" · ")) + '</span>' +
+        '<span class="count">' + spots + (spots === 1 ? " spot" : " spots") + '</span></div>' +
+        '<div class="scroll"><table><thead><tr><th>Purchaser</th><th>Attendees</th><th>Email</th><th>Phone</th><th>Spots</th><th>Payment</th><th>Stripe reference</th><th>Booked</th></tr></thead><tbody>' +
+        g.rows.map(function (x) {
+          var r = x.r, flags = r.flags || [], notes = r.notes || [];
+          var status = '<span class="pill">' + esc(r.status) + '</span>' + (r.livemode === false ? ' <span class="pill test">test</span>' : "") +
+            (flags.length ? ' <span class="pill check">check</span>' : "") + '<br><small>' + money(r.amountTotal) + ((r.items || []).length > 1 ? ' order total' : '') + '</small>' +
+            (r.confirmation && r.confirmation.status ? '<br><small>Email: ' + esc(r.confirmation.status.replace("_", " ")) + '</small>' : "");
+          var refUrl = r.paymentIntent ? "https://dashboard.stripe.com/" + (r.livemode === false ? "test/" : "") + "payments/" + encodeURIComponent(r.paymentIntent) : null;
+          return '<tr><td><strong>' + esc(r.purchaser.name) + '</strong>' + (r.ref ? '<br><small>' + esc(r.ref) + '</small>' : "") +
+            (flags.length ? '<ul class="flags">' + flags.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "") +
+            (notes.length ? '<div class="notes">' + esc(notes.join(" ")) + '</div>' : "") + '</td>' +
+            '<td>' + (x.it.gifts && x.it.gifts.length ? giftCell(x.it.gifts) : x.it.attendees && x.it.attendees.length ? esc(x.it.attendees.join(", ")) : '<span class="notes">Not collected</span>') + '</td>' +
+            '<td>' + esc(r.purchaser.email) + '</td><td>' + esc(r.purchaser.phone || "") + '</td><td>' + esc(x.it.spots) + '</td>' +
+            '<td>' + status + '</td>' +
+            '<td class="mono">' + (refUrl ? '<a class="ref" href="' + refUrl + '" target="_blank" rel="noopener">' + esc(r.paymentIntent) + '</a>' : esc(r.sessionId)) + '</td>' +
+            '<td>' + esc(new Date(r.paidAt || r.createdAt).toLocaleString()) + '</td></tr>';
+        }).join("") + '</tbody></table></div></section>';
+    }).join("");
+  }
+
+  function switchView(v) {
+    view = v;
+    document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-view") === v)); });
+    $("checkOnlyWrap").hidden = v !== "recovered";
+    $("classFilter").hidden = v === "forms"; $("showTest").parentNode.hidden = v === "forms";
+    $("viewNote").textContent = v === "forms"
+      ? "Newsletter signups and messages sent through the website, newest first. Each one is also emailed to you once email is set up."
+      : v === "bookings"
+      ? "Confirmed bookings, saved automatically when Stripe confirms a payment."
+      : "Paid Stripe payments from before booking records existed, matched to classes by their Stripe price. Ones marked “check” couldn’t be matched with confidence. This list is read live from Stripe and isn’t stored.";
+    load(v).then(render).catch(function (e) { if (e.message !== "auth") { $("list").innerHTML = ""; $("appErr").textContent = e.message; } });
+  }
+
+  function downloadCsv() {
+    $("csv").disabled = true;
+    call({ view: view, format: "csv" }).then(function (r) {
+      if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || "Download failed."); });
+      return r.blob().then(function (b) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(b);
+        a.download = view === "recovered" ? "sea-sculpt-past-payments.csv" : view === "forms" ? "sea-sculpt-form-messages.csv" : "sea-sculpt-bookings.csv";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+      });
+    }).catch(function (e) { $("appErr").textContent = e.message; }).then(function () { $("csv").disabled = false; });
+  }
+
+  function showApp() { $("loginBox").hidden = true; $("app").hidden = false; $("logout").hidden = false; switchView("bookings"); }
+  function logout(message) {
+    try { sessionStorage.removeItem(PW_KEY); } catch (e) {}
+    data = { bookings: null, recovered: null, forms: null };
+    $("app").hidden = true; $("logout").hidden = true; $("loginBox").hidden = false;
+    $("loginErr").textContent = message || ""; $("pw").value = ""; $("pw").focus();
+  }
+
+  $("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    try { sessionStorage.setItem(PW_KEY, $("pw").value); } catch (err) {}
+    $("loginErr").textContent = "";
+    call({ view: "bookings" }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { logout(d.error || "Couldn't sign in."); return; }
+        data.bookings = d.records || []; showApp();
+      });
+    }).catch(function () { logout("Couldn't reach the server."); });
+  });
+  $("logout").addEventListener("click", function () { logout(); });
+  $("refresh").addEventListener("click", function () { load(view, true).then(render).catch(function (e) { if (e.message !== "auth") $("appErr").textContent = e.message; }); });
+  $("csv").addEventListener("click", downloadCsv);
+  // One-time move: copies bookings from the old Netlify site (safe to press again; nothing is duplicated).
+  $("importNetlify").addEventListener("click", function () {
+    var btn = $("importNetlify"); btn.disabled = true; $("appErr").textContent = ""; $("viewNote").textContent = "Copying bookings from the old Netlify site…";
+    fetch(API + "?action=import-netlify", { method: "POST", headers: { "x-admin-password": pw() }, cache: "no-store" })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) throw new Error(d.error || "Import didn't work.");
+        $("viewNote").textContent = "Imported " + d.imported + " booking" + (d.imported === 1 ? "" : "s") + " from Netlify" +
+          (d.alreadyHere ? " (" + d.alreadyHere + " were already here)" : "") + (d.formMessages ? ", plus " + d.formMessages + " form messages" : "") + ".";
+        data.bookings = null; data.forms = null; return load(view, true).then(render);
+      }); })
+      .catch(function (e) { $("viewNote").textContent = ""; if (e.message !== "auth") $("appErr").textContent = e.message; })
+      .then(function () { btn.disabled = false; });
+  });
+  $("classFilter").addEventListener("change", render);
+  $("showTest").addEventListener("change", render);
+  $("checkOnly").addEventListener("change", render);
+  document.querySelectorAll(".tabs button").forEach(function (b) { b.addEventListener("click", function () { switchView(b.getAttribute("data-view")); }); });
+
+  if (pw()) { call({ view: "bookings" }).then(function (r) { return r.json().then(function (d) { if (r.ok) { data.bookings = d.records; showApp(); } else logout(); }); }).catch(function () { logout(); }); }
+})();
+</script>
+</body>
+</html>
