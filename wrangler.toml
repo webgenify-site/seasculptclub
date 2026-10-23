@@ -1,0 +1,19 @@
+# Cloudflare Pages settings for seasculptclub.com (this file is the source of truth for these values).
+# Secrets (Stripe keys, passwords, tokens) are NOT kept here: add them in Cloudflare →
+# your Pages project → Settings → Variables and Secrets, as type "Secret".
+name = "seasculptclub"
+pages_build_output_dir = "./public"
+compatibility_date = "2026-10-01"
+
+# Bookings, form messages and eGift records
+[[d1_databases]]
+binding = "DB"
+database_name = "sea-sculpt-bookings"
+database_id = "60d8843a-2fb5-45af-8a65-d36026d91aca"
+
+# Plain (non-secret) settings
+[vars]
+SITE_URL = "https://seasculptclub.com"
+AIRTABLE_BASE_ID = "appfkFBlPPGW6ZamN"
+AIRTABLE_TABLE = "Table 1"
+BOOKING_EMAIL_FROM = "Sea Sculpt Club <bookings@seasculptclub.com>"
