@@ -21,8 +21,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,500;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/coastal.css">
+<link rel="stylesheet" href="css/style.css?v=cf1">
+<link rel="stylesheet" href="css/coastal.css?v=cf1">
 </head>
 <body>
 <header>
@@ -133,7 +133,7 @@
     </div>
   </div>
 </footer>
-<script src="js/script.js"></script>
+<script src="js/script.js?v=cf1"></script>
 <script>
   fetch('/api/get-posts')
     .then(function (r) { return r.json(); })
@@ -165,6 +165,6 @@
       document.getElementById('blogGrid').innerHTML = '<p class="blog-empty">Couldn&rsquo;t load posts right now &mdash; please refresh.</p>';
     });
 </script>
-<script src="js/cart.js" defer></script>
+<script src="js/cart.js?v=cf1" defer></script>
 </body>
 </html>
