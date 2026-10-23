@@ -166,8 +166,8 @@ var require_catalog = __commonJS({
       },
       "single": {
         kind: "pack",
-        priceId: null,
-        // NOT SET: no matching Stripe product yet. Add the Price ID to enable.
+        priceId: "price_1UOHFB1UP4OSvubVhYtCQBHf",
+        // Stripe product: 1 Drop in ($35)
         className: "Single Class (drop-in credit)",
         amount: 3500,
         maxQty: 10
