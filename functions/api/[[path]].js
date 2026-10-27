@@ -127,6 +127,30 @@ var require_catalog = __commonJS({
         amount: 3500,
         maxQty: 10
       },
+      "wave-nov14": {
+        kind: "class",
+        priceId: "price_1U981k1UP4OSvubVnoRtLkX9",
+        // Stripe product: Wave Sculpt ($35); the date is saved with the booking
+        className: "Wave Sculpt: Ocean View Pilates",
+        date: "2026-11-14",
+        dateLabel: "Saturday, November 14, 2026",
+        time: "10:00 AM",
+        location: "High Crest, indoors at Wave Resort, Long Branch, NJ",
+        amount: 3500,
+        maxQty: 10
+      },
+      "friendsgiving-nov21": {
+        kind: "class",
+        priceId: "price_1U981k1UP4OSvubVnoRtLkX9",
+        // Stripe product: Wave Sculpt ($35); the event is saved with the booking
+        className: "Friendsgiving Pilates & Brunch",
+        date: "2026-11-21",
+        dateLabel: "Saturday, November 21, 2026",
+        time: "10:00 AM",
+        location: "High Crest, indoors at Wave Resort, Long Branch, NJ",
+        amount: 3500,
+        maxQty: 10
+      },
       "seaview-nov18": {
         kind: "class",
         priceId: "price_1ULtsA1UP4OSvubVgRljGfr6",

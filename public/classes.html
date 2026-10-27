@@ -21,8 +21,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=cf3">
-<link rel="stylesheet" href="css/coastal.css?v=cf3">
+<link rel="stylesheet" href="css/style.css?v=cf4">
+<link rel="stylesheet" href="css/coastal.css?v=cf4">
 </head>
 <body>
 <header>
@@ -114,9 +114,19 @@
           <button type="button" class="cl-link" data-add="seaview-nov4">Add to Cart</button>
         </li>
         <li>
+          <time datetime="2026-11-14"><span>Nov</span>14</time>
+          <div><strong>Wave Sculpt: Ocean View Pilates</strong><span>10:00 AM &middot; Wave Resort, Long Branch</span></div>
+          <button type="button" class="cl-link" data-add="wave-nov14">Add to Cart</button>
+        </li>
+        <li>
           <time datetime="2026-11-18"><span>Nov</span>18</time>
           <div><strong>Seaview Sculpt</strong><span>10:00 AM &middot; Long Branch</span></div>
           <button type="button" class="cl-link" data-add="seaview-nov18">Add to Cart</button>
+        </li>
+        <li>
+          <time datetime="2026-11-21"><span>Nov</span>21</time>
+          <div><strong>Friendsgiving Pilates &amp; Brunch</strong><span>10:00 AM &middot; Wave Resort, Long Branch &middot; Free Bellini</span></div>
+          <button type="button" class="cl-link" data-add="friendsgiving-nov21">Add to Cart</button>
         </li>
       </ol>
     </div>
@@ -196,6 +206,47 @@
                 <option value="seaview-nov18" data-date="2026-11-18">Wednesday, Nov 18 &middot; 10:00 AM</option>
               </select>
               <button type="button" class="cl-btn cl-btn-fill cl-book" data-add="select">Add to Cart &middot; $35</button>
+            </div>
+            <button type="button" class="cl-link cl-details">More Info</button>
+          </div>
+        </article>
+
+        <article class="cl-event" id="wave-sculpt-nov" data-date="2026-11-14" data-event="wave_sculpt_nov">
+          <button type="button" class="cl-event-img" aria-label="More info about Wave Sculpt: Ocean View Pilates">
+            <img src="assets/flyer-wave-sculpt-nov.jpg" alt="Wave Sculpt Ocean View Pilates flyer: Saturdays November 14 and 21 at 10 AM, indoors at Wave Resort, Long Branch, NJ. Friendsgiving on 11/21 with a complimentary Bellini." loading="lazy">
+          </button>
+          <div class="cl-event-info" hidden>
+            <span class="cl-label">Indoor Class</span>
+            <h3>Wave Sculpt: Ocean View Pilates</h3>
+            <p class="cl-meta">Saturday, November 14 &middot; 10:00 AM<br>High Crest, indoors at Wave Resort &middot; Long Branch, NJ</p>
+            <p class="cl-desc">Mat Pilates with floor-to-ceiling ocean views in the High Crest room at Wave Resort.</p>
+            <p class="cl-note">$35 &middot; Bring your own mat</p>
+          </div>
+          <div class="cl-cta">
+            <div class="cl-buy">
+              <span class="cl-date cl-when">Saturday, Nov 14 &middot; 10:00 AM</span>
+              <button type="button" class="cl-btn cl-btn-fill cl-book" data-add="wave-nov14">Add to Cart &middot; $35</button>
+            </div>
+            <button type="button" class="cl-link cl-details">More Info</button>
+          </div>
+        </article>
+
+        <article class="cl-event" id="friendsgiving" data-date="2026-11-21" data-event="friendsgiving_pilates_brunch">
+          <button type="button" class="cl-event-img" aria-label="More info about Friendsgiving Pilates &amp; Brunch">
+            <img src="assets/flyer-friendsgiving.jpg" alt="Friendsgiving Pilates &amp; Brunch flyer: November 21 at 10 AM, $35, Wave Resort, Long Branch, NJ. 45-minute mat Pilates class, complimentary Bellini, brunch additional." loading="lazy">
+          </button>
+          <div class="cl-event-info" hidden>
+            <span class="cl-label">Special Event</span>
+            <h3>Friendsgiving Pilates &amp; Brunch</h3>
+            <p class="cl-meta">Saturday, November 21 &middot; 10:00 AM<br>High Crest, indoors at Wave Resort &middot; Long Branch, NJ</p>
+            <p class="cl-desc">A 45-minute mat Pilates class, then make new friends and enjoy brunch.</p>
+            <p class="cl-desc">Complimentary Bellini after class. Brunch is an additional purchase.</p>
+            <p class="cl-note">$35 &middot; Bring your own mat &middot; Wave Resort guests: class is complimentary</p>
+          </div>
+          <div class="cl-cta">
+            <div class="cl-buy">
+              <span class="cl-date cl-when">Saturday, Nov 21 &middot; 10:00 AM</span>
+              <button type="button" class="cl-btn cl-btn-fill cl-book" data-add="friendsgiving-nov21">Add to Cart &middot; $35</button>
             </div>
             <button type="button" class="cl-link cl-details">More Info</button>
           </div>
@@ -420,8 +471,8 @@
     </div>
   </div>
 </footer>
-<script src="js/script.js?v=cf3"></script>
-<script src="js/dates.js?v=cf3"></script>
-<script src="js/cart.js?v=cf3" defer></script>
+<script src="js/script.js?v=cf4"></script>
+<script src="js/dates.js?v=cf4"></script>
+<script src="js/cart.js?v=cf4" defer></script>
 </body>
 </html>
