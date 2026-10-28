@@ -751,3 +751,9 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cart-details .cart-check{display:flex !important;align-items:flex-start;gap:10px;margin:4px 0 14px !important;padding:12px 14px;border:1px solid rgba(18,49,79,.18);border-radius:8px;background:#fff;font:400 .9rem/1.45 'Jost',sans-serif !important;text-transform:none !important;letter-spacing:0 !important;color:var(--c-ink,#12314F) !important;}
 .cart-details .cart-check input{display:inline-block;width:18px;height:18px;min-height:0;margin:1px 0 0;flex-shrink:0;accent-color:var(--c-navy,#12314F);}
 .cart-details .cart-check a{color:#3D6789;text-decoration:underline;}
+
+/* Join the Club button on phones/tablets: soft navy fill so it stays readable over the white surf (desktop stays see-through) */
+@media (max-width:820px){
+  .club-banner-btn{background:rgba(18,49,79,.55) !important;border-color:#fff !important;color:#fff !important;text-shadow:none !important;
+    padding:10px 24px !important;font-size:.8rem !important;letter-spacing:.2em !important;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+}
