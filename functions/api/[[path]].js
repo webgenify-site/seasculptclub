@@ -534,13 +534,15 @@ Thank you for booking with Sea Sculpt Club! Here are your details:
 ${booking.giftRedemption.kind === "pack" ? "Class code" : "eGift"} ${booking.giftRedemption.code}: ${booking.giftRedemption.credits} class ${booking.giftRedemption.credits === 1 ? "credit" : "credits"} used` : "") + `
 
 Total paid: ${money(booking.amountTotal)}
-Booking reference: ${booking.ref}
+Booking reference: ${booking.ref}` + (booking.intake && booking.intake.waiver ? `
+
+You agreed to our Liability Waiver & Release (seasculptclub.com/waiver) for everyone in this booking.` : "") + `
 
 Please bring your own mat. Questions? Just reply to this email.
 
 See you on the mat,
 Sea Sculpt Club`;
-      const html = `<div style="font-family:Georgia,serif;color:#12314F;max-width:520px"><p>Hi ${esc(first)},</p><p>Thank you for booking with Sea Sculpt Club! Here are your details:</p>` + lines.map((l) => l.html).join("") + (booking.giftRedemption ? `<p>${booking.giftRedemption.kind === "pack" ? "Class code" : "eGift"} ${esc(booking.giftRedemption.code)}: ${booking.giftRedemption.credits} class ${booking.giftRedemption.credits === 1 ? "credit" : "credits"} used</p>` : "") + `<p>Total paid: <strong>${money(booking.amountTotal)}</strong><br>Booking reference: ${esc(booking.ref)}</p><p>Please bring your own mat. Questions? Just reply to this email.</p><p>See you on the mat,<br>Sea Sculpt Club</p></div>`;
+      const html = `<div style="font-family:Georgia,serif;color:#12314F;max-width:520px"><p>Hi ${esc(first)},</p><p>Thank you for booking with Sea Sculpt Club! Here are your details:</p>` + lines.map((l) => l.html).join("") + (booking.giftRedemption ? `<p>${booking.giftRedemption.kind === "pack" ? "Class code" : "eGift"} ${esc(booking.giftRedemption.code)}: ${booking.giftRedemption.credits} class ${booking.giftRedemption.credits === 1 ? "credit" : "credits"} used</p>` : "") + `<p>Total paid: <strong>${money(booking.amountTotal)}</strong><br>Booking reference: ${esc(booking.ref)}</p>` + (booking.intake && booking.intake.waiver ? `<p style="font-size:13px;color:#4A6683">You agreed to our <a href="https://seasculptclub.com/waiver" style="color:#3D6789">Liability Waiver &amp; Release</a> for everyone in this booking.</p>` : "") + `<p>Please bring your own mat. Questions? Just reply to this email.</p><p>See you on the mat,<br>Sea Sculpt Club</p></div>`;
       return { subject, text, html };
     }
     async function sendConfirmation(booking, env) {
@@ -633,6 +635,7 @@ var require_create_checkout = __commonJS({
     var { store } = require_store();
     var { lookup, planCoverage, spend, hold, emptyReason } = require_giftcodes();
     var { sendConfirmation } = require_email();
+    var WAIVER_VERSION = "2026-10-27";
     var STRIPE_VERSION = "2026-03-25.dahlia; custom_checkout_payment_form_preview=v1";
     var INTEGRATION_ID = "538e8f4c-e01b-496b-96d2-98c3c2f2bee8";
     function json(statusCode, body) {
@@ -714,7 +717,22 @@ var require_create_checkout = __commonJS({
         }
         lines.push({ id, qty, attendees, gifts });
       }
-      return { errors, purchaser, lines };
+      const q = body.intake || {};
+      const hasClass = lines.some((l) => CATALOG[l.id] && CATALOG[l.id].kind === "class");
+      const intake = {
+        heard: clean(q.heard, 60),
+        heardOther: clean(q.heardOther, 120),
+        injuries: String(q.injuries == null ? "" : q.injuries).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").trim().slice(0, 600),
+        photoConsent: q.photo === "yes" || q.photo === "no" ? q.photo : "",
+        waiver: null
+      };
+      if (!intake.heard) errors.push("Please tell us how you heard about us.");
+      if (hasClass) {
+        if (!intake.photoConsent) errors.push("Please choose Yes or No for photo and video consent.");
+        if (q.waiver !== true) errors.push("Please agree to the Liability Waiver & Release to book a class.");
+        else intake.waiver = { accepted: true, version: WAIVER_VERSION, at: (/* @__PURE__ */ new Date()).toISOString() };
+      }
+      return { errors, purchaser, lines, intake };
     }
     function addDays(ymd, days) {
       const d = /* @__PURE__ */ new Date(ymd + "T12:00:00Z");
@@ -754,7 +772,12 @@ var require_create_checkout = __commonJS({
         return json(400, { error: "Bad request" });
       }
       const hosted = body.mode === "hosted";
-      const { errors, purchaser, lines } = validate(body);
+      const { errors, purchaser, lines, intake } = validate(body);
+      if (intake.waiver) {
+        const h = event.headers || {};
+        intake.waiver.ip = String(h["cf-connecting-ip"] || h["x-forwarded-for"] || "").split(",")[0].trim() || null;
+        intake.waiver.userAgent = clean(h["user-agent"], 200) || null;
+      }
       if (errors.length) return json(400, { error: errors[0], errors, code: "invalid_details" });
       const ref = "SSC-" + randomHex(4).toUpperCase();
       let gift = null;
@@ -768,7 +791,7 @@ var require_create_checkout = __commonJS({
         gift = { code: g.code, kind: g.rec.kind || "gift", credits: plan.n, value: plan.value, cover: plan.cover };
         chargeLines = lines.map((l) => ({ ...l, chargeQty: l.qty - (plan.cover[l.id] || 0) })).filter((l) => l.chargeQty > 0);
       }
-      if (gift && !chargeLines.length) return freeBooking(event, { ref, mode, purchaser, lines, gift });
+      if (gift && !chargeLines.length) return freeBooking(event, { ref, mode, purchaser, lines, gift, intake });
       const byPrice = /* @__PURE__ */ new Map();
       const missing = [];
       for (const line of chargeLines) {
@@ -820,6 +843,10 @@ var require_create_checkout = __commonJS({
         params.append("metadata[gift_cover]", Object.entries(gift.cover).map(([id, q]) => `${id}:${q}`).join(","));
         params.append("expires_at", String(Math.floor(Date.now() / 1e3) + 31 * 60));
       }
+      if (intake.heard) params.append("metadata[intake_heard]", (intake.heard + (intake.heardOther ? ": " + intake.heardOther : "")).slice(0, 200));
+      if (intake.photoConsent) params.append("metadata[intake_photo]", intake.photoConsent);
+      if (intake.injuries) params.append("metadata[intake_injuries]", intake.injuries.slice(0, 500));
+      if (intake.waiver) params.append("metadata[intake_waiver]", `accepted v${intake.waiver.version} at ${intake.waiver.at}`);
       const description = `Sea Sculpt Club booking ${ref}: ${summary.join("; ")}`;
       params.append("custom_text[submit][message]", ("Booking: " + summary.join(" \u2022 ")).slice(0, 1200));
       params.append("payment_intent_data[description]", description.slice(0, 1e3));
@@ -869,6 +896,7 @@ var require_create_checkout = __commonJS({
           livemode: mode === "live",
           createdAt: (/* @__PURE__ */ new Date()).toISOString(),
           purchaser,
+          intake,
           lines: lines.map((l) => ({ ...l, ...pick(CATALOG[l.id]), giftCovered: gift ? gift.cover[l.id] || 0 : 0 })),
           giftRedemption: gift ? { code: gift.code, kind: gift.kind, credits: gift.credits, value: gift.value } : null,
           expectedAmount: chargeLines.reduce((n, l) => n + CATALOG[l.id].amount * l.chargeQty, 0)
@@ -892,7 +920,7 @@ var require_create_checkout = __commonJS({
       } catch (e) {
       }
     }
-    async function freeBooking(event, { ref, mode, purchaser, lines, gift }) {
+    async function freeBooking(event, { ref, mode, purchaser, lines, gift, intake }) {
       const db = store(event);
       const id = "gift_" + ref;
       try {
@@ -909,6 +937,7 @@ var require_create_checkout = __commonJS({
         status: "paid",
         livemode: mode === "live",
         purchaser,
+        intake,
         items: lines.map((l) => {
           const it = pick(CATALOG[l.id]);
           return {
@@ -1323,8 +1352,18 @@ var require_stripe_webhook = __commonJS({
         credits: parseInt(md.gift_credits, 10) || 0,
         value: lines.reduce((n, l) => n + l.unitAmount * (l.giftCovered || 0), 0)
       } : null;
+      const wv = /^accepted v(\S+) at (\S+)$/.exec(md.intake_waiver || "");
+      const heard = String(md.intake_heard || "");
+      const intake = md.intake_heard || md.intake_photo || md.intake_waiver ? {
+        heard: heard.split(": ")[0],
+        heardOther: heard.includes(": ") ? heard.slice(heard.indexOf(": ") + 2) : "",
+        injuries: md.intake_injuries || "",
+        photoConsent: md.intake_photo || "",
+        waiver: wv ? { accepted: true, version: wv[1], at: wv[2] } : null
+      } : null;
       return {
         ref: md.booking_ref || session.client_reference_id || null,
+        intake,
         purchaser: { name: md.purchaser_name || "", email: md.purchaser_email || "", phone: md.purchaser_phone || "" },
         lines,
         giftRedemption,
@@ -1390,6 +1429,7 @@ var require_stripe_webhook = __commonJS({
         stripeEventId: evt.id,
         source,
         flags,
+        ...order.intake ? { intake: order.intake } : {},
         ...order.giftRedemption ? { giftRedemption: order.giftRedemption } : {},
         createdAt: new Date((session.created || Date.now() / 1e3) * 1e3).toISOString(),
         paidAt: (/* @__PURE__ */ new Date()).toISOString(),
@@ -1620,7 +1660,11 @@ var require_admin_bookings = __commonJS({
       "Booked at",
       "Confirmation email",
       "Mode",
-      "Needs attention / notes"
+      "Needs attention / notes",
+      "Heard about us",
+      "Injuries / modifications",
+      "Photo consent",
+      "Waiver accepted"
     ];
     function toCsv(records) {
       const cell = (v) => {
@@ -1650,7 +1694,11 @@ var require_admin_bookings = __commonJS({
             r.paidAt || r.createdAt,
             r.confirmation && r.confirmation.status || "",
             r.livemode ? "live" : "TEST",
-            [...r.flags || [], ...r.notes || []].join(" | ")
+            [...r.flags || [], ...r.notes || []].join(" | "),
+            r.intake ? [r.intake.heard, r.intake.heardOther].filter(Boolean).join(": ") : "",
+            r.intake ? r.intake.injuries || "" : "",
+            r.intake ? r.intake.photoConsent || "" : "",
+            r.intake && r.intake.waiver ? `Yes (v${r.intake.waiver.version}, ${r.intake.waiver.at})` : ""
           ]);
         }
       }

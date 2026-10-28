@@ -728,3 +728,26 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cart-credit{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:.9rem;color:#1F6B4A;}
 .cart-credit[hidden]{display:none;}
 .cart-credit strong{font:500 1.15rem 'Cormorant Garamond',serif;}
+
+/* Liability waiver page */
+.waiver{background:var(--c-ivory,#FBF8F1);padding:150px 16px 80px;}
+.waiver-wrap{max-width:760px;margin:0 auto;color:var(--c-ink,#12314F);}
+.waiver h1{margin:10px 0 6px;font:400 clamp(2rem,5vw,3rem)/1.1 'Cormorant Garamond',serif;color:var(--c-navy,#12314F);}
+.waiver-version{margin:0 0 26px;font-size:.82rem;letter-spacing:.06em;color:#4A6683;}
+.waiver h2{margin:30px 0 8px;font:500 1.3rem 'Cormorant Garamond',serif;color:var(--c-navy,#12314F);}
+.waiver p{margin:0 0 12px;line-height:1.7;font-size:.98rem;}
+.waiver a{color:#3D6789;}
+.waiver-contact{margin-top:28px !important;}
+
+/* Checkout questions: how you heard, injuries, photo consent, waiver */
+.cart-intake{margin:6px 0 10px;}
+.cart-intake select{display:block;width:100%;margin-top:6px;min-height:44px;padding:0 12px;border:1px solid rgba(18,49,79,.25);border-radius:6px;background:#fff;font:400 .95rem 'Jost',sans-serif;color:var(--c-ink,#12314F);text-transform:none;letter-spacing:0;}
+.cart-intake textarea{display:block;width:100%;margin-top:6px;padding:10px 14px;border:1px solid rgba(18,49,79,.25);border-radius:6px;font:400 .95rem 'Jost',sans-serif;text-transform:none;letter-spacing:0;resize:vertical;background:#fff;color:var(--c-ink,#12314F);}
+.cart-intake label em{font-style:normal;text-transform:none;letter-spacing:0;opacity:.75;}
+.cart-intake [hidden]{display:none !important;}
+.cart-photo{display:flex;flex-direction:column;gap:10px;padding-bottom:14px !important;}
+.cart-photo .cart-radio{align-items:flex-start !important;line-height:1.35;}
+.cart-photo .cart-radio input{margin-top:2px !important;}
+.cart-details .cart-check{display:flex !important;align-items:flex-start;gap:10px;margin:4px 0 14px !important;padding:12px 14px;border:1px solid rgba(18,49,79,.18);border-radius:8px;background:#fff;font:400 .9rem/1.45 'Jost',sans-serif !important;text-transform:none !important;letter-spacing:0 !important;color:var(--c-ink,#12314F) !important;}
+.cart-details .cart-check input{display:inline-block;width:18px;height:18px;min-height:0;margin:1px 0 0;flex-shrink:0;accent-color:var(--c-navy,#12314F);}
+.cart-details .cart-check a{color:#3D6789;text-decoration:underline;}

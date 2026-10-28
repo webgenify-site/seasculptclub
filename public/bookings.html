@@ -54,6 +54,7 @@
   .empty{padding:40px;text-align:center;color:var(--soft);background:#fff;border:1px dashed var(--line);border-radius:12px;}
   @media(max-width:700px){main{padding:16px;} header{padding:14px 16px;}}
   [hidden]{display:none !important;}
+  .intake-flag{margin-top:6px;padding:6px 8px;border-radius:6px;background:#FFF4E5;color:#8A4B12;font-size:.8rem;line-height:1.4;}
 </style>
 </head>
 <body>
@@ -126,6 +127,16 @@
         '<small>Code <span class="mono">' + esc(g.code || "?") + '</span> · ' + (g.sendOn === "now" ? "send now" : "sends " + esc(g.sendOn)) +
         ' · ' + esc(label[g.status] || g.status || "") + '</small>' + (g.message ? '<br><small>&ldquo;' + esc(g.message) + '&rdquo;</small>' : "") + '</div>';
     }).join("");
+  }
+  // Checkout answers: how they heard about us, injuries/modifications, photo consent, waiver.
+  function intakeCell(q) {
+    if (!q) return "";
+    var bits = [];
+    if (q.injuries) bits.push('<div class="intake-flag">&#9888; Injuries / modifications: ' + esc(q.injuries) + '</div>');
+    if (q.photoConsent) bits.push('<div class="notes">Photos: ' + (q.photoConsent === "yes" ? "OK" : "<strong>No photos</strong>") + '</div>');
+    if (q.heard) bits.push('<div class="notes">Heard about us: ' + esc(q.heard + (q.heardOther ? ": " + q.heardOther : "")) + '</div>');
+    if (q.waiver) bits.push('<div class="notes">Waiver agreed ' + esc(new Date(q.waiver.at).toLocaleString()) + '</div>');
+    return bits.join("");
   }
   function groupKey(r, it) { return (it.className || "Unknown") + "||" + (it.date || it.dateLabel || ""); }
   var FORM_NAMES = { contact: "Contact", newsletter: "Newsletter signup", "private-inquiry": "Private session question" };
@@ -203,7 +214,7 @@
           var refUrl = r.paymentIntent ? "https://dashboard.stripe.com/" + (r.livemode === false ? "test/" : "") + "payments/" + encodeURIComponent(r.paymentIntent) : null;
           return '<tr><td><strong>' + esc(r.purchaser.name) + '</strong>' + (r.ref ? '<br><small>' + esc(r.ref) + '</small>' : "") +
             (flags.length ? '<ul class="flags">' + flags.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "") +
-            (notes.length ? '<div class="notes">' + esc(notes.join(" ")) + '</div>' : "") + '</td>' +
+            (notes.length ? '<div class="notes">' + esc(notes.join(" ")) + '</div>' : "") + intakeCell(r.intake) + '</td>' +
             '<td>' + (x.it.gifts && x.it.gifts.length ? giftCell(x.it.gifts) : x.it.attendees && x.it.attendees.length ? esc(x.it.attendees.join(", ")) : '<span class="notes">Not collected</span>') + '</td>' +
             '<td>' + esc(r.purchaser.email) + '</td><td>' + esc(r.purchaser.phone || "") + '</td><td>' + esc(x.it.spots) + '</td>' +
             '<td>' + status + '</td>' +

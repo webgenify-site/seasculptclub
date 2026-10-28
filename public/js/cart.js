@@ -57,6 +57,22 @@
         '<label>Email<input name="email" type="email" autocomplete="email" required maxlength="200"></label>' +
         '<label>Phone<input name="phone" type="tel" autocomplete="tel" required maxlength="30"></label>' +
         '<div class="cart-attendees"></div>' +
+        '<div class="cart-intake">' +
+          '<h3>A few quick questions</h3>' +
+          '<label>How did you hear about us?<select name="heard" required><option value="">Choose one</option>' +
+            '<option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Friend or family</option><option>Google search</option>' +
+            '<option>Wave Resort or another venue</option><option>Flyer or poster</option><option>Event or pop-up</option><option>Other</option></select></label>' +
+          '<label class="cart-heard-other" hidden>Tell us more <em>(optional)</em><input name="heardOther" maxlength="120"></label>' +
+          '<div class="cart-intake-class">' +
+            '<label>Any injuries, health conditions or modifications we should know about? <em>(optional)</em>' +
+              '<textarea name="injuries" rows="3" maxlength="600" placeholder="For example: lower back pain, pregnancy, recent surgery. Leave blank if none."></textarea></label>' +
+            '<fieldset class="cart-photo"><legend>Photo &amp; video consent<span>We sometimes take photos and videos in class to share on our website and social media.</span></legend>' +
+              '<label class="cart-radio"><input type="radio" name="photo" value="yes"> Yes, I&rsquo;m happy to be in photos and videos</label>' +
+              '<label class="cart-radio"><input type="radio" name="photo" value="no"> No, please keep me out of photos and videos</label>' +
+            '</fieldset>' +
+            '<label class="cart-check"><input type="checkbox" name="waiver"> <span>I have read and agree to the <a href="/waiver" target="_blank" rel="noopener">Liability Waiver &amp; Release</a>, for myself and everyone in my booking.</span></label>' +
+          '</div>' +
+        '</div>' +
         '<div class="cart-code" hidden>' +
           '<label for="cartGiftCode">Have an eGift or class code?</label>' +
           '<div class="cart-code-row"><input id="cartGiftCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="SSC-XXXX-XXXX">' +
@@ -100,6 +116,10 @@
   var codeBox = shell.querySelector(".cart-code"), codeInput = shell.querySelector("#cartGiftCode");
   var codeBtn = shell.querySelector(".cart-code-apply"), codeMsg = shell.querySelector(".cart-code-msg");
   var creditEl = shell.querySelector(".cart-credit"), totalLabel = shell.querySelector(".cart-total span");
+  var IN = { heard: details.querySelector('select[name="heard"]'), heardOther: details.querySelector('input[name="heardOther"]'),
+    injuries: details.querySelector('textarea[name="injuries"]'), waiver: details.querySelector('input[name="waiver"]'),
+    otherWrap: details.querySelector(".cart-heard-other"), classWrap: details.querySelector(".cart-intake-class") };
+  function photoChoice() { var r = details.querySelector('input[name="photo"]:checked'); return r ? r.value : ""; }
   var giftState = null; // { code, creditsLeft } once a valid eGift code is applied
   var F = { name: details.querySelector('input[name="name"]'), email: details.querySelector('input[name="email"]'), phone: details.querySelector('input[name="phone"]') };
 
@@ -151,7 +171,9 @@
   function loadDetails() { try { return JSON.parse(sessionStorage.getItem(DETAILS_KEY) || "{}"); } catch (e) { return {}; } }
   function saveDetails(d) { try { sessionStorage.setItem(DETAILS_KEY, JSON.stringify(d)); } catch (e) {} }
   function readDetails() {
-    var d = { purchaser: { name: F.name.value.trim(), email: F.email.value.trim(), phone: F.phone.value.trim() }, attendees: {}, gifts: {} };
+    var d = { purchaser: { name: F.name.value.trim(), email: F.email.value.trim(), phone: F.phone.value.trim() }, attendees: {}, gifts: {},
+      intake: { heard: IN.heard.value, heardOther: IN.heard.value === "Other" ? IN.heardOther.value.trim() : "", injuries: IN.injuries.value.trim(),
+        photo: photoChoice(), waiver: IN.waiver.checked } };
     attendeesEl.querySelectorAll("input[data-line]").forEach(function (inp) {
       var id = inp.getAttribute("data-line");
       (d.attendees[id] = d.attendees[id] || [])[+inp.getAttribute("data-spot")] = inp.value.trim();
@@ -211,9 +233,17 @@
     });
     attendeesEl.innerHTML = (html ? '<h3>Who&rsquo;s coming?</h3>' + html : "") + (gh ? '<h3>Gift details</h3>' + gh : "");
     codeBox.hidden = !html; // eGift codes cover class spots
+    // Questions: "how did you hear" always; injuries, photo consent and the waiver when a class is booked.
+    var it = saved.intake || {};
+    IN.heard.value = it.heard || ""; IN.heardOther.value = it.heardOther || ""; IN.otherWrap.hidden = IN.heard.value !== "Other";
+    IN.injuries.value = it.injuries || "";
+    details.querySelectorAll('input[name="photo"]').forEach(function (r) { r.checked = r.value === it.photo; });
+    IN.waiver.checked = false; // agreed fresh at every checkout
+    IN.classWrap.hidden = !html;
     detailsErr.textContent = "";
   }
   // Spot 1 follows the purchaser's name until it's edited by hand.
+  IN.heard.addEventListener("change", function () { IN.otherWrap.hidden = IN.heard.value !== "Other"; if (!IN.otherWrap.hidden) IN.heardOther.focus(); });
   details.addEventListener("change", function (e) {
     if (e.target.type === "radio" && e.target.closest(".cart-gift")) {
       var dateIn = e.target.closest(".cart-gift").querySelector('[data-g="sendOn"]');
@@ -248,6 +278,11 @@
       else if (later && (!dt.value || dt.value <= today || (dt.max && dt.value > dt.max))) gp = [dt, "Please choose a send date after today (or choose Send now)."];
     });
     if (gp) return gp;
+    if (!d.intake.heard) return [IN.heard, "Please tell us how you heard about us."];
+    if (hasClass()) {
+      if (!d.intake.photo) return [details.querySelector('input[name="photo"]'), "Please choose Yes or No for photo and video consent."];
+      if (!d.intake.waiver) return [IN.waiver, "Please agree to the Liability Waiver & Release to book a class."];
+    }
     return null;
   }
   function showStep(which) {
@@ -373,7 +408,7 @@
   function requestSession(mode) {
     return fetch("/api/create-checkout", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: cart, mode: mode, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, giftCode: giftState ? giftState.code : undefined })
+      body: JSON.stringify({ items: cart, mode: mode, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, intake: currentDetails.intake || {}, giftCode: giftState ? giftState.code : undefined })
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
         if (!r.ok) {
