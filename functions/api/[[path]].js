@@ -752,9 +752,16 @@ var require_create_checkout = __commonJS({
         confirmationEmail: process.env.RESEND_API_KEY ? "set" : "not configured (Stripe receipt only)"
       };
       report.keysSameMode = report.secretKey === report.publishableKey && (mode === "test" || mode === "live");
+      const acct = (k) => {
+        const m = /^(?:sk|rk|pk)_(?:live|test)_([0-9A-Za-z]{16})/.exec(k || "");
+        return m ? m[1] : null;
+      };
+      const sa = acct(secret), pa = acct((process.env.STRIPE_PUBLISHABLE_KEY || "").trim());
+      report.keysSameAccount = !!(sa && pa && sa === pa);
+      if (sa && pa && sa !== pa) report.keysProblem = "The publishable key is from a different Stripe account than the secret key: the on-site payment form can't load, so customers are sent to Stripe's page.";
       report.priceIds = {};
       for (const id of Object.keys(CATALOG)) report.priceIds[id] = priceIdFor(id, mode, process.env) ? "set" : "MISSING";
-      report.ready = report.keysSameMode && report.webhookSecret === "set";
+      report.ready = report.keysSameMode && report.keysSameAccount && report.webhookSecret === "set";
       return json(200, report);
     }
     exports.handler = async (event) => {
