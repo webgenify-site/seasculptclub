@@ -31,7 +31,7 @@ database_id = "904aa218-ff7f-4d30-81ca-f394c933f4e2"
 [env.preview.vars]
 SITE_URL = "https://sandbox.seasculptclub-website.pages.dev"
 # Stripe sandbox (test mode) prices, used only with sk_test_/pk_test_ keys
-STRIPE_TEST_PRICE_IDS = '{"gift-2":"price_1UTp7J1UP4OSvubVWEUuCjb3","spooky-oct30":"price_1UTp7l1UP4OSvubVnSvTjPI1","intro-bogo":"price_1UTp811UP4OSvubVzllP8PsW"}'
+STRIPE_TEST_PRICE_IDS = '{"gift-2":"price_1UTp7J1UP4OSvubVWEUuCjb3","spooky-oct30":"price_1UTp7l1UP4OSvubVnSvTjPI1","intro-bogo":"price_1UTp811UP4OSvubVzllP8PsW","pack-3":"price_1UVW2L1UP4OSvubVjvR1o7UV"}'
 AIRTABLE_BASE_ID = "appha5EL7Q92l0yuf"
 AIRTABLE_TABLE = "Posts"
 BOOKING_EMAIL_FROM = "Sea Sculpt Club <bookings@seasculptclub.com>"
