@@ -531,7 +531,7 @@ var require_email = __commonJS({
         };
       });
       const allGifts = booking.items.length && booking.items.every((it) => it.kind === "gift");
-      const subject = booking.items.length === 1 && booking.items[0].kind === "class" ? `You're booked: ${booking.items[0].className}, ${booking.items[0].dateLabel}` : allGifts ? "Your Sea Sculpt Club eGift order" : "You're booked with Sea Sculpt Club";
+      const subject = booking.items.length === 1 && booking.items[0].kind === "class" ? `You're booked: ${booking.items[0].className}, ${booking.items[0].dateLabel}` : allGifts ? "Your Sea Sculpt Club eGift order" : booking.items.length && booking.items.every((it) => it.packCode) ? `Your ${booking.items.map((it) => it.className.replace(/ \(.*\)$/, "")).join(" + ")} code: ${booking.items[0].packCode}` : "You're booked with Sea Sculpt Club";
       const text = `Hi ${first},
 
 Thank you for booking with Sea Sculpt Club! Here are your details:
