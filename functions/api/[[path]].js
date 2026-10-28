@@ -641,6 +641,21 @@ var require_create_checkout = __commonJS({
     function json(statusCode, body) {
       return { statusCode, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(body) };
     }
+    var KNOWN_PUBLISHABLE_KEYS = {
+      "51U71aV1UP4OSvub": { live: "pk_live_51U71aV1UP4OSvubVytUwtQowPJbnpE8y81AcRFO5TcsrW4fOoEzLKa6efrdIuichIqISypCbadnMfWTDQN6Ojs5i00M0gBV7Qv" }
+    };
+    var accountOf = (k) => {
+      const m = /^(?:sk|rk|pk)_(?:live|test)_([0-9A-Za-z]{16})/.exec(k || "");
+      return m ? m[1] : null;
+    };
+    function publishableKeyFor(secret) {
+      const fromEnv = (process.env.STRIPE_PUBLISHABLE_KEY || "").trim();
+      const sa = accountOf(secret), mode = /_live_/.test(secret || "") ? "live" : /_test_/.test(secret || "") ? "test" : null;
+      if (fromEnv && accountOf(fromEnv) === sa) return { key: fromEnv, source: "setting" };
+      const known = sa && mode && KNOWN_PUBLISHABLE_KEYS[sa] && KNOWN_PUBLISHABLE_KEYS[sa][mode];
+      if (known) return { key: known, source: fromEnv ? "built-in (setting is from a different Stripe account)" : "built-in" };
+      return { key: fromEnv, source: "setting" };
+    }
     function keyMode(key, kind) {
       if (!key) return "missing";
       const prefixes = kind === "secret" ? ["sk", "rk"] : ["pk"];
@@ -746,7 +761,8 @@ var require_create_checkout = __commonJS({
         functionDeployed: true,
         stripeApiVersion: STRIPE_VERSION,
         secretKey: mode,
-        publishableKey: keyMode((process.env.STRIPE_PUBLISHABLE_KEY || "").trim(), "publishable"),
+        publishableKey: keyMode(publishableKeyFor(secret).key, "publishable"),
+        publishableKeySource: publishableKeyFor(secret).source,
         webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ? "set" : "MISSING",
         adminPassword: (process.env.ADMIN_PASSWORD || "").length >= 12 ? "set" : "MISSING (12+ characters)",
         confirmationEmail: process.env.RESEND_API_KEY ? "set" : "not configured (Stripe receipt only)"
@@ -756,7 +772,7 @@ var require_create_checkout = __commonJS({
         const m = /^(?:sk|rk|pk)_(?:live|test)_([0-9A-Za-z]{16})/.exec(k || "");
         return m ? m[1] : null;
       };
-      const sa = acct(secret), pa = acct((process.env.STRIPE_PUBLISHABLE_KEY || "").trim());
+      const sa = acct(secret), pa = acct(publishableKeyFor(secret).key);
       report.keysSameAccount = !!(sa && pa && sa === pa);
       if (sa && pa && sa !== pa) report.keysProblem = "The publishable key is from a different Stripe account than the secret key: the on-site payment form can't load, so customers are sent to Stripe's page.";
       report.priceIds = {};
@@ -768,7 +784,7 @@ var require_create_checkout = __commonJS({
       if (event.httpMethod === "GET") return setupCheck();
       if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
       const secret = (process.env.STRIPE_SECRET_KEY || "").trim();
-      const publishableKey = (process.env.STRIPE_PUBLISHABLE_KEY || "").trim();
+      const publishableKey = publishableKeyFor(secret).key;
       if (!secret || !publishableKey) return json(500, { error: "Checkout is not set up yet.", code: "keys_missing" });
       const mode = keyMode(secret, "secret");
       if (mode !== keyMode(publishableKey, "publishable")) return json(500, { error: "Checkout is not set up correctly.", code: "key_mode_mismatch" });
