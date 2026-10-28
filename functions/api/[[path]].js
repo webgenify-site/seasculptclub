@@ -398,7 +398,7 @@ var require_giftcodes = __commonJS({
     }
     async function lookup(db, code, email) {
       const c = normalizeCode(code);
-      if (!c) return { error: "That doesn't look like a Sea Sculpt Club code. It looks like SSC-XXXX-XXXX." };
+      if (!c) return { error: "That doesn't look like an eGift code (they look like SSC-XXXX-XXXX). Have a promo code? Enter it on the next step, in the payment form." };
       const rec = await db.get(keyOf(c));
       if (!rec) return { error: "We couldn't find that code. Please check it and try again." };
       const who = String(email || "").trim().toLowerCase();
@@ -816,6 +816,8 @@ var require_create_checkout = __commonJS({
       params.append("automatic_tax[enabled]", "false");
       params.append("submit_type", "auto");
       if (!hosted) params.append("integration_identifier", INTEGRATION_ID);
+      // Lets customers enter Stripe promotion codes (e.g. FRIENDS20) in the payment step.
+      params.append("allow_promotion_codes", "true");
       params.append("customer_email", purchaser.email);
       params.append("client_reference_id", ref);
       let i = 0;
@@ -1398,7 +1400,8 @@ var require_stripe_webhook = __commonJS({
       const cd = session.customer_details || {};
       const flags = [...extraFlags];
       if (source === "unmatched") flags.push("Not created by the website cart: check this payment in Stripe.");
-      if (source !== "payment_link" && order.expectedAmount != null && session.amount_total !== order.expectedAmount) {
+      const promoOff = session.total_details && session.total_details.amount_discount || 0;
+      if (source !== "payment_link" && order.expectedAmount != null && session.amount_total + promoOff !== order.expectedAmount) {
         flags.push(`Amount paid (${session.amount_total}) differs from the website price (${order.expectedAmount}).`);
       }
       const booking = {
