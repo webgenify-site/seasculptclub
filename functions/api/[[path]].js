@@ -170,6 +170,8 @@ var require_catalog = __commonJS({
         // Stripe product: 3-Class Pack ($90)
         className: "3-Class Pack",
         amount: 9e3,
+        credits: 3,
+        // buyer gets a class code worth 3 class spots; shareable, no expiration
         maxQty: 10
       },
       "pack-4": {
@@ -178,6 +180,8 @@ var require_catalog = __commonJS({
         // Stripe product: 4-Class Pack ($110)
         className: "4-Class Pack",
         amount: 11e3,
+        credits: 4,
+        // buyer gets a class code worth 4 class spots; shareable, no expiration
         maxQty: 10
       },
       "intro-bogo": {
@@ -198,6 +202,8 @@ var require_catalog = __commonJS({
         // Stripe product: 1 Drop in ($35)
         className: "Single Class (drop-in credit)",
         amount: 3500,
+        credits: 1,
+        // buyer gets a class code worth 1 class spot; shareable, no expiration
         maxQty: 10
       },
       // ---- eGift cards (class credits for someone else, sent after checkout) ----
@@ -510,11 +516,12 @@ var require_email = __commonJS({
           const n = (cat.credits || 0) * (it.spots || 1);
           const how = `Your class code: ${it.packCode}
   To book, add any class to your cart at seasculptclub.com/classes and enter your code at checkout` + (rules.ownerOnly ? " (use this email)" : "") + `. It covers ${n} class ${n === 1 ? "spot" : "spots"}` + (rules.maxPerBooking === 1 ? ", one per booking" : "") + "." + (exp ? `
-  Your extra class must be booked by ${exp}.` : "");
+  Your extra class must be booked by ${exp}.` : "") + (!rules.ownerOnly ? `
+  You can use it for friends too, and your classes never expire.` : "");
           return {
             text: `${it.className}
   ${how}`,
-            html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong><br>Your class code: <strong style="letter-spacing:.08em">${esc(it.packCode)}</strong><br>To book, add any class to your cart at <a href="https://seasculptclub.com/classes" style="color:#3D6789">seasculptclub.com/classes</a> and enter your code at checkout` + (rules.ownerOnly ? " (use this email)" : "") + `. It covers ${n} class ${n === 1 ? "spot" : "spots"}${rules.maxPerBooking === 1 ? ", one per booking" : ""}.` + (exp ? `<br>Your extra class must be booked by ${esc(exp)}.` : "") + `</p>`
+            html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong><br>Your class code: <strong style="letter-spacing:.08em">${esc(it.packCode)}</strong><br>To book, add any class to your cart at <a href="https://seasculptclub.com/classes" style="color:#3D6789">seasculptclub.com/classes</a> and enter your code at checkout` + (rules.ownerOnly ? " (use this email)" : "") + `. It covers ${n} class ${n === 1 ? "spot" : "spots"}${rules.maxPerBooking === 1 ? ", one per booking" : ""}.` + (exp ? `<br>Your extra class must be booked by ${esc(exp)}.` : "") + (!rules.ownerOnly ? `<br>You can use it for friends too, and your classes never expire.` : "") + `</p>`
           };
         }
         return {

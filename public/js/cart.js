@@ -74,7 +74,7 @@
           '</div>' +
         '</div>' +
         '<div class="cart-code" hidden>' +
-          '<label for="cartGiftCode">Have an eGift code?</label>' +
+          '<label for="cartGiftCode">Have an eGift or class pack code?</label>' +
           '<div class="cart-code-row"><input id="cartGiftCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="SSC-XXXX-XXXX">' +
           '<button type="button" class="cart-code-apply">Apply</button></div>' +
           '<p class="cart-code-msg" role="status" aria-live="polite"></p>' +
