@@ -130,7 +130,7 @@ var require_catalog = __commonJS({
       "wave-nov14": {
         kind: "class",
         priceId: "price_1U981k1UP4OSvubVnoRtLkX9",
-        // Stripe product: Wave Sculpt ($35); the date is saved with the booking
+        // Stripe product: Wave Sculpt ($35), same as buy.stripe.com/28E8wIaF94G7571gic0co0b
         className: "Wave Sculpt: Ocean View Pilates",
         date: "2026-11-14",
         dateLabel: "Saturday, November 14, 2026",
@@ -141,8 +141,8 @@ var require_catalog = __commonJS({
       },
       "friendsgiving-nov21": {
         kind: "class",
-        priceId: "price_1U981k1UP4OSvubVnoRtLkX9",
-        // Stripe product: Wave Sculpt ($35); the event is saved with the booking
+        priceId: "price_1UVBrH1UP4OSvubVkW6s7LNp",
+        // Stripe product: Wave Friendsgiving ($35), same as buy.stripe.com/5kQeV64gL4G7arlea40co0f
         className: "Friendsgiving Pilates & Brunch",
         date: "2026-11-21",
         dateLabel: "Saturday, November 21, 2026",
@@ -1006,6 +1006,7 @@ var require_recovery = __commonJS({
   "../cf/src/lib/recovery.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var WAVE_FALL_AT = Date.parse("2026-10-01T00:00:00Z");
+    var WAVE_NOV_AT = Date.parse("2026-10-24T04:00:00Z");
     var RESCHEDULED_AT = Date.parse("2026-09-26T20:00:00Z");
     var PRICE_RULES = {
       "price_1UNj9B1UP4OSvubVuvnfC50h": () => ({ catalogId: "pumpkins-oct18" }),
@@ -1040,7 +1041,9 @@ var require_recovery = __commonJS({
         time: "9:00 AM",
         location: "Sea Bright Beach, NJ"
       }),
-      "price_1U981k1UP4OSvubVnoRtLkX9": (created, desc) => created >= WAVE_FALL_AT ? {
+      "price_1UVBrH1UP4OSvubVkW6s7LNp": () => ({ catalogId: "friendsgiving-nov21" }),
+      // Wave Friendsgiving link
+      "price_1U981k1UP4OSvubVnoRtLkX9": (created, desc) => created >= WAVE_NOV_AT ? { catalogId: "wave-nov14" } : created >= WAVE_FALL_AT ? {
         className: "Wave Sculpt",
         date: null,
         dateLabel: "Fri Oct 16 or Oct 23 (not recorded)",
