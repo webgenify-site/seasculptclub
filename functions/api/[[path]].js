@@ -816,7 +816,6 @@ var require_create_checkout = __commonJS({
       params.append("automatic_tax[enabled]", "false");
       params.append("submit_type", "auto");
       if (!hosted) params.append("integration_identifier", INTEGRATION_ID);
-      // Lets customers enter Stripe promotion codes (e.g. FRIENDS20) in the payment step.
       params.append("allow_promotion_codes", "true");
       params.append("customer_email", purchaser.email);
       params.append("client_reference_id", ref);
@@ -850,7 +849,7 @@ var require_create_checkout = __commonJS({
       if (intake.injuries) params.append("metadata[intake_injuries]", intake.injuries.slice(0, 500));
       if (intake.waiver) params.append("metadata[intake_waiver]", `accepted v${intake.waiver.version} at ${intake.waiver.at}`);
       const description = `Sea Sculpt Club booking ${ref}: ${summary.join("; ")}`;
-      params.append("custom_text[submit][message]", ("Booking: " + summary.join(" \u2022 ")).slice(0, 1200));
+      if (hosted) params.append("custom_text[submit][message]", ("Booking: " + summary.join(" \u2022 ")).slice(0, 1200));
       params.append("payment_intent_data[description]", description.slice(0, 1e3));
       params.append("payment_intent_data[receipt_email]", purchaser.email);
       params.append("payment_intent_data[metadata][booking_ref]", ref);
