@@ -76,8 +76,8 @@
           '</div>' +
         '</div>' +
         '<div class="cart-code" hidden>' +
-          '<label for="cartGiftCode">Have an eGift or class pack code?</label>' +
-          '<div class="cart-code-row"><input id="cartGiftCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="SSC-XXXX-XXXX">' +
+          '<label for="cartGiftCode">Have a promo code, eGift or class pack code?</label>' +
+          '<div class="cart-code-row"><input id="cartGiftCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="e.g. SANTA5 or SSC-XXXX-XXXX">' +
           '<button type="button" class="cart-code-apply">Apply</button></div>' +
           '<p class="cart-code-msg" role="status" aria-live="polite"></p>' +
         '</div>' +
@@ -123,6 +123,7 @@
     otherWrap: details.querySelector(".cart-heard-other"), classWrap: details.querySelector(".cart-intake-class") };
   function photoChoice() { var r = details.querySelector('input[name="photo"]:checked'); return r ? r.value : ""; }
   var giftState = null; // { code, creditsLeft } once a valid eGift code is applied
+  var promoState = null; // { code } for a Stripe promotion code such as SANTA5 (applied on the payment step)
   var F = { name: details.querySelector('input[name="name"]'), email: details.querySelector('input[name="email"]'), phone: details.querySelector('input[name="phone"]') };
 
   // Same rule as the server: each eGift credit covers one class spot, most expensive spots first.
@@ -361,6 +362,17 @@
   function applyCode() {
     var code = codeInput.value.trim();
     if (!code) { codeMsg.textContent = "Enter the code from your email."; codeInput.focus(); return; }
+    // Anything that isn't an SSC- eGift/class code is a promo code (e.g. SANTA5): Stripe checks it at payment.
+    if (!/^\s*SSC[-\s]?/i.test(code)) {
+      promoState = { code: code.toUpperCase().replace(/[^A-Z0-9_-]/g, "") };
+      giftState = null; codeInput.value = promoState.code; render();
+      codeMsg.className = "cart-code-msg is-good";
+      codeMsg.innerHTML = "&#10003; Promo code " + esc(promoState.code) + " will be applied on the payment step." +
+        ' <button type="button" class="cart-code-remove">Remove</button>';
+      track("apply_promo", { code: promoState.code });
+      return;
+    }
+    promoState = null;
     codeBtn.disabled = true; codeMsg.className = "cart-code-msg"; codeMsg.textContent = "Checking…";
     fetch("/api/gift-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code, email: F.email.value.trim() }) })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
@@ -384,7 +396,7 @@
   codeInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); applyCode(); } });
   codeMsg.addEventListener("click", function (e) {
     if (!e.target.closest(".cart-code-remove")) return;
-    giftState = null; codeInput.value = ""; codeMsg.textContent = ""; render(); codeInput.focus();
+    giftState = null; promoState = null; codeInput.value = ""; codeMsg.textContent = ""; render(); codeInput.focus();
   });
 
   /* ---------- checkout ---------- */
@@ -412,7 +424,7 @@
   function requestSession(mode) {
     return fetch("/api/create-checkout", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: cart, mode: mode, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, intake: currentDetails.intake || {}, giftCode: giftState ? giftState.code : undefined })
+      body: JSON.stringify({ items: cart, mode: mode, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, intake: currentDetails.intake || {}, giftCode: giftState ? giftState.code : undefined, promoCode: promoState ? promoState.code : undefined })
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
         if (!r.ok) {
@@ -495,6 +507,12 @@
         });
       })
       .catch(function (err) {
+        if (err && err.code === "promo_invalid") {
+          closePay(); openDrawer(); if (step !== "details") showStep("details");
+          promoState = null; codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = err.message || "That promo code didn't work."; render();
+          checkoutBtn.disabled = !cart.length; checkoutBtn.textContent = "Continue to payment";
+          return;
+        }
         if (err && err.code === "gift_invalid") {
           closePay(); openDrawer(); if (step !== "details") showStep("details");
           giftState = null; codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = err.message; render();
@@ -527,7 +545,7 @@
   // Everything was covered by an eGift: booked without payment.
   function bookedWithGift(d) {
     track("purchase", { transaction_id: d.ref, currency: "USD", value: 0, coupon: "egift", items: gaItems(cart) });
-    cart = []; save(cart); giftState = null; codeInput.value = ""; codeMsg.textContent = "";
+    cart = []; save(cart); giftState = null; promoState = null; codeInput.value = ""; codeMsg.textContent = "";
     try { sessionStorage.removeItem(DETAILS_KEY); } catch (e) {}
     closeDrawer(); render();
     checkoutBtn.textContent = "Checkout";

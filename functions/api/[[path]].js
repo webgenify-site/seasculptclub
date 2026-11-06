@@ -28,9 +28,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../cf/src/lib/webcrypto.js
+// cf/src/lib/webcrypto.js
 var require_webcrypto = __commonJS({
-  "../cf/src/lib/webcrypto.js"(exports, module) {
+  "cf/src/lib/webcrypto.js"(exports, module) {
     var enc = new TextEncoder();
     var subtle = () => globalThis.crypto.subtle;
     function randomBytes(n) {
@@ -63,9 +63,9 @@ var require_webcrypto = __commonJS({
   }
 });
 
-// ../cf/src/lib/catalog.js
+// cf/src/lib/catalog.js
 var require_catalog = __commonJS({
-  "../cf/src/lib/catalog.js"(exports, module) {
+  "cf/src/lib/catalog.js"(exports, module) {
     var CATALOG = {
       // ---- Dated classes / events ----
       "pumpkins-oct18": {
@@ -262,9 +262,9 @@ var require_catalog = __commonJS({
   }
 });
 
-// ../cf/src/lib/store.js
+// cf/src/lib/store.js
 var require_store = __commonJS({
-  "../cf/src/lib/store.js"(exports, module) {
+  "cf/src/lib/store.js"(exports, module) {
     var ready = null;
     function binding(event) {
       const db = event && event.db || globalThis.__SSC_DB;
@@ -329,9 +329,9 @@ var require_store = __commonJS({
   }
 });
 
-// ../cf/src/lib/giftcodes.js
+// cf/src/lib/giftcodes.js
 var require_giftcodes = __commonJS({
-  "../cf/src/lib/giftcodes.js"(exports, module) {
+  "cf/src/lib/giftcodes.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var CODE_RE = /^SSC-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/;
     function normalizeCode(input) {
@@ -486,9 +486,9 @@ var require_giftcodes = __commonJS({
   }
 });
 
-// ../cf/src/lib/email.js
+// cf/src/lib/email.js
 var require_email = __commonJS({
-  "../cf/src/lib/email.js"(exports, module) {
+  "cf/src/lib/email.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
     var money = (c) => "$" + (c / 100).toFixed(c % 100 ? 2 : 0);
@@ -646,9 +646,9 @@ Sea Sculpt Club`;
   }
 });
 
-// ../cf/src/functions/create-checkout.js
+// cf/src/functions/create-checkout.js
 var require_create_checkout = __commonJS({
-  "../cf/src/functions/create-checkout.js"(exports) {
+  "cf/src/functions/create-checkout.js"(exports) {
     var { randomHex } = require_webcrypto();
     var { CATALOG, priceIdFor, describe } = require_catalog();
     var { store } = require_store();
@@ -852,6 +852,24 @@ var require_create_checkout = __commonJS({
       if (missing.length) {
         return json(400, { error: `${missing.join(", ")} can't be booked online yet. Please email seasculptclub@gmail.com.`, code: "price_not_configured" });
       }
+      let promo = null;
+      const promoCode = String(body.promoCode || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 40);
+      if (promoCode) {
+        try {
+          const pr = await fetch("https://api.stripe.com/v1/promotion_codes?active=true&limit=1&code=" + encodeURIComponent(promoCode), {
+            headers: { Authorization: `Bearer ${secret}`, "Stripe-Version": STRIPE_VERSION }
+          });
+          const pd = await pr.json();
+          if (pr.ok && pd && Array.isArray(pd.data)) {
+            if (!pd.data.length) return json(400, { error: `${promoCode} isn't a valid code, or it has expired.`, code: "promo_invalid" });
+            promo = { code: promoCode, id: pd.data[0].id };
+          } else {
+            console.warn("Promotion code lookup unavailable:", pd && pd.error && pd.error.message);
+          }
+        } catch (err) {
+          console.warn("Promotion code lookup failed:", err && err.message);
+        }
+      }
       const summary = lines.map((l) => describe(CATALOG[l.id], l.qty));
       if (gift) summary.push(`${gift.kind === "pack" ? "Class code" : "eGift"} ${gift.code} covers ${gift.credits} ${gift.credits === 1 ? "spot" : "spots"}`);
       const params = new URLSearchParams();
@@ -862,7 +880,8 @@ var require_create_checkout = __commonJS({
       params.append("automatic_tax[enabled]", "false");
       params.append("submit_type", "auto");
       if (!hosted) params.append("integration_identifier", INTEGRATION_ID);
-      params.append("allow_promotion_codes", "true");
+      if (promo) params.append("discounts[0][promotion_code]", promo.id);
+      else params.append("allow_promotion_codes", "true");
       params.append("customer_email", purchaser.email);
       params.append("client_reference_id", ref);
       let i = 0;
@@ -923,6 +942,9 @@ var require_create_checkout = __commonJS({
       if (!res.ok) {
         const msg = data && data.error && data.error.message || "";
         console.error("Stripe error:", data && data.error);
+        if (promo && data && data.error && /discount|coupon|promotion/i.test(msg + " " + (data.error.param || ""))) {
+          return json(400, { error: `${promo.code} can't be used with the items in your cart.`, code: "promo_invalid", detail: msg });
+        }
         const code = res.status === 403 || /permission/i.test(msg) ? "stripe_key_missing_permission" : /No such price/i.test(msg) ? "stripe_price_not_found" : "stripe_" + (data && data.error && (data.error.code || data.error.type) || "error");
         return json(502, { error: "Checkout couldn't start. Please try again in a moment.", code, detail: msg });
       }
@@ -952,8 +974,9 @@ var require_create_checkout = __commonJS({
       } catch (err) {
         console.error("Could not save pending booking (metadata backup will be used):", err && err.message);
       }
-      if (hosted) return json(200, { url: data.url, ref });
-      return json(200, { clientSecret: data.client_secret, publishableKey, ref });
+      const promoInfo = promoCode ? { promoCode, promoApplied: !!promo } : {};
+      if (hosted) return json(200, { url: data.url, ref, ...promoInfo });
+      return json(200, { clientSecret: data.client_secret, publishableKey, ref, ...promoInfo });
     };
     function pick(item) {
       const { kind, className, date, dateLabel, time, location, amount } = item;
@@ -1022,9 +1045,9 @@ var require_create_checkout = __commonJS({
   }
 });
 
-// ../cf/src/lib/stripe-signature.js
+// cf/src/lib/stripe-signature.js
 var require_stripe_signature = __commonJS({
-  "../cf/src/lib/stripe-signature.js"(exports, module) {
+  "cf/src/lib/stripe-signature.js"(exports, module) {
     var { hmacSha256, fromHex, timingSafeEqual } = require_webcrypto();
     async function verifyStripeSignature(rawBody, header, secret, toleranceSeconds = 300, now = Math.floor(Date.now() / 1e3)) {
       if (!secret) return { ok: false, reason: "webhook secret not configured" };
@@ -1049,9 +1072,9 @@ var require_stripe_signature = __commonJS({
   }
 });
 
-// ../cf/src/lib/recovery.js
+// cf/src/lib/recovery.js
 var require_recovery = __commonJS({
-  "../cf/src/lib/recovery.js"(exports, module) {
+  "cf/src/lib/recovery.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var WAVE_FALL_AT = Date.parse("2026-10-01T00:00:00Z");
     var WAVE_NOV_AT = Date.parse("2026-10-24T04:00:00Z");
@@ -1278,9 +1301,9 @@ var require_recovery = __commonJS({
   }
 });
 
-// ../cf/src/lib/gifts.js
+// cf/src/lib/gifts.js
 var require_gifts = __commonJS({
-  "../cf/src/lib/gifts.js"(exports, module) {
+  "cf/src/lib/gifts.js"(exports, module) {
     var { randomBytes } = require_webcrypto();
     var { sendGiftEmail } = require_email();
     var SEND_HOUR_NJ = 9;
@@ -1339,9 +1362,9 @@ var require_gifts = __commonJS({
   }
 });
 
-// ../cf/src/functions/stripe-webhook.js
+// cf/src/functions/stripe-webhook.js
 var require_stripe_webhook = __commonJS({
-  "../cf/src/functions/stripe-webhook.js"(exports) {
+  "cf/src/functions/stripe-webhook.js"(exports) {
     var { verifyStripeSignature } = require_stripe_signature();
     var { CATALOG } = require_catalog();
     var { store } = require_store();
@@ -1623,9 +1646,9 @@ var require_stripe_webhook = __commonJS({
   }
 });
 
-// ../cf/src/functions/admin-bookings.js
+// cf/src/functions/admin-bookings.js
 var require_admin_bookings = __commonJS({
-  "../cf/src/functions/admin-bookings.js"(exports) {
+  "cf/src/functions/admin-bookings.js"(exports) {
     var { sha256, toHex, timingSafeEqual } = require_webcrypto();
     var { store } = require_store();
     var { classifySession, flagDuplicates } = require_recovery();
@@ -1893,9 +1916,9 @@ var require_admin_bookings = __commonJS({
   }
 });
 
-// ../cf/src/functions/get-posts.js
+// cf/src/functions/get-posts.js
 var require_get_posts = __commonJS({
-  "../cf/src/functions/get-posts.js"(exports) {
+  "cf/src/functions/get-posts.js"(exports) {
     var json = (statusCode, body, cache) => ({
       statusCode,
       headers: { "Content-Type": "application/json", "Cache-Control": cache || "no-store" },
@@ -1966,9 +1989,9 @@ var require_get_posts = __commonJS({
   }
 });
 
-// ../cf/src/functions/form.js
+// cf/src/functions/form.js
 var require_form = __commonJS({
-  "../cf/src/functions/form.js"(exports) {
+  "cf/src/functions/form.js"(exports) {
     var { randomHex } = require_webcrypto();
     var { store } = require_store();
     var FORMS = {
@@ -2084,9 +2107,9 @@ Sent ${rec.createdAt}`;
   }
 });
 
-// ../cf/src/functions/send-gifts.js
+// cf/src/functions/send-gifts.js
 var require_send_gifts = __commonJS({
-  "../cf/src/functions/send-gifts.js"(exports) {
+  "cf/src/functions/send-gifts.js"(exports) {
     var { store } = require_store();
     var { sendDueGifts, isDue } = require_gifts();
     var { sha256, timingSafeEqual } = require_webcrypto();
@@ -2127,9 +2150,9 @@ var require_send_gifts = __commonJS({
   }
 });
 
-// ../cf/src/functions/gift-code.js
+// cf/src/functions/gift-code.js
 var require_gift_code = __commonJS({
-  "../cf/src/functions/gift-code.js"(exports) {
+  "cf/src/functions/gift-code.js"(exports) {
     var { store } = require_store();
     var { lookup, emptyReason, expiringLeft } = require_giftcodes();
     var { sha256, toHex } = require_webcrypto();
@@ -2179,7 +2202,7 @@ var require_gift_code = __commonJS({
   }
 });
 
-// ../cf/src/cloudflare/api.js
+// cf/src/cloudflare/api.js
 var createCheckout = __toESM(require_create_checkout());
 var stripeWebhook = __toESM(require_stripe_webhook());
 var adminBookings = __toESM(require_admin_bookings());
