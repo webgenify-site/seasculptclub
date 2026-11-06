@@ -136,6 +136,7 @@
     if (q.photoConsent) bits.push('<div class="notes">Photos: ' + (q.photoConsent === "yes" ? "OK" : "<strong>No photos</strong>") + '</div>');
     if (q.heard) bits.push('<div class="notes">Heard about us: ' + esc(q.heard + (q.heardOther ? ": " + q.heardOther : "")) + '</div>');
     if (q.waiver) bits.push('<div class="notes">Waiver agreed ' + esc(new Date(q.waiver.at).toLocaleString()) + '</div>');
+    if (q.cancelPolicy) bits.push('<div class="notes">Cancellation policy agreed ' + esc(new Date(q.cancelPolicy.at).toLocaleString()) + '</div>');
     return bits.join("");
   }
   function groupKey(r, it) { return (it.className || "Unknown") + "||" + (it.date || it.dateLabel || ""); }

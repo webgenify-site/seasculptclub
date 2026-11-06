@@ -71,6 +71,7 @@
               '<label class="cart-radio"><input type="radio" name="photo" value="no"> No, please keep me out of photos and videos</label>' +
             '</fieldset>' +
             '<label class="cart-check"><input type="checkbox" name="waiver"> <span>I have read and agree to the <a href="/waiver" target="_blank" rel="noopener">Liability Waiver &amp; Release</a>, for myself and everyone in my booking.</span></label>' +
+            '<label class="cart-check"><input type="checkbox" name="cancelPolicy"> <span>I understand the <a href="/terms#cancellations" target="_blank" rel="noopener">cancellation policy</a>: refunds are available up to 12 hours before class, with no refunds less than 12 hours before class. If weather cancels a class, I can choose a credit toward the next class or a refund.</span></label>' +
           '</div>' +
         '</div>' +
         '<div class="cart-code" hidden>' +
@@ -117,7 +118,7 @@
   var codeBtn = shell.querySelector(".cart-code-apply"), codeMsg = shell.querySelector(".cart-code-msg");
   var creditEl = shell.querySelector(".cart-credit"), totalLabel = shell.querySelector(".cart-total span");
   var IN = { heard: details.querySelector('select[name="heard"]'), heardOther: details.querySelector('input[name="heardOther"]'),
-    injuries: details.querySelector('textarea[name="injuries"]'), waiver: details.querySelector('input[name="waiver"]'),
+    injuries: details.querySelector('textarea[name="injuries"]'), waiver: details.querySelector('input[name="waiver"]'), cancelPolicy: details.querySelector('input[name="cancelPolicy"]'),
     otherWrap: details.querySelector(".cart-heard-other"), classWrap: details.querySelector(".cart-intake-class") };
   function photoChoice() { var r = details.querySelector('input[name="photo"]:checked'); return r ? r.value : ""; }
   var giftState = null; // { code, creditsLeft } once a valid eGift code is applied
@@ -173,7 +174,7 @@
   function readDetails() {
     var d = { purchaser: { name: F.name.value.trim(), email: F.email.value.trim(), phone: F.phone.value.trim() }, attendees: {}, gifts: {},
       intake: { heard: IN.heard.value, heardOther: IN.heard.value === "Other" ? IN.heardOther.value.trim() : "", injuries: IN.injuries.value.trim(),
-        photo: photoChoice(), waiver: IN.waiver.checked } };
+        photo: photoChoice(), waiver: IN.waiver.checked, cancelPolicy: IN.cancelPolicy.checked } };
     attendeesEl.querySelectorAll("input[data-line]").forEach(function (inp) {
       var id = inp.getAttribute("data-line");
       (d.attendees[id] = d.attendees[id] || [])[+inp.getAttribute("data-spot")] = inp.value.trim();
@@ -239,6 +240,7 @@
     IN.injuries.value = it.injuries || "";
     details.querySelectorAll('input[name="photo"]').forEach(function (r) { r.checked = r.value === it.photo; });
     IN.waiver.checked = false; // agreed fresh at every checkout
+    IN.cancelPolicy.checked = false;
     IN.classWrap.hidden = !html;
     detailsErr.textContent = "";
   }
@@ -282,6 +284,7 @@
     if (hasClass()) {
       if (!d.intake.photo) return [details.querySelector('input[name="photo"]'), "Please choose Yes or No for photo and video consent."];
       if (!d.intake.waiver) return [IN.waiver, "Please agree to the Liability Waiver & Release to book a class."];
+      if (!d.intake.cancelPolicy) return [IN.cancelPolicy, "Please confirm you understand the cancellation policy to book a class."];
     }
     return null;
   }

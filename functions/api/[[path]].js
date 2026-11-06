@@ -28,9 +28,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../cf/src/lib/webcrypto.js
+// cf/src/lib/webcrypto.js
 var require_webcrypto = __commonJS({
-  "../cf/src/lib/webcrypto.js"(exports, module) {
+  "cf/src/lib/webcrypto.js"(exports, module) {
     var enc = new TextEncoder();
     var subtle = () => globalThis.crypto.subtle;
     function randomBytes(n) {
@@ -63,9 +63,9 @@ var require_webcrypto = __commonJS({
   }
 });
 
-// ../cf/src/lib/catalog.js
+// cf/src/lib/catalog.js
 var require_catalog = __commonJS({
-  "../cf/src/lib/catalog.js"(exports, module) {
+  "cf/src/lib/catalog.js"(exports, module) {
     var CATALOG = {
       // ---- Dated classes / events ----
       "pumpkins-oct18": {
@@ -250,9 +250,9 @@ var require_catalog = __commonJS({
   }
 });
 
-// ../cf/src/lib/store.js
+// cf/src/lib/store.js
 var require_store = __commonJS({
-  "../cf/src/lib/store.js"(exports, module) {
+  "cf/src/lib/store.js"(exports, module) {
     var ready = null;
     function binding(event) {
       const db = event && event.db || globalThis.__SSC_DB;
@@ -317,9 +317,9 @@ var require_store = __commonJS({
   }
 });
 
-// ../cf/src/lib/giftcodes.js
+// cf/src/lib/giftcodes.js
 var require_giftcodes = __commonJS({
-  "../cf/src/lib/giftcodes.js"(exports, module) {
+  "cf/src/lib/giftcodes.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var CODE_RE = /^SSC-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/;
     function normalizeCode(input) {
@@ -474,9 +474,9 @@ var require_giftcodes = __commonJS({
   }
 });
 
-// ../cf/src/lib/email.js
+// cf/src/lib/email.js
 var require_email = __commonJS({
-  "../cf/src/lib/email.js"(exports, module) {
+  "cf/src/lib/email.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
     var money = (c) => "$" + (c / 100).toFixed(c % 100 ? 2 : 0);
@@ -634,15 +634,16 @@ Sea Sculpt Club`;
   }
 });
 
-// ../cf/src/functions/create-checkout.js
+// cf/src/functions/create-checkout.js
 var require_create_checkout = __commonJS({
-  "../cf/src/functions/create-checkout.js"(exports) {
+  "cf/src/functions/create-checkout.js"(exports) {
     var { randomHex } = require_webcrypto();
     var { CATALOG, priceIdFor, describe } = require_catalog();
     var { store } = require_store();
     var { lookup, planCoverage, spend, hold, emptyReason } = require_giftcodes();
     var { sendConfirmation } = require_email();
     var WAIVER_VERSION = "2026-10-27";
+    var CANCEL_POLICY_VERSION = "2026-11-03";
     var STRIPE_VERSION = "2026-03-25.dahlia; custom_checkout_payment_form_preview=v1";
     var INTEGRATION_ID = "538e8f4c-e01b-496b-96d2-98c3c2f2bee8";
     function json(statusCode, body) {
@@ -746,13 +747,16 @@ var require_create_checkout = __commonJS({
         heardOther: clean(q.heardOther, 120),
         injuries: String(q.injuries == null ? "" : q.injuries).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").trim().slice(0, 600),
         photoConsent: q.photo === "yes" || q.photo === "no" ? q.photo : "",
-        waiver: null
+        waiver: null,
+        cancelPolicy: null
       };
       if (!intake.heard) errors.push("Please tell us how you heard about us.");
       if (hasClass) {
         if (!intake.photoConsent) errors.push("Please choose Yes or No for photo and video consent.");
         if (q.waiver !== true) errors.push("Please agree to the Liability Waiver & Release to book a class.");
         else intake.waiver = { accepted: true, version: WAIVER_VERSION, at: (/* @__PURE__ */ new Date()).toISOString() };
+        if (q.cancelPolicy !== true) errors.push("Please confirm you understand the cancellation policy to book a class.");
+        else intake.cancelPolicy = { accepted: true, version: CANCEL_POLICY_VERSION, at: (/* @__PURE__ */ new Date()).toISOString() };
       }
       return { errors, purchaser, lines, intake };
     }
@@ -878,6 +882,7 @@ var require_create_checkout = __commonJS({
       if (intake.photoConsent) params.append("metadata[intake_photo]", intake.photoConsent);
       if (intake.injuries) params.append("metadata[intake_injuries]", intake.injuries.slice(0, 500));
       if (intake.waiver) params.append("metadata[intake_waiver]", `accepted v${intake.waiver.version} at ${intake.waiver.at}`);
+      if (intake.cancelPolicy) params.append("metadata[intake_cancel]", `accepted v${intake.cancelPolicy.version} at ${intake.cancelPolicy.at}`);
       const description = `Sea Sculpt Club booking ${ref}: ${summary.join("; ")}`;
       if (hosted) params.append("custom_text[submit][message]", ("Booking: " + summary.join(" \u2022 ")).slice(0, 1200));
       params.append("payment_intent_data[description]", description.slice(0, 1e3));
@@ -1005,9 +1010,9 @@ var require_create_checkout = __commonJS({
   }
 });
 
-// ../cf/src/lib/stripe-signature.js
+// cf/src/lib/stripe-signature.js
 var require_stripe_signature = __commonJS({
-  "../cf/src/lib/stripe-signature.js"(exports, module) {
+  "cf/src/lib/stripe-signature.js"(exports, module) {
     var { hmacSha256, fromHex, timingSafeEqual } = require_webcrypto();
     async function verifyStripeSignature(rawBody, header, secret, toleranceSeconds = 300, now = Math.floor(Date.now() / 1e3)) {
       if (!secret) return { ok: false, reason: "webhook secret not configured" };
@@ -1032,9 +1037,9 @@ var require_stripe_signature = __commonJS({
   }
 });
 
-// ../cf/src/lib/recovery.js
+// cf/src/lib/recovery.js
 var require_recovery = __commonJS({
-  "../cf/src/lib/recovery.js"(exports, module) {
+  "cf/src/lib/recovery.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var WAVE_FALL_AT = Date.parse("2026-10-01T00:00:00Z");
     var WAVE_NOV_AT = Date.parse("2026-10-24T04:00:00Z");
@@ -1259,9 +1264,9 @@ var require_recovery = __commonJS({
   }
 });
 
-// ../cf/src/lib/gifts.js
+// cf/src/lib/gifts.js
 var require_gifts = __commonJS({
-  "../cf/src/lib/gifts.js"(exports, module) {
+  "cf/src/lib/gifts.js"(exports, module) {
     var { randomBytes } = require_webcrypto();
     var { sendGiftEmail } = require_email();
     var SEND_HOUR_NJ = 9;
@@ -1320,9 +1325,9 @@ var require_gifts = __commonJS({
   }
 });
 
-// ../cf/src/functions/stripe-webhook.js
+// cf/src/functions/stripe-webhook.js
 var require_stripe_webhook = __commonJS({
-  "../cf/src/functions/stripe-webhook.js"(exports) {
+  "cf/src/functions/stripe-webhook.js"(exports) {
     var { verifyStripeSignature } = require_stripe_signature();
     var { CATALOG } = require_catalog();
     var { store } = require_store();
@@ -1387,13 +1392,15 @@ var require_stripe_webhook = __commonJS({
         value: lines.reduce((n, l) => n + l.unitAmount * (l.giftCovered || 0), 0)
       } : null;
       const wv = /^accepted v(\S+) at (\S+)$/.exec(md.intake_waiver || "");
+      const cp = /^accepted v(\S+) at (\S+)$/.exec(md.intake_cancel || "");
       const heard = String(md.intake_heard || "");
-      const intake = md.intake_heard || md.intake_photo || md.intake_waiver ? {
+      const intake = md.intake_heard || md.intake_photo || md.intake_waiver || md.intake_cancel ? {
         heard: heard.split(": ")[0],
         heardOther: heard.includes(": ") ? heard.slice(heard.indexOf(": ") + 2) : "",
         injuries: md.intake_injuries || "",
         photoConsent: md.intake_photo || "",
-        waiver: wv ? { accepted: true, version: wv[1], at: wv[2] } : null
+        waiver: wv ? { accepted: true, version: wv[1], at: wv[2] } : null,
+        cancelPolicy: cp ? { accepted: true, version: cp[1], at: cp[2] } : null
       } : null;
       return {
         ref: md.booking_ref || session.client_reference_id || null,
@@ -1602,9 +1609,9 @@ var require_stripe_webhook = __commonJS({
   }
 });
 
-// ../cf/src/functions/admin-bookings.js
+// cf/src/functions/admin-bookings.js
 var require_admin_bookings = __commonJS({
-  "../cf/src/functions/admin-bookings.js"(exports) {
+  "cf/src/functions/admin-bookings.js"(exports) {
     var { sha256, toHex, timingSafeEqual } = require_webcrypto();
     var { store } = require_store();
     var { classifySession, flagDuplicates } = require_recovery();
@@ -1699,7 +1706,8 @@ var require_admin_bookings = __commonJS({
       "Heard about us",
       "Injuries / modifications",
       "Photo consent",
-      "Waiver accepted"
+      "Waiver accepted",
+      "Cancellation policy accepted"
     ];
     function toCsv(records) {
       const cell = (v) => {
@@ -1733,7 +1741,8 @@ var require_admin_bookings = __commonJS({
             r.intake ? [r.intake.heard, r.intake.heardOther].filter(Boolean).join(": ") : "",
             r.intake ? r.intake.injuries || "" : "",
             r.intake ? r.intake.photoConsent || "" : "",
-            r.intake && r.intake.waiver ? `Yes (v${r.intake.waiver.version}, ${r.intake.waiver.at})` : ""
+            r.intake && r.intake.waiver ? `Yes (v${r.intake.waiver.version}, ${r.intake.waiver.at})` : "",
+            r.intake && r.intake.cancelPolicy ? `Yes (v${r.intake.cancelPolicy.version}, ${r.intake.cancelPolicy.at})` : ""
           ]);
         }
       }
@@ -1870,9 +1879,9 @@ var require_admin_bookings = __commonJS({
   }
 });
 
-// ../cf/src/functions/get-posts.js
+// cf/src/functions/get-posts.js
 var require_get_posts = __commonJS({
-  "../cf/src/functions/get-posts.js"(exports) {
+  "cf/src/functions/get-posts.js"(exports) {
     var json = (statusCode, body, cache) => ({
       statusCode,
       headers: { "Content-Type": "application/json", "Cache-Control": cache || "no-store" },
@@ -1943,9 +1952,9 @@ var require_get_posts = __commonJS({
   }
 });
 
-// ../cf/src/functions/form.js
+// cf/src/functions/form.js
 var require_form = __commonJS({
-  "../cf/src/functions/form.js"(exports) {
+  "cf/src/functions/form.js"(exports) {
     var { randomHex } = require_webcrypto();
     var { store } = require_store();
     var FORMS = {
@@ -2061,9 +2070,9 @@ Sent ${rec.createdAt}`;
   }
 });
 
-// ../cf/src/functions/send-gifts.js
+// cf/src/functions/send-gifts.js
 var require_send_gifts = __commonJS({
-  "../cf/src/functions/send-gifts.js"(exports) {
+  "cf/src/functions/send-gifts.js"(exports) {
     var { store } = require_store();
     var { sendDueGifts, isDue } = require_gifts();
     var { sha256, timingSafeEqual } = require_webcrypto();
@@ -2104,9 +2113,9 @@ var require_send_gifts = __commonJS({
   }
 });
 
-// ../cf/src/functions/gift-code.js
+// cf/src/functions/gift-code.js
 var require_gift_code = __commonJS({
-  "../cf/src/functions/gift-code.js"(exports) {
+  "cf/src/functions/gift-code.js"(exports) {
     var { store } = require_store();
     var { lookup, emptyReason, expiringLeft } = require_giftcodes();
     var { sha256, toHex } = require_webcrypto();
@@ -2156,7 +2165,7 @@ var require_gift_code = __commonJS({
   }
 });
 
-// ../cf/src/cloudflare/api.js
+// cf/src/cloudflare/api.js
 var createCheckout = __toESM(require_create_checkout());
 var stripeWebhook = __toESM(require_stripe_webhook());
 var adminBookings = __toESM(require_admin_bookings());
