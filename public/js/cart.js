@@ -9,6 +9,7 @@
     "seaview-nov4":   { kind: "class", date: "2026-11-04", name: "Seaview Sculpt", detail: "Wed, Nov 4 · 10:00 AM · McLoone's Pier House, Long Branch, NJ", amount: 3500 },
     "wave-nov14":     { kind: "class", date: "2026-11-14", name: "Wave Sculpt: Ocean View Pilates", detail: "Sat, Nov 14 · 10:00 AM · High Crest at Wave Resort, Long Branch, NJ", amount: 3500 },
     "friendsgiving-nov21": { kind: "class", date: "2026-11-21", name: "Friendsgiving Pilates & Brunch", detail: "Sat, Nov 21 · 10:00 AM · High Crest at Wave Resort, Long Branch, NJ · Complimentary Bellini", amount: 3500 },
+    "santa-dec5":     { kind: "class", date: "2026-12-05", name: "Santa Sculpt: A Christmas Party", detail: "Sat, Dec 5 · 12:00–2:00 PM · Tim McLoone's Supper Club, Asbury Park, NJ · Early bird: code SANTA5 for $40 until Nov 21", amount: 4500 },
     "seaview-nov18":  { kind: "class", date: "2026-11-18", name: "Seaview Sculpt", detail: "Wed, Nov 18 · 10:00 AM · McLoone's Pier House, Long Branch, NJ", amount: 3500 },
     // Not bookable online until a Stripe Price ID is added for it in the server catalog.
     "single":         { kind: "pack", name: "Single Class", detail: "One class", amount: 3500 },

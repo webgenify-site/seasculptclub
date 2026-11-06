@@ -28,9 +28,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// cf/src/lib/webcrypto.js
+// ../cf/src/lib/webcrypto.js
 var require_webcrypto = __commonJS({
-  "cf/src/lib/webcrypto.js"(exports, module) {
+  "../cf/src/lib/webcrypto.js"(exports, module) {
     var enc = new TextEncoder();
     var subtle = () => globalThis.crypto.subtle;
     function randomBytes(n) {
@@ -63,9 +63,9 @@ var require_webcrypto = __commonJS({
   }
 });
 
-// cf/src/lib/catalog.js
+// ../cf/src/lib/catalog.js
 var require_catalog = __commonJS({
-  "cf/src/lib/catalog.js"(exports, module) {
+  "../cf/src/lib/catalog.js"(exports, module) {
     var CATALOG = {
       // ---- Dated classes / events ----
       "pumpkins-oct18": {
@@ -149,6 +149,18 @@ var require_catalog = __commonJS({
         time: "10:00 AM",
         location: "High Crest, indoors at Wave Resort, Long Branch, NJ",
         amount: 3500,
+        maxQty: 10
+      },
+      "santa-dec5": {
+        kind: "class",
+        priceId: "price_1UYbtw1UP4OSvubVXXK3O4XJ",
+        // Stripe product: Santa Sculpt at McLoone's Supper Club ($45); early bird code SANTA5 = $5 off until Nov 21
+        className: "Santa Sculpt: A Christmas Party",
+        date: "2026-12-05",
+        dateLabel: "Saturday, December 5, 2026",
+        time: "12:00 PM",
+        location: "Tim McLoone's Supper Club, Asbury Park, NJ",
+        amount: 4500,
         maxQty: 10
       },
       "seaview-nov18": {
@@ -250,9 +262,9 @@ var require_catalog = __commonJS({
   }
 });
 
-// cf/src/lib/store.js
+// ../cf/src/lib/store.js
 var require_store = __commonJS({
-  "cf/src/lib/store.js"(exports, module) {
+  "../cf/src/lib/store.js"(exports, module) {
     var ready = null;
     function binding(event) {
       const db = event && event.db || globalThis.__SSC_DB;
@@ -317,9 +329,9 @@ var require_store = __commonJS({
   }
 });
 
-// cf/src/lib/giftcodes.js
+// ../cf/src/lib/giftcodes.js
 var require_giftcodes = __commonJS({
-  "cf/src/lib/giftcodes.js"(exports, module) {
+  "../cf/src/lib/giftcodes.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var CODE_RE = /^SSC-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/;
     function normalizeCode(input) {
@@ -474,9 +486,9 @@ var require_giftcodes = __commonJS({
   }
 });
 
-// cf/src/lib/email.js
+// ../cf/src/lib/email.js
 var require_email = __commonJS({
-  "cf/src/lib/email.js"(exports, module) {
+  "../cf/src/lib/email.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
     var money = (c) => "$" + (c / 100).toFixed(c % 100 ? 2 : 0);
@@ -634,9 +646,9 @@ Sea Sculpt Club`;
   }
 });
 
-// cf/src/functions/create-checkout.js
+// ../cf/src/functions/create-checkout.js
 var require_create_checkout = __commonJS({
-  "cf/src/functions/create-checkout.js"(exports) {
+  "../cf/src/functions/create-checkout.js"(exports) {
     var { randomHex } = require_webcrypto();
     var { CATALOG, priceIdFor, describe } = require_catalog();
     var { store } = require_store();
@@ -1010,9 +1022,9 @@ var require_create_checkout = __commonJS({
   }
 });
 
-// cf/src/lib/stripe-signature.js
+// ../cf/src/lib/stripe-signature.js
 var require_stripe_signature = __commonJS({
-  "cf/src/lib/stripe-signature.js"(exports, module) {
+  "../cf/src/lib/stripe-signature.js"(exports, module) {
     var { hmacSha256, fromHex, timingSafeEqual } = require_webcrypto();
     async function verifyStripeSignature(rawBody, header, secret, toleranceSeconds = 300, now = Math.floor(Date.now() / 1e3)) {
       if (!secret) return { ok: false, reason: "webhook secret not configured" };
@@ -1037,9 +1049,9 @@ var require_stripe_signature = __commonJS({
   }
 });
 
-// cf/src/lib/recovery.js
+// ../cf/src/lib/recovery.js
 var require_recovery = __commonJS({
-  "cf/src/lib/recovery.js"(exports, module) {
+  "../cf/src/lib/recovery.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var WAVE_FALL_AT = Date.parse("2026-10-01T00:00:00Z");
     var WAVE_NOV_AT = Date.parse("2026-10-24T04:00:00Z");
@@ -1079,6 +1091,8 @@ var require_recovery = __commonJS({
       }),
       "price_1UVBrH1UP4OSvubVkW6s7LNp": () => ({ catalogId: "friendsgiving-nov21" }),
       // Wave Friendsgiving link
+      "price_1UYbtw1UP4OSvubVXXK3O4XJ": () => ({ catalogId: "santa-dec5" }),
+      // Santa Sculpt Dec 5
       "price_1U981k1UP4OSvubVnoRtLkX9": (created, desc) => created >= WAVE_NOV_AT ? { catalogId: "wave-nov14" } : created >= WAVE_FALL_AT ? {
         className: "Wave Sculpt",
         date: null,
@@ -1264,9 +1278,9 @@ var require_recovery = __commonJS({
   }
 });
 
-// cf/src/lib/gifts.js
+// ../cf/src/lib/gifts.js
 var require_gifts = __commonJS({
-  "cf/src/lib/gifts.js"(exports, module) {
+  "../cf/src/lib/gifts.js"(exports, module) {
     var { randomBytes } = require_webcrypto();
     var { sendGiftEmail } = require_email();
     var SEND_HOUR_NJ = 9;
@@ -1325,9 +1339,9 @@ var require_gifts = __commonJS({
   }
 });
 
-// cf/src/functions/stripe-webhook.js
+// ../cf/src/functions/stripe-webhook.js
 var require_stripe_webhook = __commonJS({
-  "cf/src/functions/stripe-webhook.js"(exports) {
+  "../cf/src/functions/stripe-webhook.js"(exports) {
     var { verifyStripeSignature } = require_stripe_signature();
     var { CATALOG } = require_catalog();
     var { store } = require_store();
@@ -1609,9 +1623,9 @@ var require_stripe_webhook = __commonJS({
   }
 });
 
-// cf/src/functions/admin-bookings.js
+// ../cf/src/functions/admin-bookings.js
 var require_admin_bookings = __commonJS({
-  "cf/src/functions/admin-bookings.js"(exports) {
+  "../cf/src/functions/admin-bookings.js"(exports) {
     var { sha256, toHex, timingSafeEqual } = require_webcrypto();
     var { store } = require_store();
     var { classifySession, flagDuplicates } = require_recovery();
@@ -1879,9 +1893,9 @@ var require_admin_bookings = __commonJS({
   }
 });
 
-// cf/src/functions/get-posts.js
+// ../cf/src/functions/get-posts.js
 var require_get_posts = __commonJS({
-  "cf/src/functions/get-posts.js"(exports) {
+  "../cf/src/functions/get-posts.js"(exports) {
     var json = (statusCode, body, cache) => ({
       statusCode,
       headers: { "Content-Type": "application/json", "Cache-Control": cache || "no-store" },
@@ -1952,9 +1966,9 @@ var require_get_posts = __commonJS({
   }
 });
 
-// cf/src/functions/form.js
+// ../cf/src/functions/form.js
 var require_form = __commonJS({
-  "cf/src/functions/form.js"(exports) {
+  "../cf/src/functions/form.js"(exports) {
     var { randomHex } = require_webcrypto();
     var { store } = require_store();
     var FORMS = {
@@ -2070,9 +2084,9 @@ Sent ${rec.createdAt}`;
   }
 });
 
-// cf/src/functions/send-gifts.js
+// ../cf/src/functions/send-gifts.js
 var require_send_gifts = __commonJS({
-  "cf/src/functions/send-gifts.js"(exports) {
+  "../cf/src/functions/send-gifts.js"(exports) {
     var { store } = require_store();
     var { sendDueGifts, isDue } = require_gifts();
     var { sha256, timingSafeEqual } = require_webcrypto();
@@ -2113,9 +2127,9 @@ var require_send_gifts = __commonJS({
   }
 });
 
-// cf/src/functions/gift-code.js
+// ../cf/src/functions/gift-code.js
 var require_gift_code = __commonJS({
-  "cf/src/functions/gift-code.js"(exports) {
+  "../cf/src/functions/gift-code.js"(exports) {
     var { store } = require_store();
     var { lookup, emptyReason, expiringLeft } = require_giftcodes();
     var { sha256, toHex } = require_webcrypto();
@@ -2165,7 +2179,7 @@ var require_gift_code = __commonJS({
   }
 });
 
-// cf/src/cloudflare/api.js
+// ../cf/src/cloudflare/api.js
 var createCheckout = __toESM(require_create_checkout());
 var stripeWebhook = __toESM(require_stripe_webhook());
 var adminBookings = __toESM(require_admin_bookings());
