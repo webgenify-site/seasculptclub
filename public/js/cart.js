@@ -93,6 +93,12 @@
     '</aside>' +
     '<dialog class="cart-pay" aria-label="Checkout">' +
       '<button type="button" class="cart-x cart-pay-x" aria-label="Close checkout">&times;</button>' +
+      '<div class="cart-code cart-pay-promo" hidden>' +
+        '<label for="cartPayPromo">Promo code</label>' +
+        '<div class="cart-code-row"><input id="cartPayPromo" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="e.g. SANTA5">' +
+        '<button type="button" class="cart-code-apply cart-pay-promo-apply">Apply</button></div>' +
+        '<p class="cart-code-msg cart-pay-promo-msg" role="status" aria-live="polite"></p>' +
+      '</div>' +
       '<div id="cartCheckout"></div>' +
       '<p class="cart-pay-error" role="alert"></p>' +
       '<p class="cart-pay-alt">Having trouble? <button type="button" class="cart-hosted">Continue to secure checkout &rarr;</button></p>' +
@@ -367,7 +373,7 @@
       promoState = { code: code.toUpperCase().replace(/[^A-Z0-9_-]/g, "") };
       giftState = null; codeInput.value = promoState.code; render();
       codeMsg.className = "cart-code-msg is-good";
-      codeMsg.innerHTML = "&#10003; Promo code " + esc(promoState.code) + " will be applied on the payment step." +
+      codeMsg.innerHTML = "&#10003; Promo code " + esc(promoState.code) + " will be applied on the next step, where you'll see your discount." +
         ' <button type="button" class="cart-code-remove">Remove</button>';
       track("apply_promo", { code: promoState.code });
       return;
@@ -412,6 +418,45 @@
       document.head.appendChild(s);
     });
   }
+  /* ---------- promo code on the payment step (applied through Stripe, e.g. SANTA5) ---------- */
+  function setupPayPromo(actions, d) {
+    var box = pay.querySelector(".cart-pay-promo"), input = box.querySelector("input"),
+        btn = box.querySelector("button"), pm = box.querySelector(".cart-pay-promo-msg");
+    pm.className = "cart-code-msg cart-pay-promo-msg"; pm.textContent = ""; input.value = "";
+    if (!actions || typeof actions.applyPromotionCode !== "function" || d.promoApplied) {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    function showApplied() {
+      var s = actions.getSession ? actions.getSession() : null;
+      var t = s && s.total && s.total.total ? s.total.total.amount : "";
+      var disc = s && s.discountAmounts && s.discountAmounts[0];
+      pm.className = "cart-code-msg cart-pay-promo-msg is-good";
+      pm.innerHTML = "&#10003; " + esc(disc ? disc.displayName || input.value : input.value) + " applied" +
+        (disc && disc.amount ? ": " + esc(disc.amount) + " off" : "") + (t ? ". New total " + esc(t) + "." : ".");
+    }
+    function apply(code) {
+      code = String(code || "").trim().toUpperCase();
+      if (!code) { pm.className = "cart-code-msg cart-pay-promo-msg is-bad"; pm.textContent = "Enter your promo code."; return Promise.resolve(); }
+      btn.disabled = true; pm.className = "cart-code-msg cart-pay-promo-msg"; pm.textContent = "Applying…";
+      return Promise.resolve(actions.applyPromotionCode(code)).then(function (r) {
+        if (r && r.type === "error") {
+          pm.className = "cart-code-msg cart-pay-promo-msg is-bad";
+          pm.textContent = (r.error && r.error.message) || (code + " can't be used with this order.");
+          if (promoState && promoState.code === code) promoState = null;
+          return;
+        }
+        input.value = code; showApplied(); track("apply_promo", { code: code, step: "payment" });
+      }).catch(function () {
+        pm.className = "cart-code-msg cart-pay-promo-msg is-bad"; pm.textContent = "Couldn't apply that code. Please try again.";
+      }).then(function () { btn.disabled = false; });
+    }
+    btn.onclick = function () { apply(input.value); };
+    input.onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); apply(input.value); } };
+    if (promoState && promoState.code) apply(promoState.code);
+  }
+
   function closePay() {
     if (embedded) { try { embedded.unmount ? embedded.unmount() : embedded.destroy(); } catch (e) {} embedded = null; }
     var pe = pay.querySelector(".cart-pay-error"); if (pe) pe.textContent = "";
@@ -493,6 +538,7 @@
           checkoutBtn.disabled = !cart.length; checkoutBtn.textContent = "Checkout";
           return checkout.loadActions().then(function (result) {
             if (result.type !== "success") throw new Error("checkout_actions_failed");
+            setupPayPromo(result.actions, d);
             form.on("confirm", function (event) {
               var pe = pay.querySelector(".cart-pay-error"); pe.textContent = "";
               // On success Stripe sends the customer back to the Classes page (return_url).

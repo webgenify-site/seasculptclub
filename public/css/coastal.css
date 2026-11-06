@@ -764,3 +764,4 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cl-cancel-note{margin:14px 0 0;font-size:.74rem;line-height:1.55;color:var(--cl-soft,#4A6683);}
 .cl-cancel-note a{color:inherit;text-decoration:underline;}
 .cl-cancel-note a[href^="tel"]{white-space:nowrap;}
+.cart-pay-promo{margin:0 0 14px;}
