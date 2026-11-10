@@ -55,6 +55,14 @@
   @media(max-width:700px){main{padding:16px;} header{padding:14px 16px;}}
   [hidden]{display:none !important;}
   .intake-flag{margin-top:6px;padding:6px 8px;border-radius:6px;background:#FFF4E5;color:#8A4B12;font-size:.8rem;line-height:1.4;}
+  .roster{margin-bottom:22px}
+  .roster-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;padding:16px 18px 10px}
+  .roster-head h2{margin:0;font-size:1.25rem}
+  .roster-head p{margin:4px 0 0;color:#4A6683;font-size:.9rem}
+  .roster-count{text-align:right;font-size:.9rem;color:#4A6683;white-space:nowrap}
+  .roster-count strong{display:block;font-size:2rem;line-height:1;color:#12314F}
+  .roster.is-past{opacity:.6}
+  #memberSearch{padding:8px 12px;border:1px solid rgba(18,49,79,.3);border-radius:8px;font:inherit;min-width:240px}
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
@@ -86,7 +94,9 @@
 
 <main id="app" hidden>
   <div class="tabs" role="tablist">
-    <button role="tab" data-view="bookings" aria-selected="true">Bookings</button>
+    <button role="tab" data-view="rosters" aria-selected="true">Class rosters</button>
+    <button role="tab" data-view="bookings" aria-selected="false">Bookings</button>
+    <button role="tab" data-view="members" aria-selected="false">Members</button>
     <button role="tab" data-view="recovered" aria-selected="false">Past payments (before booking records)</button>
     <button role="tab" data-view="giftcards" aria-selected="false">eGift &amp; class codes</button>
     <button role="tab" data-view="forms" aria-selected="false">Form messages</button>
@@ -95,6 +105,8 @@
     <select id="classFilter" aria-label="Filter by class and date"><option value="">All classes and dates</option></select>
     <label><input type="checkbox" id="showTest"> Show test-mode bookings</label>
     <label id="checkOnlyWrap" hidden><input type="checkbox" id="checkOnly"> Only ones that need checking</label>
+    <label id="showPastRosterWrap" hidden><input type="checkbox" id="showPastRoster"> Show past classes</label>
+    <input type="search" id="memberSearch" placeholder="Search name, email or phone" aria-label="Search members" hidden>
     <span class="spacer"></span>
     <button class="btn" id="refresh">Refresh</button>
     <button class="btn fill" id="csv">Download CSV</button>
@@ -118,6 +130,7 @@
     return fetch(API + "?" + new URLSearchParams(params), { headers: { "x-admin-password": pw() }, cache: "no-store" });
   }
   function load(v, force) {
+    if (v === "rosters") return load("bookings", force);
     if (data[v] && !force) return Promise.resolve(data[v]);
     $("appErr").textContent = ""; $("list").innerHTML = '<p class="note">Loading…</p>';
     return call({ view: v }).then(function (r) {
@@ -178,7 +191,69 @@
           '<td>' + esc(new Date(c.createdAt).toLocaleDateString()) + (c.purchaseRef ? '<br><small>' + esc(c.purchaseRef) + '</small>' : "") + '</td></tr>';
       }).join("") + '</tbody></table></div></section>';
   }
+  // Class rosters: who's coming to each class (upcoming first), from saved bookings.
+  function todayET() { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } }
+  function renderRosters() {
+    var recs = data.bookings || [], today = todayET(), showPast = $("showPastRoster").checked, classes = {};
+    recs.forEach(function (r) {
+      if (r.livemode === false || r.source === "test") return;
+      (r.items || []).forEach(function (it) {
+        if (it.kind !== "class") return;
+        var k = (it.className || "Class") + "||" + (it.date || "");
+        var c = classes[k] = classes[k] || { name: it.className, date: it.date, dateLabel: it.dateLabel, time: it.time, location: it.location, people: [], cancelled: [] };
+        var names = (it.attendees && it.attendees.length ? it.attendees : [r.purchaser.name]).slice(0, it.spots || 1);
+        while (names.length < (it.spots || 1)) names.push("(guest of " + r.purchaser.name + ")");
+        names.forEach(function (n, i) {
+          var person = { name: n || r.purchaser.name, by: r.purchaser.name, email: r.purchaser.email, phone: r.purchaser.phone, ref: r.ref, isBuyer: i === 0, intake: r.intake || {}, emergency: r.emergency, code: i < (it.giftCovered || 0) };
+          (it.cancelled ? c.cancelled : c.people).push(person);
+        });
+      });
+    });
+    var list = Object.keys(classes).map(function (k) { return classes[k]; })
+      .filter(function (c) { return showPast || !c.date || c.date >= today; })
+      .sort(function (a, b) { return String(a.date || "9999").localeCompare(String(b.date || "9999")); });
+    if (!list.length) { $("list").innerHTML = '<div class="empty">No upcoming class sign-ups yet.</div>'; return; }
+    $("list").innerHTML = list.map(function (c) {
+      var when = c.date ? new Date(c.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : (c.dateLabel || "");
+      var past = c.date && c.date < today;
+      return '<section class="group roster' + (past ? " is-past" : "") + '"><div class="roster-head"><div><h2>' + esc(c.name) + '</h2><p>' + esc([when, c.time, c.location].filter(Boolean).join(" · ")) + '</p></div>' +
+        '<div class="roster-count"><strong>' + c.people.length + '</strong> signed up' + (c.cancelled.length ? '<br><small>' + c.cancelled.length + ' cancelled</small>' : "") + '</div></div>' +
+        (c.people.length ? '<div class="scroll"><table><thead><tr><th>#</th><th>Name</th><th>Booked by</th><th>Phone</th><th>Notes</th></tr></thead><tbody>' +
+          c.people.map(function (p, i) {
+            var q = p.intake, notes = [];
+            if (p.isBuyer && q.injuries) notes.push('<span class="intake-flag">&#9888; ' + esc(q.injuries) + '</span>');
+            if (p.isBuyer && q.photoConsent === "no") notes.push('<strong>No photos</strong>');
+            if (p.isBuyer && p.emergency) notes.push('Emergency: ' + esc(p.emergency.name + ", " + p.emergency.phone));
+            if (p.code) notes.push('Paid with code');
+            return '<tr><td>' + (i + 1) + '</td><td><strong>' + esc(p.name) + '</strong></td><td>' + esc(p.isBuyer ? "Self" : p.by) + '<br><small><a class="ref" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a> · ' + esc(p.ref || "") + '</small></td>' +
+              '<td>' + (p.phone ? '<a class="ref" href="tel:' + esc(p.phone) + '">' + esc(p.phone) + '</a>' : "") + '</td><td>' + notes.join("<br>") + '</td></tr>';
+          }).join("") + '</tbody></table></div>' : '<p class="note">No one signed up yet.</p>') +
+        (c.cancelled.length ? '<p class="note">Cancelled: ' + esc(c.cancelled.map(function (p) { return p.name; }).join(", ")) + '</p>' : "") +
+      '</section>';
+    }).join("");
+  }
+  // Members: every account (and guests who booked without one).
+  function renderMembers() {
+    var rows = data.members || [], q = ($("memberSearch").value || "").trim().toLowerCase();
+    if (q) rows = rows.filter(function (m) { return (m.name + " " + m.email + " " + m.phone).toLowerCase().indexOf(q) >= 0; });
+    var acct = { active: "Active", no_password: "Password not set", none: "Guest (no account)" };
+    var total = (data.members || []).filter(function (m) { return m.account !== "none"; }).length;
+    if (!rows.length) { $("list").innerHTML = '<div class="empty">' + (q ? "No members match that search." : "No members yet. Accounts appear here as people sign up or book.") + '</div>'; return; }
+    $("list").innerHTML = '<p class="note"><strong>' + total + '</strong> accounts' + (q ? " · " + rows.length + " shown" : "") + '</p><section class="group"><div class="scroll"><table><thead><tr><th>Name</th><th>Contact</th><th>Birthday</th><th>Account</th><th>Emails / texts</th><th>Emergency contact</th><th>Classes</th></tr></thead><tbody>' +
+      rows.map(function (m) {
+        var bday = m.birthday ? new Date(m.birthday + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+        return '<tr><td><strong>' + esc(m.name || "") + '</strong></td>' +
+          '<td><a class="ref" href="mailto:' + esc(m.email) + '">' + esc(m.email) + '</a>' + (m.phone ? '<br><small><a class="ref" href="tel:' + esc(m.phone) + '">' + esc(m.phone) + '</a></small>' : "") + '</td>' +
+          '<td>' + esc(bday) + '</td>' +
+          '<td>' + esc(acct[m.account] || "") + (m.createdAt ? '<br><small>joined ' + esc(new Date(m.createdAt).toLocaleDateString()) + (m.createdFrom === "checkout" ? " at checkout" : "") + '</small>' : "") + '</td>' +
+          '<td>' + (m.comms ? "Email: " + (m.comms.email ? "yes" : "<strong>no</strong>") + "<br>Texts: " + (m.comms.sms ? "yes" : "no") : '<span class="notes">n/a</span>') + '</td>' +
+          '<td>' + (m.emergency ? esc(m.emergency.name) + (m.emergency.relationship ? " <small>(" + esc(m.emergency.relationship) + ")</small>" : "") + '<br><small>' + esc(m.emergency.phone) + '</small>' : "") + '</td>' +
+          '<td>' + m.spots + (m.spots === 1 ? " spot" : " spots") + ' <small>(' + m.bookings + (m.bookings === 1 ? " order" : " orders") + ')</small>' + (m.lastClass ? '<br><small>last: ' + esc(m.lastClass.name) + '</small>' : "") + '</td></tr>';
+      }).join("") + '</tbody></table></div></section>';
+  }
   function render() {
+    if (view === "rosters") return renderRosters();
+    if (view === "members") return renderMembers();
     if (view === "forms") return renderForms();
     if (view === "giftcards") return renderGiftCards();
     var records = data[view] || [];
@@ -239,8 +314,14 @@
     view = v;
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-view") === v)); });
     $("checkOnlyWrap").hidden = v !== "recovered";
-    $("classFilter").hidden = v === "forms" || v === "giftcards"; $("showTest").parentNode.hidden = v === "forms" || v === "giftcards";
-    $("viewNote").textContent = v === "giftcards"
+    var simple = v === "forms" || v === "giftcards" || v === "rosters" || v === "members";
+    $("classFilter").hidden = simple; $("showTest").parentNode.hidden = simple;
+    $("showPastRosterWrap").hidden = v !== "rosters"; $("memberSearch").hidden = v !== "members";
+    $("viewNote").textContent = v === "rosters"
+      ? "Who's coming to each class, soonest first. Names come from checkout (Me / Friend). Injury notes, photo preferences and emergency contacts come from the person who booked."
+      : v === "members"
+      ? "Everyone with a Sea Sculpt Club account, plus customers who booked as guests. Passwords are never shown or stored in readable form."
+      : v === "giftcards"
       ? "Every eGift code and BOGO class code sold on the website. Each credit covers one class spot worth up to $35 (customers pay the difference for premium events); leftover credits stay on the code."
       : v === "forms"
       ? "Newsletter signups and messages sent through the website, newest first. Each one is also emailed to you once email is set up."
@@ -257,14 +338,14 @@
       return r.blob().then(function (b) {
         var a = document.createElement("a");
         a.href = URL.createObjectURL(b);
-        a.download = view === "recovered" ? "sea-sculpt-past-payments.csv" : view === "forms" ? "sea-sculpt-form-messages.csv" : view === "giftcards" ? "sea-sculpt-egift-cards.csv" : "sea-sculpt-bookings.csv";
+        a.download = view === "members" ? "sea-sculpt-members.csv" : view === "recovered" ? "sea-sculpt-past-payments.csv" : view === "forms" ? "sea-sculpt-form-messages.csv" : view === "giftcards" ? "sea-sculpt-egift-cards.csv" : "sea-sculpt-bookings.csv";
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
       });
     }).catch(function (e) { $("appErr").textContent = e.message; }).then(function () { $("csv").disabled = false; });
   }
 
-  function showApp() { $("loginBox").hidden = true; $("app").hidden = false; $("logout").hidden = false; switchView("bookings"); }
+  function showApp() { $("loginBox").hidden = true; $("app").hidden = false; $("logout").hidden = false; switchView("rosters"); }
   function logout(message) {
     try { sessionStorage.removeItem(PW_KEY); } catch (e) {}
     data = { bookings: null, recovered: null, forms: null };
@@ -289,6 +370,8 @@
   $("classFilter").addEventListener("change", render);
   $("showTest").addEventListener("change", render);
   $("checkOnly").addEventListener("change", render);
+  $("showPastRoster").addEventListener("change", render);
+  $("memberSearch").addEventListener("input", render);
   document.querySelectorAll(".tabs button").forEach(function (b) { b.addEventListener("click", function () { switchView(b.getAttribute("data-view")); }); });
 
   if (pw()) { call({ view: "bookings" }).then(function (r) { return r.json().then(function (d) { if (r.ok) { data.bookings = d.records; showApp(); } else logout(); }); }).catch(function () { logout(); }); }

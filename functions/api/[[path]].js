@@ -1924,6 +1924,13 @@ var require_admin_bookings = __commonJS({
         }
         return json(200, { view, count: cards.length, records: cards });
       }
+      if (view === "members") {
+        const members = await listMembers(db);
+        if (q.format === "csv") {
+          return { statusCode: 200, headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="sea-sculpt-members.csv"', "Cache-Control": "no-store" }, body: membersCsv(members) };
+        }
+        return json(200, { view, count: members.length, records: members });
+      }
       if (view === "recovered") {
         const r = await recoverFromStripe(db);
         if (r.error) return json(502, { error: r.error });
@@ -1941,6 +1948,52 @@ var require_admin_bookings = __commonJS({
       }
       return json(200, { view, count: records.length, records });
     };
+    // Members: every account, plus customers who booked without one. Passwords are never included.
+    async function listMembers(db) {
+      const byEmail = {};
+      const { blobs } = await db.list({ prefix: "users/" });
+      for (const b of blobs) {
+        const u = await db.get(b.key, { type: "json" });
+        if (!u || !u.email) continue;
+        byEmail[u.email] = {
+          email: u.email, name: u.name || "", phone: u.phone || "", birthday: u.birthday || "",
+          account: u.password ? "active" : "no_password", createdAt: u.createdAt || null, createdFrom: u.createdFrom || "signup",
+          lastLoginAt: u.lastLoginAt || null,
+          comms: u.comms ? { email: u.comms.email !== false, sms: !!u.comms.sms, smsUpdatedAt: u.comms.smsUpdatedAt || null } : { email: true, sms: false },
+          emergency: u.emergency || null, sync: u.sync || null, bookings: 0, spots: 0, lastClass: null, spent: 0
+        };
+      }
+      const bookings = await listBookings(db);
+      for (const bk of bookings) {
+        if (bk.livemode === false || bk.source === "test") continue;
+        const em = String(bk.purchaser && bk.purchaser.email || "").trim().toLowerCase();
+        if (!em) continue;
+        const m = byEmail[em] || (byEmail[em] = { email: em, name: bk.purchaser.name || "", phone: bk.purchaser.phone || "", birthday: "", account: "none", createdAt: null, createdFrom: "", lastLoginAt: null, comms: null, emergency: null, sync: null, bookings: 0, spots: 0, lastClass: null, spent: 0 });
+        if (!m.phone && bk.purchaser.phone) m.phone = bk.purchaser.phone;
+        if (!m.name && bk.purchaser.name) m.name = bk.purchaser.name;
+        m.bookings += 1;
+        m.spent += bk.amountTotal || 0;
+        for (const it of bk.items || []) {
+          if (it.kind !== "class" || it.cancelled) continue;
+          m.spots += it.spots || 1;
+          if (it.date && (!m.lastClass || it.date > m.lastClass.date)) m.lastClass = { date: it.date, name: it.className };
+        }
+      }
+      return Object.values(byEmail).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")) || a.name.localeCompare(b.name));
+    }
+    function membersCsv(rows) {
+      const cell = (v) => { let x = String(v == null ? "" : v); if (/^[=+\-@\t\r]/.test(x)) x = "'" + x; return /[",\n\r]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; };
+      const head = ["Name", "Email", "Phone", "Birthday", "Account", "Joined", "Email news", "Texts", "Emergency contact", "Emergency phone", "Relationship", "Bookings", "Class spots", "Total paid", "Most recent class"];
+      const out = [head.join(",")];
+      for (const m of rows) {
+        out.push([m.name, m.email, m.phone, m.birthday,
+          m.account === "active" ? "Active" : m.account === "no_password" ? "Password not set yet" : "No account (guest)",
+          m.createdAt ? m.createdAt.slice(0, 10) : "", m.comms ? (m.comms.email ? "Yes" : "No") : "", m.comms ? (m.comms.sms ? "Yes" : "No") : "",
+          m.emergency ? m.emergency.name : "", m.emergency ? m.emergency.phone : "", m.emergency ? m.emergency.relationship || "" : "",
+          m.bookings, m.spots, (m.spent / 100).toFixed(2), m.lastClass ? `${m.lastClass.name} (${m.lastClass.date})` : ""].map(cell).join(","));
+      }
+      return out.join("\r\n");
+    }
     async function listForms(db) {
       const { blobs } = await db.list({ prefix: "forms/" });
       const out = [];
