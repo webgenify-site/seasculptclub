@@ -998,3 +998,24 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
   .club-pop-beach .club-pop-form input{padding:13px 20px;text-align:center;}
   .club-pop-beach .club-pop-form button{padding:14px;}
 }
+/* ---------- Join the Club popup v3: owner's artwork, real form in the open space ---------- */
+.club-pop .club-pop-card.club-pop-beach{aspect-ratio:1920/1080;background-image:url("../assets/join-club-beach.jpg?v=3");background-position:center;background-size:cover;}
+.club-pop-beach .club-pop-inner{position:relative;padding:0;}
+.club-pop-beach .club-pop-box{position:absolute;left:50%;top:68.5%;transform:translateX(-50%);width:42%;}
+.club-pop-beach .club-pop-form{max-width:none;gap:2.2%;}
+.club-pop-beach .club-pop-form input{background:rgba(18,49,79,.18);border-width:1.5px;}
+.club-pop-beach .club-pop-msg{position:absolute;left:50%;transform:translateX(-50%);top:calc(100% + 8px);white-space:nowrap;}
+.club-pop-beach .club-pop-done-text{margin:0;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(1.3rem,2.6vw,2rem);color:#fff;text-shadow:0 2px 14px rgba(10,35,70,.55);text-align:center;}
+.club-pop-beach .club-pop-find{position:absolute;left:50%;bottom:3.5%;transform:translateX(-50%);margin:0;white-space:nowrap;}
+@media (max-width:640px){
+  .club-pop .club-pop-card.club-pop-beach{aspect-ratio:3/4;min-height:0;width:min(420px,calc(100vw - 24px));background-position:50% center;}
+  .club-pop-beach .club-pop-inner{padding:0;}
+  .club-pop-beach .club-pop-box{top:67%;width:86%;}
+  .club-pop-beach .club-pop-form{flex-direction:row;gap:8px;}
+  .club-pop-beach .club-pop-form input{padding:12px 16px;text-align:left;font-size:1.05rem;}
+  .club-pop-beach .club-pop-form button{padding:0 18px 0 calc(18px + .32em);}
+}
+.club-pop-beach .club-pop-box{width:49%;top:69%;}
+.club-pop-beach .club-pop-form input{flex:1 1 auto;}
+.club-pop-beach .club-pop-form button{flex:0 0 23%;padding:0;padding-left:.32em;}
+@media (max-width:640px){ .club-pop-beach .club-pop-box{top:70%;width:86%;} .club-pop-beach .club-pop-form button{flex:0 0 30%;} }

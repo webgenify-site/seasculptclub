@@ -133,7 +133,7 @@ function initFooterSignupForm() {
 }
 
 function initSignupPopup() {
-  var STORAGE_KEY = "seaSculptPopupV7";
+  var STORAGE_KEY = "seaSculptPopupV8";
   var DELAY_MS = 2500;
 
   var overlay = document.createElement("div");
@@ -142,11 +142,8 @@ function initSignupPopup() {
     '<div class="club-pop-card club-pop-beach" role="dialog" aria-modal="true" aria-labelledby="clubPopTitle">' +
       '<button type="button" class="signup-popup-close club-pop-close" aria-label="Close">&times;</button>' +
       '<div class="club-pop-inner">' +
-        '<p class="club-pop-brand" aria-hidden="true"><span class="club-pop-sea">Sea Sculpt</span><span class="club-pop-club">Club</span></p>' +
-        '<span class="club-pop-rule" aria-hidden="true"></span>' +
-        '<div class="club-pop-form-wrap">' +
-          '<h3 id="clubPopTitle">Join the Club</h3>' +
-          '<p class="club-pop-sub">Be the first to hear about new classes, events &amp; <strong>exclusive discounts.</strong></p>' +
+        '<div class="club-pop-form-wrap club-pop-box">' +
+          '<h3 id="clubPopTitle" class="club-pop-sr">Join the Club. Be the first to hear about new classes, events and exclusive discounts.</h3>' +
           '<form class="club-pop-form" novalidate>' +
             '<label class="club-pop-sr" for="clubPopEmail">Email address</label>' +
             '<input id="clubPopEmail" type="email" name="email" placeholder="Your email" autocomplete="email" required>' +
@@ -154,9 +151,8 @@ function initSignupPopup() {
           '</form>' +
           '<p class="club-pop-msg" role="alert"></p>' +
         '</div>' +
-        '<div class="club-pop-done" hidden>' +
-          '<h3>You&rsquo;re in.</h3>' +
-          '<p class="club-pop-sub">Welcome to the club. Watch your inbox for our next class and event.</p>' +
+        '<div class="club-pop-done club-pop-box" hidden>' +
+          '<p class="club-pop-done-text">You&rsquo;re in. Welcome to the club!</p>' +
         '</div>' +
         '<a href="classes.html#events" class="club-pop-find">Ready to move? Find your class &rarr;</a>' +
       '</div>' +
