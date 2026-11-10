@@ -904,3 +904,26 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .acct-dlg-fine{margin:0 0 12px;font-size:.8rem;line-height:1.5;color:#6A7F95;}
 .acct-dlg-fine a{color:inherit;text-decoration:underline;}
 .acct-dlg-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:8px;}
+/* ---------- Join the Club popup (beach-at-dusk style) ---------- */
+.club-pop .club-pop-card{position:relative;width:min(460px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;border-radius:18px;background:#0F2A47;box-shadow:0 40px 100px rgba(6,20,38,.55);color:#fff;transform:translateY(14px) scale(.98);transition:transform .35s ease;}
+.club-pop.open .club-pop-card{transform:none;}
+.club-pop-art{position:relative;line-height:0;}
+.club-pop-art img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;}
+.club-pop-art::after{content:"";position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(180deg,rgba(15,42,71,0) 0%,#0F2A47 100%);}
+.club-pop-body{padding:4px 28px 26px;text-align:center;margin-top:-6px;position:relative;}
+.club-pop-body h3{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:1.7rem;margin:0 0 6px;color:#fff;letter-spacing:.02em;}
+.club-pop-body p{margin:0 0 16px;font-size:.92rem;line-height:1.55;color:rgba(255,255,255,.8);}
+.club-pop-form{display:flex;gap:8px;}
+.club-pop-form input{flex:1;min-width:0;padding:13px 14px;border:1px solid rgba(255,255,255,.35);border-radius:999px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:.95rem;}
+.club-pop-form input::placeholder{color:rgba(255,255,255,.6);}
+.club-pop-form input:focus{outline:2px solid #E9C98B;outline-offset:1px;}
+.club-pop-form button{flex-shrink:0;padding:0 24px;border:0;border-radius:999px;background:#E9C98B;color:#12314F;font:600 .75rem 'Jost',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;}
+.club-pop-form button:hover{background:#F3DAA6;}
+.club-pop-form button:disabled{opacity:.6;cursor:wait;}
+.club-pop-msg{margin:10px 0 0 !important;color:#FFB3A7 !important;font-size:.82rem !important;}
+.club-pop-msg:empty{display:none;}
+.club-pop-find{display:inline-block;margin-top:18px;font:500 .72rem 'Jost',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#E9C98B;text-decoration:none;border-bottom:1px solid rgba(233,201,139,.5);padding-bottom:3px;}
+.club-pop-find:hover{color:#fff;border-color:#fff;}
+.club-pop-close{position:absolute;top:12px;right:12px;z-index:2;width:36px;height:36px;border-radius:50%;border:0;background:rgba(10,25,45,.45);color:#fff;font-size:1.4rem;line-height:1;cursor:pointer;}
+.club-pop-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+@media (max-width:420px){ .club-pop-form{flex-direction:column;} .club-pop-form button{padding:13px;} }

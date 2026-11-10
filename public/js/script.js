@@ -133,49 +133,80 @@ function initFooterSignupForm() {
 }
 
 function initSignupPopup() {
-  var STORAGE_KEY = "seaSculptPopupV5";
-  var DELAY_MS = 1500;
-
-  // Don't show again if the visitor already closed it or subscribed before.
-  if (localStorage.getItem(STORAGE_KEY)) return;
+  var STORAGE_KEY = "seaSculptPopupV6";
+  var DELAY_MS = 2500;
 
   var overlay = document.createElement("div");
-  overlay.className = "signup-popup-overlay";
+  overlay.className = "signup-popup-overlay club-pop";
   overlay.innerHTML =
-    '<div class="signup-popup-card" role="dialog" aria-modal="true" aria-label="Your reset starts here">' +
-      '<button type="button" class="signup-popup-close" aria-label="Close">&times;</button>' +
-      '<img class="signup-popup-shell" src="assets/popup-shell.png" alt="Spiral shell icon">' +
-      '<h3>Your reset<span class="script">starts here.</span></h3>' +
-      '<p>Pilates sculpt in beautiful places.</p>' +
-      '<a href="classes.html#events" class="btn btn-fill signup-popup-waitlist-btn">Find your class</a>' +
+    '<div class="club-pop-card" role="dialog" aria-modal="true" aria-labelledby="clubPopTitle">' +
+      '<button type="button" class="signup-popup-close club-pop-close" aria-label="Close">&times;</button>' +
+      '<div class="club-pop-art"><img src="assets/banner-join-the-club.jpg" alt="Sea Sculpt Club. Themed experiences." width="1920" height="1080"></div>' +
+      '<div class="club-pop-body">' +
+        '<div class="club-pop-form-wrap">' +
+          '<h3 id="clubPopTitle">Join the club</h3>' +
+          '<p>Be the first to hear about new classes and themed events.</p>' +
+          '<form class="club-pop-form" novalidate>' +
+            '<label class="club-pop-sr" for="clubPopEmail">Email address</label>' +
+            '<input id="clubPopEmail" type="email" name="email" placeholder="Your email" autocomplete="email" required>' +
+            '<button type="submit">Join</button>' +
+          '</form>' +
+          '<p class="club-pop-msg" role="alert"></p>' +
+        '</div>' +
+        '<div class="club-pop-done" hidden>' +
+          '<h3>You&rsquo;re in.</h3>' +
+          '<p>Welcome to the club. Watch your inbox for our next themed event.</p>' +
+        '</div>' +
+        '<a href="classes.html#events" class="club-pop-find">Ready to move? Find your class &rarr;</a>' +
+      '</div>' +
     '</div>';
   document.body.appendChild(overlay);
 
-  function closePopup(remember) {
-    overlay.classList.remove("open");
-    if (remember) localStorage.setItem(STORAGE_KEY, "1");
-  }
-
-  overlay.querySelector(".signup-popup-close").addEventListener("click", function () {
-    closePopup(true);
-  });
-  overlay.addEventListener("click", function (e) {
-    if (e.target === overlay) closePopup(true);
-  });
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && overlay.classList.contains("open")) closePopup(true);
-  });
-
-  overlay.querySelector(".signup-popup-waitlist-btn").addEventListener("click", function () {
-    if (typeof gtag === "function") {
-      gtag("event", "popup_click", { event_name: "find_your_class_popup" });
-    }
-    closePopup(true);
-  });
-
-  setTimeout(function () {
+  var form = overlay.querySelector(".club-pop-form"), msg = overlay.querySelector(".club-pop-msg");
+  function remember() { try { localStorage.setItem(STORAGE_KEY, "1"); } catch (e) {} }
+  function openPopup(source) {
     overlay.classList.add("open");
-  }, DELAY_MS);
+    if (typeof gtag === "function") gtag("event", "popup_open", { source: source });
+    setTimeout(function () { var i = overlay.querySelector("#clubPopEmail"); if (i && source === "button") i.focus(); }, 200);
+  }
+  function closePopup() { overlay.classList.remove("open"); remember(); }
+
+  overlay.querySelector(".club-pop-close").addEventListener("click", closePopup);
+  overlay.addEventListener("click", function (e) { if (e.target === overlay) closePopup(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && overlay.classList.contains("open")) closePopup(); });
+  overlay.querySelector(".club-pop-find").addEventListener("click", function () {
+    if (typeof gtag === "function") gtag("event", "popup_click", { event_name: "find_your_class_popup" });
+    remember();
+  });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var email = form.email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { msg.textContent = "Please enter a valid email address."; form.email.focus(); return; }
+    msg.textContent = "";
+    var btn = form.querySelector("button"); btn.disabled = true; btn.textContent = "Joining…";
+    var data = new URLSearchParams(); data.append("form-name", "newsletter"); data.append("email", email);
+    fetch("/api/form", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: data.toString() })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        overlay.querySelector(".club-pop-form-wrap").hidden = true;
+        overlay.querySelector(".club-pop-done").hidden = false;
+        remember();
+        if (typeof gtag === "function") gtag("event", "email_signup", { form_location: "popup" });
+      })
+      .catch(function () { msg.textContent = "Something went wrong. Please try again."; })
+      .then(function () { btn.disabled = false; btn.textContent = "Join"; });
+  });
+
+  // "Join the Club" banner buttons open the popup instead of jumping to the footer.
+  document.querySelectorAll(".club-banner-btn").forEach(function (a) {
+    a.addEventListener("click", function (e) { e.preventDefault(); openPopup("button"); });
+  });
+
+  // Shown once to new visitors (not on checkout/account pages).
+  var quiet = /\/(account|bookings|waiver|privacy|terms)(\.html)?$/.test(location.pathname) || /[?&](checkout|book|login)=/.test(location.search);
+  var seen = false; try { seen = !!localStorage.getItem(STORAGE_KEY); } catch (e) {}
+  if (!seen && !quiet) setTimeout(function () { if (!document.querySelector("dialog[open]") && !document.querySelector(".cart-drawer.open")) openPopup("auto"); }, DELAY_MS);
 }
 
 // Defensive autoplay for the hero videos: some mobile browsers (iOS Safari in
