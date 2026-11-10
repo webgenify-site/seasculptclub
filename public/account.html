@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf7">
-<link rel="stylesheet" href="css/coastal.css?v=cf20">
+<link rel="stylesheet" href="css/coastal.css?v=cf21">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/account">
@@ -130,10 +130,21 @@
         <div id="acctGifts"></div>
       </div>
 
-      <p class="acct-fine">Need to change or cancel a reservation? Email <a href="mailto:seasculptclub@gmail.com">seasculptclub@gmail.com</a> or call or text <a href="tel:+17327357589">732-735-7589</a>. See our <a href="/terms#cancellations">cancellation policy</a>.</p>
+      <p class="acct-fine">Cancel a class with the Cancel button above. Need to change something else? Email <a href="mailto:seasculptclub@gmail.com">seasculptclub@gmail.com</a> or call or text <a href="tel:+17327357589">732-735-7589</a>. See our <a href="/terms#cancellations">cancellation policy</a>.</p>
     </section>
 
   </div>
+  <dialog class="acct-dialog" id="cancelDlg" aria-labelledby="cancelTitle">
+    <h2 id="cancelTitle">Cancel this class?</h2>
+    <p class="acct-dlg-class" id="cancelClass"></p>
+    <p class="acct-dlg-policy" id="cancelPolicy"></p>
+    <p class="acct-dlg-fine">Our <a href="/terms#cancellations" target="_blank" rel="noopener">cancellation policy</a>: cancel 12 or more hours before class for a refund. No refunds less than 12 hours before class. If weather cancels a class, you can choose a credit toward the next class or a refund.</p>
+    <p class="acct-msg" id="cancelMsg" role="alert"></p>
+    <div class="acct-dlg-actions">
+      <button type="button" class="cl-btn cl-btn-navy" id="cancelYes">Yes, cancel</button>
+      <button type="button" class="cl-link" id="cancelNo">Keep my spot</button>
+    </div>
+  </dialog>
 </main>
 
 <script>
@@ -144,6 +155,7 @@
   function track(name, params) { if (typeof gtag === "function") gtag("event", name, params || {}); }
   function fmtDate(iso) { try { return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); } catch (e) { return ""; } }
 
+  var lastData = null;
   function renderDash(d) {
     var first = (d.user.name || "").split(" ")[0];
     $("acctHi").textContent = first ? " " + first : "";
@@ -169,12 +181,16 @@
 
     function resRow(r) {
       var when = r.date ? new Date(r.date + "T12:00:00") : null;
-      return '<div class="acct-res">' +
+      var action = "";
+      if (r.cancelled) action = '<span class="acct-cancelled">Cancelled</span>';
+      else if (r.upcoming && r.startsAt && new Date(r.startsAt) > new Date()) action = '<button type="button" class="acct-cancel" data-booking="' + esc(r.bookingId) + '" data-item="' + esc(r.item) + '">Cancel</button>';
+      return '<div class="acct-res' + (r.cancelled ? " is-cancelled" : "") + '">' +
         (when ? '<time datetime="' + esc(r.date) + '"><span>' + when.toLocaleDateString("en-US", { month: "short" }) + '</span>' + when.getDate() + '</time>' : '<time></time>') +
         '<div><strong>' + esc(r.name) + '</strong><span>' + esc([r.dateLabel && !r.date ? r.dateLabel : "", r.time, r.location].filter(Boolean).join(" · ")) + '</span>' +
         '<span class="acct-sub">' + r.spots + (r.spots === 1 ? " spot" : " spots") + (r.attendees && r.attendees.filter(Boolean).length ? ": " + esc(r.attendees.filter(Boolean).join(", ")) : "") +
-        (r.coveredByCode ? " · " + r.coveredByCode + " paid with a code" : "") + ' · Ref ' + esc(r.ref || "") + '</span></div></div>';
+        (r.coveredByCode ? " · " + r.coveredByCode + " paid with a code" : "") + ' · Ref ' + esc(r.ref || "") + '</span></div>' + action + '</div>';
     }
+    lastData = d;
     var up = (d.reservations || []).filter(function (r) { return r.upcoming; });
     var past = (d.reservations || []).filter(function (r) { return !r.upcoming; });
     $("acctUpcoming").innerHTML = up.length ? up.map(resRow).join("") : '<p class="acct-empty">No upcoming classes. <a href="classes.html#events">See the schedule &rarr;</a></p>';
@@ -234,6 +250,36 @@
   $("acctRetry").addEventListener("click", function () { $("acctSent").hidden = true; $("acctForm").hidden = false; $("acctEmail").focus(); });
   $("acctLogout").addEventListener("click", function () {
     fetch("/api/account/logout", { method: "POST", credentials: "same-origin" }).then(function () { location.href = "/account"; });
+  });
+  var cancelTarget = null, dlg = $("cancelDlg");
+  document.addEventListener("click", function (e) {
+    var c = e.target.closest(".acct-cancel"); if (!c || !lastData) return;
+    var r = (lastData.reservations || []).filter(function (x) { return x.bookingId === c.getAttribute("data-booking") && x.item === c.getAttribute("data-item"); })[0];
+    if (!r) return;
+    cancelTarget = r;
+    $("cancelClass").textContent = r.name + (r.startsAt ? " · " + new Date(r.startsAt).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) : "") + " · " + r.spots + (r.spots === 1 ? " spot" : " spots");
+    var refundable = new Date(r.startsAt) - new Date() >= 12 * 3600e3;
+    var pol = $("cancelPolicy");
+    pol.className = "acct-dlg-policy " + (refundable ? "is-ok" : "is-late");
+    pol.textContent = refundable
+      ? (r.coveredByCode && r.coveredByCode >= r.spots ? "You'll get your class back on your code." : r.coveredByCode ? "You'll get a refund to your card for the part you paid, and your code class back." : "You'll get a full refund to your card. It usually shows up in 5 to 10 business days.")
+      : "Sorry, this class starts in less than 12 hours, so it isn't eligible for a refund. You can still cancel to free up your spot.";
+    $("cancelYes").textContent = refundable ? "Yes, cancel and refund" : "Cancel without refund";
+    $("cancelMsg").textContent = ""; $("cancelYes").disabled = false;
+    dlg.showModal();
+  });
+  $("cancelNo").addEventListener("click", function () { dlg.close(); });
+  $("cancelYes").addEventListener("click", function () {
+    if (!cancelTarget) return;
+    var btn = $("cancelYes"); btn.disabled = true; setMsg($("cancelMsg"), "Cancelling…");
+    fetch("/api/account/cancel", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ bookingId: cancelTarget.bookingId, item: cancelTarget.item }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) {
+        if (!x.ok) { btn.disabled = false; setMsg($("cancelMsg"), x.d.error || "Couldn't cancel right now. Please email us.", true); return; }
+        track("cancel_class", { refundable: !!(x.d.cancelled && x.d.cancelled.refundable) });
+        dlg.close(); return loadMe();
+      })
+      .catch(function () { btn.disabled = false; setMsg($("cancelMsg"), "Couldn't cancel right now. Please email us.", true); });
   });
   document.addEventListener("click", function (e) {
     var b = e.target.closest(".acct-copy"); if (!b) return;

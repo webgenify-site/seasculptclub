@@ -207,10 +207,14 @@ async function me(request, env, db) {
   for (const b of bookings) {
     for (const it of b.items || []) {
       if (it.kind === "class") {
+        const startsAt = classStart(it.date, it.time);
         reservations.push({
-          ref: b.ref, name: it.className, date: it.date || null, dateLabel: it.dateLabel || "", time: it.time || "", location: it.location || "",
+          bookingId: b.id, item: it.catalogId, ref: b.ref, name: it.className, date: it.date || null, dateLabel: it.dateLabel || "", time: it.time || "", location: it.location || "",
           spots: it.spots || 1, attendees: it.attendees || [], coveredByCode: it.giftCovered || 0,
-          upcoming: !it.date || it.date >= today
+          upcoming: !it.date || it.date >= today,
+          startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+          refundable: startsAt ? startsAt - Date.now() >= CANCEL_HOURS * 3600e3 : false,
+          cancelled: it.cancelled || null
         });
       } else {
         purchases.push({ ref: b.ref, name: it.className, kind: it.kind, qty: it.spots || 1, at: b.paidAt || b.createdAt });
@@ -234,6 +238,123 @@ async function me(request, env, db) {
   });
 }
 
+// ---------- cancellations ----------
+const CANCEL_HOURS = 12;
+// "2026-12-05" + "12:00 PM" (New Jersey time) -> epoch ms
+function classStart(date, time) {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const m = /^(\d{1,2}):(\d{2})\s*([AP]M)$/i.exec(String(time || "").trim());
+  let h = 0, min = 0;
+  if (m) { h = (+m[1] % 12) + (/p/i.test(m[3]) ? 12 : 0); min = +m[2]; }
+  const guess = Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10), h, min);
+  // Find New York's UTC offset at that moment (handles daylight saving).
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+    .formatToParts(new Date(guess)).reduce((o, p) => (o[p.type] = p.value, o), {});
+  const asNY = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour % 24, +parts.minute);
+  return guess + (guess - asNY);
+}
+const money = (c) => "$" + (c / 100).toFixed(c % 100 ? 2 : 0);
+// What the customer actually paid for one class line (card part only), shared fairly if a promo code lowered the total.
+function paidForItem(booking, it) {
+  const lineOf = (x) => x.kind === "class" || x.kind ? Math.max(0, (x.spots || 1) - (x.giftCovered || 0)) * (x.unitAmount || 0) + (x.giftCovered || 0) * Math.max(0, (x.unitAmount || 0) - CREDIT_VALUE) : 0;
+  const gross = (booking.items || []).reduce((n, x) => n + lineOf(x), 0);
+  const total = booking.amountTotal || 0;
+  if (!gross || !total) return 0;
+  return Math.min(total, Math.round(lineOf(it) * Math.min(1, total / gross)));
+}
+
+async function sendMail(env, to, subject, text, html) {
+  if (!env.RESEND_API_KEY) return false;
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST", headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: env.BOOKING_EMAIL_FROM || "Sea Sculpt Club <bookings@seasculptclub.com>", to: [to], reply_to: "seasculptclub@gmail.com", subject, text, html })
+    });
+    return r.ok;
+  } catch (e) { return false; }
+}
+
+async function cancel(request, env, db) {
+  const email = await currentEmail(request, db);
+  if (!email) return json(401, { error: "Please sign in again." });
+  let body; try { body = await request.json(); } catch (e) { return json(400, { error: "Bad request" }); }
+  const bookingId = String(body.bookingId || ""), itemId = String(body.item || "");
+  if (!/^[A-Za-z0-9_-]{4,200}$/.test(bookingId) || !itemId) return json(400, { error: "Unknown reservation" });
+  const key = "bookings/" + bookingId;
+  const booking = await db.get(key);
+  if (!booking || cleanEmail(booking.purchaser && booking.purchaser.email) !== email) return json(404, { error: "We couldn't find that reservation." });
+  const it = (booking.items || []).find((x) => x.catalogId === itemId && x.kind === "class");
+  if (!it) return json(404, { error: "We couldn't find that reservation." });
+  if (it.cancelled) return json(200, { ok: true, already: true, cancelled: it.cancelled });
+  const startsAt = classStart(it.date, it.time);
+  if (startsAt && startsAt < Date.now()) return json(400, { error: "This class has already started, so it can't be cancelled online." });
+  const refundable = !!startsAt && startsAt - Date.now() >= CANCEL_HOURS * 3600e3;
+
+  const result = { at: new Date().toISOString(), refundable, refund: null, codeReturned: 0, manualRefund: false };
+  if (refundable) {
+    // Classes paid with a code go back on the code.
+    const covered = it.giftCovered || 0;
+    const code = booking.giftRedemption && booking.giftRedemption.code;
+    if (covered && code) {
+      const ck = "giftcodes/" + code, rec = await db.get(ck);
+      if (rec) {
+        rec.uses = [...(rec.uses || []), { n: -covered, bookingId, ref: booking.ref || null, at: result.at, cancelled: true }];
+        await db.set(ck, rec);
+        result.codeReturned = covered;
+      }
+    }
+    // Card part goes back to the card through Stripe.
+    const amount = paidForItem(booking, it);
+    if (amount > 0) {
+      const already = booking.refundedAmount || 0;
+      const toRefund = Math.min(amount, Math.max(0, (booking.amountTotal || 0) - already));
+      let ok = false;
+      if (toRefund > 0 && booking.paymentIntent && env.STRIPE_SECRET_KEY) {
+        try {
+          const p = new URLSearchParams({ payment_intent: booking.paymentIntent, amount: String(toRefund), reason: "requested_by_customer", "metadata[booking_ref]": booking.ref || "", "metadata[class]": it.className || "" });
+          const rr = await fetch("https://api.stripe.com/v1/refunds", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY.trim()}`, "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `cancel-${bookingId}-${itemId}` },
+            body: p.toString()
+          });
+          const rd = await rr.json().catch(() => ({}));
+          ok = rr.ok;
+          result.refund = { amount: toRefund, id: rd.id || null, status: ok ? rd.status || "pending" : "failed", error: ok ? null : (rd.error && rd.error.message) || `HTTP ${rr.status}` };
+          if (ok) booking.refundedAmount = already + toRefund;
+        } catch (e) { result.refund = { amount: toRefund, status: "failed", error: String(e && e.message || e) }; }
+      } else if (toRefund > 0) {
+        result.refund = { amount: toRefund, status: "failed", error: "No card payment on file for an automatic refund" };
+      }
+      if (!ok && toRefund > 0) result.manualRefund = true;
+    }
+  }
+
+  it.cancelled = result;
+  booking.flags = [...(booking.flags || []), `Cancelled online by the customer: ${it.className} (${it.spots || 1} ${it.spots === 1 ? "spot" : "spots"}), ` +
+    (refundable ? [result.refund && result.refund.status !== "failed" ? `refunded ${money(result.refund.amount)} to their card` : "", result.manualRefund ? `REFUND ${money(result.refund.amount)} NEEDED IN STRIPE (automatic refund failed)` : "", result.codeReturned ? `${result.codeReturned} class back on code ${booking.giftRedemption.code}` : ""].filter(Boolean).join("; ") || "nothing to refund"
+      : "less than 12 hours before class, no refund") + "."];
+  await db.set(key, booking);
+
+  // Emails: the customer, and Sea Sculpt Club.
+  const first = (booking.purchaser.name || "").split(" ")[0] || "there";
+  const when = [it.dateLabel, it.time].filter(Boolean).join(" at ");
+  const lines = [];
+  if (refundable && result.refund && result.refund.status !== "failed") lines.push(`${money(result.refund.amount)} is being refunded to your card. It usually shows up in 5 to 10 business days.`);
+  if (refundable && result.manualRefund) lines.push(`Your refund of ${money(result.refund.amount)} is on its way. We'll process it shortly and you'll see it in 5 to 10 business days.`);
+  if (result.codeReturned) lines.push(`${result.codeReturned} ${result.codeReturned === 1 ? "class has" : "classes have"} been added back to your code ${booking.giftRedemption.code}.`);
+  if (!refundable) lines.push("Because it was less than 12 hours before class, this cancellation isn't eligible for a refund, per our cancellation policy.");
+  const custText = `Hi ${first},\n\nYour spot in ${it.className}${when ? " (" + when + ")" : ""} has been cancelled.\n\n${lines.join("\n\n")}\n\nBooking reference: ${booking.ref || ""}\n\nWe hope to see you on the mat soon,\nSea Sculpt Club`;
+  const custHtml = `<div style="font-family:Georgia,serif;color:#12314F;max-width:520px"><p>Hi ${esc(first)},</p><p>Your spot in <strong>${esc(it.className)}</strong>${when ? " (" + esc(when) + ")" : ""} has been cancelled.</p>${lines.map((l) => `<p>${esc(l)}</p>`).join("")}<p>Booking reference: ${esc(booking.ref || "")}</p><p>We hope to see you on the mat soon,<br>Sea Sculpt Club</p></div>`;
+  await sendMail(env, booking.purchaser.email, `Cancelled: ${it.className}`, custText, custHtml);
+  const owner = env.BOOKING_NOTIFY_EMAIL || "seasculptclub@gmail.com";
+  const ownText = `${booking.purchaser.name} (${booking.purchaser.email}) cancelled ${it.className}${when ? ", " + when : ""} (${it.spots || 1} ${it.spots === 1 ? "spot" : "spots"}${it.attendees && it.attendees.length ? ": " + it.attendees.join(", ") : ""}). Ref ${booking.ref || ""}.\n\n` +
+    (refundable ? (result.manualRefund ? `ACTION NEEDED: the automatic refund failed (${result.refund.error}). Please refund ${money(result.refund.amount)} in Stripe.` : result.refund ? `Refunded ${money(result.refund.amount)} automatically.` : "No card payment to refund.") + (result.codeReturned ? ` ${result.codeReturned} class returned to code ${booking.giftRedemption.code}.` : "")
+      : "Less than 12 hours before class: no refund given.");
+  await sendMail(env, owner, `${result.manualRefund ? "Refund needed: " : ""}Cancellation: ${it.className} (${booking.purchaser.name})`, ownText, `<pre style="font-family:Helvetica,Arial,sans-serif;white-space:pre-wrap">${esc(ownText)}</pre>`);
+
+  return json(200, { ok: true, cancelled: result });
+}
+
 async function logout(request, env, db) {
   const token = cookieValue(request, COOKIE);
   if (token && token.length <= 100) await db.del("acctsess/" + (await hash(token)));
@@ -249,6 +370,7 @@ export async function onRequest(context) {
     if (path === "verify" && request.method === "POST") return await verify(request, env, db, context);
     if (path === "me" && request.method === "GET") return await me(request, env, db);
     if (path === "logout" && request.method === "POST") return await logout(request, env, db);
+    if (path === "cancel" && request.method === "POST") return await cancel(request, env, db);
     return json(404, { error: "Not found" });
   } catch (err) {
     console.error("/api/account failed:", err && (err.stack || err.message || err));

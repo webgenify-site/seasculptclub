@@ -886,3 +886,21 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cl-packs-head-2{margin-top:72px;}
 .cl-compare .cl-pack-best,.cl-compare .cl-pack-best:hover{transform:none;}
 .cl-compare .cl-pack:hover{transform:none;}
+/* anchors land below the fixed header */
+#new-members,#packs,#gift-cards,#faq{scroll-margin-top:110px;}
+/* account: cancel */
+.acct-res>div{flex:1;}
+.acct-cancel{flex-shrink:0;align-self:center;background:#fff;border:1px solid rgba(18,49,79,.3);border-radius:999px;padding:7px 14px;font:500 .68rem 'Jost',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#12314F;cursor:pointer;}
+.acct-cancel:hover{background:#12314F;color:#fff;}
+.acct-cancelled{flex-shrink:0;align-self:center;font:500 .68rem 'Jost',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#A2401B;}
+.acct-res.is-cancelled strong{text-decoration:line-through;opacity:.7;}
+.acct-dialog{width:min(460px,calc(100vw - 32px));border:0;border-radius:16px;padding:28px 26px 22px;box-shadow:0 30px 80px rgba(18,49,79,.3);color:#12314F;}
+.acct-dialog::backdrop{background:rgba(18,49,79,.45);}
+.acct-dialog h2{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:1.8rem;margin:0 0 8px;}
+.acct-dlg-class{margin:0 0 14px;font-weight:500;}
+.acct-dlg-policy{margin:0 0 12px;padding:12px 14px;border-radius:10px;line-height:1.5;font-size:.92rem;}
+.acct-dlg-policy.is-ok{background:#EEF7F1;color:#1F6B4A;}
+.acct-dlg-policy.is-late{background:#FCEFE8;color:#A2401B;}
+.acct-dlg-fine{margin:0 0 12px;font-size:.8rem;line-height:1.5;color:#6A7F95;}
+.acct-dlg-fine a{color:inherit;text-decoration:underline;}
+.acct-dlg-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:8px;}
