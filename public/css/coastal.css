@@ -964,3 +964,37 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .acct form label.acct-switch{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;text-transform:none;letter-spacing:0;font-size:.95rem;font-weight:400;line-height:1.45;}
 .acct form label.acct-switch input{width:18px;height:18px;padding:0;margin:3px 0 0;flex-shrink:0;}
 .acct form label.acct-switch strong{font-weight:600;}
+/* ---------- Join the Club popup v2: full beach background ---------- */
+.club-pop .club-pop-card.club-pop-beach{width:min(880px,calc(100vw - 32px));aspect-ratio:1672/941;max-height:calc(100vh - 32px);overflow:hidden;border-radius:20px;color:#fff;
+  background:#2c5d8f url("../assets/join-club-beach.jpg") center/cover no-repeat;display:flex;}
+.club-pop-beach .club-pop-art{display:none;}
+.club-pop-beach .club-pop-inner{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;padding:clamp(28px,7%,64px) clamp(20px,6%,60px) 18px;box-sizing:border-box;}
+.club-pop-beach .club-pop-brand{margin:0;line-height:1;text-shadow:0 2px 16px rgba(10,35,70,.35);}
+.club-pop-beach .club-pop-sea{display:block;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(1.9rem,5.6vw,3.6rem);letter-spacing:.12em;padding-left:.12em;text-transform:uppercase;}
+.club-pop-beach .club-pop-club{display:block;font-family:'Parisienne',cursive;font-size:clamp(2rem,5.4vw,3.4rem);margin-top:-.18em;}
+.club-pop-beach .club-pop-rule{display:block;width:clamp(60px,12%,110px);height:1px;background:rgba(255,255,255,.85);margin:clamp(10px,2.2%,20px) 0 clamp(6px,1.4%,12px);}
+.club-pop-beach h3{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;font-size:clamp(2.1rem,6vw,3.9rem);line-height:1.05;margin:0 0 clamp(6px,1.4%,12px);color:#fff;text-shadow:0 2px 18px rgba(10,35,70,.4);}
+.club-pop-beach .club-pop-sub{margin:0 auto clamp(14px,3.4%,30px);max-width:34ch;font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(1.05rem,2.3vw,1.55rem);line-height:1.3;letter-spacing:.02em;color:#fff;text-shadow:0 1px 12px rgba(10,35,70,.6);}
+.club-pop-beach .club-pop-sub strong{color:#F6E2B3;font-weight:700;}
+.club-pop-beach .club-pop-form-wrap,.club-pop-beach .club-pop-done{width:100%;}
+.club-pop-beach .club-pop-form{display:flex;gap:clamp(8px,1.6%,16px);justify-content:center;max-width:620px;margin:0 auto;}
+.club-pop-beach .club-pop-form input{flex:1;min-width:0;padding:clamp(11px,1.6vw,16px) 22px;border:1.5px solid rgba(255,255,255,.95);border-radius:999px;background:rgba(18,49,79,.28);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;font-family:'Cormorant Garamond',serif;font-size:clamp(1.05rem,1.8vw,1.3rem);}
+.club-pop-beach .club-pop-form input::placeholder{color:rgba(255,255,255,.9);font-style:italic;}
+.club-pop-beach .club-pop-form input:focus{outline:2px solid #F6E2B3;outline-offset:2px;}
+.club-pop-beach .club-pop-form button{flex-shrink:0;padding:0 clamp(26px,4vw,44px);border:0;border-radius:999px;background:#FBF6EC;color:#12314F;font:500 clamp(.78rem,1.3vw,.95rem) 'Cormorant Garamond',serif;letter-spacing:.32em;padding-left:calc(clamp(26px,4vw,44px) + .32em);text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px rgba(10,35,70,.25);}
+.club-pop-beach .club-pop-form button:hover{background:#fff;}
+.club-pop-beach .club-pop-msg{margin:10px 0 0 !important;color:#fff !important;background:rgba(162,64,27,.85);display:inline-block;padding:4px 12px;border-radius:999px;font-size:.85rem !important;}
+.club-pop-beach .club-pop-msg:empty{display:none;}
+.club-pop-beach .club-pop-find{margin-top:auto;padding-top:10px;font:500 .7rem 'Jost',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#fff;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.6);padding-bottom:2px;text-shadow:0 1px 8px rgba(10,35,70,.6);}
+.club-pop-beach .club-pop-close{background:rgba(255,255,255,.85);color:#12314F;}
+@media (max-width:640px){
+  .club-pop .club-pop-card.club-pop-beach{aspect-ratio:auto;min-height:min(560px,calc(100vh - 40px));background-position:42% center;}
+  .club-pop-beach .club-pop-inner{padding:44px 20px 22px;}
+  .club-pop-beach .club-pop-sea{font-size:2.1rem;}
+  .club-pop-beach .club-pop-club{font-size:2.3rem;}
+  .club-pop-beach h3{font-size:2.5rem;}
+  .club-pop-beach .club-pop-sub{font-size:1.15rem;}
+  .club-pop-beach .club-pop-form{flex-direction:column;}
+  .club-pop-beach .club-pop-form input{padding:13px 20px;text-align:center;}
+  .club-pop-beach .club-pop-form button{padding:14px;}
+}

@@ -133,19 +133,20 @@ function initFooterSignupForm() {
 }
 
 function initSignupPopup() {
-  var STORAGE_KEY = "seaSculptPopupV6";
+  var STORAGE_KEY = "seaSculptPopupV7";
   var DELAY_MS = 2500;
 
   var overlay = document.createElement("div");
   overlay.className = "signup-popup-overlay club-pop";
   overlay.innerHTML =
-    '<div class="club-pop-card" role="dialog" aria-modal="true" aria-labelledby="clubPopTitle">' +
+    '<div class="club-pop-card club-pop-beach" role="dialog" aria-modal="true" aria-labelledby="clubPopTitle">' +
       '<button type="button" class="signup-popup-close club-pop-close" aria-label="Close">&times;</button>' +
-      '<div class="club-pop-art"><img src="assets/banner-join-the-club.jpg" alt="Sea Sculpt Club. Themed experiences." width="1920" height="1080"></div>' +
-      '<div class="club-pop-body">' +
+      '<div class="club-pop-inner">' +
+        '<p class="club-pop-brand" aria-hidden="true"><span class="club-pop-sea">Sea Sculpt</span><span class="club-pop-club">Club</span></p>' +
+        '<span class="club-pop-rule" aria-hidden="true"></span>' +
         '<div class="club-pop-form-wrap">' +
-          '<h3 id="clubPopTitle">Join the club</h3>' +
-          '<p>Be the first to hear about new classes and themed events.</p>' +
+          '<h3 id="clubPopTitle">Join the Club</h3>' +
+          '<p class="club-pop-sub">Be the first to hear about new classes, events &amp; <strong>exclusive discounts.</strong></p>' +
           '<form class="club-pop-form" novalidate>' +
             '<label class="club-pop-sr" for="clubPopEmail">Email address</label>' +
             '<input id="clubPopEmail" type="email" name="email" placeholder="Your email" autocomplete="email" required>' +
@@ -155,7 +156,7 @@ function initSignupPopup() {
         '</div>' +
         '<div class="club-pop-done" hidden>' +
           '<h3>You&rsquo;re in.</h3>' +
-          '<p>Welcome to the club. Watch your inbox for our next themed event.</p>' +
+          '<p class="club-pop-sub">Welcome to the club. Watch your inbox for our next class and event.</p>' +
         '</div>' +
         '<a href="classes.html#events" class="club-pop-find">Ready to move? Find your class &rarr;</a>' +
       '</div>' +
