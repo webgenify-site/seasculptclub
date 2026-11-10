@@ -53,10 +53,16 @@
       '<div class="cart-body"></div>' +
       '<form class="cart-details" hidden novalidate>' +
         '<button type="button" class="cart-back">&larr; Back to cart</button>' +
-        '<h3>Your details</h3>' +
-        '<label>Full name<input name="name" autocomplete="name" required maxlength="100"></label>' +
-        '<label>Email<input name="email" type="email" autocomplete="email" required maxlength="200"></label>' +
-        '<label>Phone<input name="phone" type="tel" autocomplete="tel" required maxlength="30"></label>' +
+        '<div class="cart-step-account">' +
+          '<h3>Your account</h3>' +
+          '<p class="cart-step-note cart-signed-in" hidden></p>' +
+          '<label>Full name<input name="name" autocomplete="name" required maxlength="100"></label>' +
+          '<label>Email<input name="email" type="email" autocomplete="email" required maxlength="200"></label>' +
+          '<label>Phone<input name="phone" type="tel" autocomplete="tel" required maxlength="30"></label>' +
+          '<p class="cart-step-note">We&rsquo;ll set up your Sea Sculpt Club account with this email, so you can see your bookings and classes left anytime. Already have one? Just use the same email.</p>' +
+        '</div>' +
+        '<div class="cart-step-details">' +
+        '<p class="cart-who-line"></p>' +
         '<div class="cart-attendees"></div>' +
         '<div class="cart-intake">' +
           '<h3>A few quick questions</h3>' +
@@ -80,6 +86,7 @@
           '<div class="cart-code-row"><input id="cartGiftCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="e.g. SANTA5 or SSC-XXXX-XXXX">' +
           '<button type="button" class="cart-code-apply">Apply</button></div>' +
           '<p class="cart-code-msg" role="status" aria-live="polite"></p>' +
+        '</div>' +
         '</div>' +
         '<p class="cart-details-error" role="alert"></p>' +
       '</form>' +
@@ -119,7 +126,12 @@
   var embedded = null, toastTimer = null;
   var details = shell.querySelector(".cart-details"), attendeesEl = shell.querySelector(".cart-attendees");
   var detailsErr = shell.querySelector(".cart-details-error");
-  var step = "cart";
+  var accountPart = shell.querySelector(".cart-step-account"), detailsPart = shell.querySelector(".cart-step-details");
+  var signedInNote = shell.querySelector(".cart-signed-in"), whoLine = shell.querySelector(".cart-who-line");
+  var step = "cart"; // cart -> account -> details -> payment
+  var member = null; // signed-in account { name, email, phone }
+  fetch("/api/account/me", { credentials: "same-origin" }).then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) { if (d && d.user) member = { name: d.user.name || "", email: d.user.email || "", phone: d.user.phone || "" }; }).catch(function () {});
   // Note: form.name is the form's own name attribute, so fields are looked up explicitly.
   var codeBox = shell.querySelector(".cart-code"), codeInput = shell.querySelector("#cartGiftCode");
   var codeBtn = shell.querySelector(".cart-code-apply"), codeMsg = shell.querySelector(".cart-code-msg");
@@ -171,10 +183,11 @@
     }
     totalLabel.textContent = cov.n ? "Total" : "Subtotal";
     totalEl.textContent = money(total() - cov.value);
+    if (step === "account") checkoutBtn.textContent = "Continue";
     if (step === "details") checkoutBtn.textContent = cov.n && total() - cov.value === 0 ? (giftState.kind === "pack" ? "Book with code" : "Book with eGift") : "Continue to payment";
     checkoutBtn.disabled = !cart.length;
     msg.textContent = "";
-    if (!cart.length && step === "details") showStep("cart");
+    if (!cart.length && step !== "cart") showStep("cart");
   }
 
   /* ---------- details step: purchaser + a name for every class spot ---------- */
@@ -185,9 +198,11 @@
     var d = { purchaser: { name: F.name.value.trim(), email: F.email.value.trim(), phone: F.phone.value.trim() }, attendees: {}, gifts: {},
       intake: { heard: IN.heard.value, heardOther: IN.heard.value === "Other" ? IN.heardOther.value.trim() : "", injuries: IN.injuries.value.trim(),
         photo: photoChoice(), waiver: IN.waiver.checked, cancelPolicy: IN.cancelPolicy.checked } };
-    attendeesEl.querySelectorAll("input[data-line]").forEach(function (inp) {
-      var id = inp.getAttribute("data-line");
-      (d.attendees[id] = d.attendees[id] || [])[+inp.getAttribute("data-spot")] = inp.value.trim();
+    attendeesEl.querySelectorAll("[data-spotbox]").forEach(function (box) {
+      var id = box.getAttribute("data-line"), n = +box.getAttribute("data-spot");
+      var me = box.querySelector('input[value="me"]').checked;
+      (d.attendees[id] = d.attendees[id] || [])[n] = me ? d.purchaser.name : box.querySelector("input[data-friend]").value.trim();
+      (d.who = d.who || {})[id + ":" + n] = me ? "me" : "friend";
     });
     attendeesEl.querySelectorAll("fieldset[data-gift]").forEach(function (fs) {
       var id = fs.getAttribute("data-gift"), n = +fs.getAttribute("data-n");
@@ -209,12 +224,19 @@
     cart.forEach(function (line) {
       var item = CATALOG[line.id];
       if (item.kind !== "class") return;
-      var prev = (saved.attendees && saved.attendees[line.id]) || [];
+      var prev = (saved.attendees && saved.attendees[line.id]) || [], who = saved.who || {};
       html += '<fieldset><legend>' + esc(item.name) + '<span>' + esc(item.detail) + ' · ' + line.qty + (line.qty === 1 ? " spot" : " spots") + '</span></legend>';
       for (var n = 0; n < line.qty; n++) {
-        html += '<label>' + (n === 0 ? "Spot 1 name" : "Spot " + (n + 1) + " name (guest)") +
-          '<input data-line="' + line.id + '" data-spot="' + n + '" maxlength="80" required value="' + esc(prev[n] || (n === 0 ? p.name || "" : "")) + '"' +
-          (n === 0 ? ' data-follow="1"' : "") + '></label>';
+        var choice = who[line.id + ":" + n] || (n === 0 ? "me" : "friend"), nm = "who-" + line.id + "-" + n;
+        var friendName = choice === "friend" ? prev[n] || "" : "";
+        html += '<div class="cart-spot" data-spotbox="1" data-line="' + line.id + '" data-spot="' + n + '">' +
+          '<span class="cart-spot-label">' + (line.qty > 1 ? "Spot " + (n + 1) : "Who&rsquo;s coming?") + '</span>' +
+          '<div class="cart-spot-pick" role="radiogroup" aria-label="Spot ' + (n + 1) + '">' +
+            '<label class="cart-pill"><input type="radio" name="' + nm + '" value="me"' + (choice === "me" ? " checked" : "") + '><span>Me</span></label>' +
+            '<label class="cart-pill"><input type="radio" name="' + nm + '" value="friend"' + (choice === "friend" ? " checked" : "") + '><span>A friend</span></label>' +
+          '</div>' +
+          '<label class="cart-friend"' + (choice === "friend" ? "" : " hidden") + '>Friend&rsquo;s name<input data-friend="1" maxlength="80" value="' + esc(friendName) + '" autocomplete="off"></label>' +
+        '</div>';
       }
       html += '</fieldset>';
     });
@@ -243,6 +265,7 @@
       }
     });
     attendeesEl.innerHTML = (html ? '<h3>Who&rsquo;s coming?</h3>' + html : "") + (gh ? '<h3>Gift details</h3>' + gh : "");
+    whoLine.innerHTML = F.name.value ? "Booking as <strong>" + esc(F.name.value) + "</strong> &middot; " + esc(F.email.value) + ' <button type="button" class="cart-edit-account">Edit</button>' : "";
     codeBox.hidden = !html; // eGift codes cover class spots
     // Questions: "how did you hear" always; injuries, photo consent and the waiver when a class is booked.
     var it = saved.intake || {};
@@ -257,6 +280,22 @@
   // Spot 1 follows the purchaser's name until it's edited by hand.
   IN.heard.addEventListener("change", function () { IN.otherWrap.hidden = IN.heard.value !== "Other"; if (!IN.otherWrap.hidden) IN.heardOther.focus(); });
   details.addEventListener("change", function (e) {
+    var spot = e.target.closest && e.target.closest("[data-spotbox]");
+    if (spot && e.target.type === "radio") {
+      var friend = e.target.value === "friend", fl = spot.querySelector(".cart-friend");
+      fl.hidden = !friend;
+      if (friend) fl.querySelector("input").focus();
+      else {
+        // Only one "Me" per class: other spots in the same class switch to "A friend".
+        attendeesEl.querySelectorAll('[data-spotbox][data-line="' + spot.getAttribute("data-line") + '"]').forEach(function (other) {
+          if (other === spot) return;
+          var me = other.querySelector('input[value="me"]');
+          if (me.checked) { other.querySelector('input[value="friend"]').checked = true; other.querySelector(".cart-friend").hidden = false; }
+        });
+      }
+      saveDetails(readDetails());
+      return;
+    }
     if (e.target.type === "radio" && e.target.closest(".cart-gift")) {
       var dateIn = e.target.closest(".cart-gift").querySelector('[data-g="sendOn"]');
       dateIn.disabled = e.target.value !== "date";
@@ -266,20 +305,23 @@
   });
   details.addEventListener("input", function (e) {
     detailsErr.textContent = "";
-    if (e.target.name === "name") {
-      attendeesEl.querySelectorAll('input[data-follow="1"]').forEach(function (i) { i.value = e.target.value; });
-    } else if (e.target.hasAttribute("data-follow")) {
-      e.target.removeAttribute("data-follow");
-    }
     saveDetails(readDetails());
   });
-  function validateDetails(d) {
+  function validateAccount(d) {
     if (d.purchaser.name.length < 2) return ["name", "Please enter your full name."];
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.purchaser.email)) return ["email", "Please enter a valid email address."];
     if (d.purchaser.phone.replace(/\D/g, "").length < 10) return ["phone", "Please enter a phone number we can reach you at."];
+    return null;
+  }
+  function validateDetails(d) {
+    var acc = validateAccount(d);
+    if (acc) { showStep("account"); return acc; }
     var bad = null;
-    attendeesEl.querySelectorAll("input[data-line]").forEach(function (i) { if (!bad && i.value.trim().length < 2) bad = i; });
-    if (bad) return [bad, "Please enter a name for every spot."];
+    attendeesEl.querySelectorAll("[data-spotbox]").forEach(function (box) {
+      var f = box.querySelector("input[data-friend]");
+      if (!bad && box.querySelector('input[value="friend"]').checked && f.value.trim().length < 2) bad = f;
+    });
+    if (bad) return [bad, "Please enter your friend's name."];
     var gp = null, today = window.SEA_SCULPT_TODAY || new Date().toISOString().slice(0, 10);
     attendeesEl.querySelectorAll("fieldset[data-gift]").forEach(function (fs) {
       if (gp) return;
@@ -298,19 +340,33 @@
     }
     return null;
   }
-  function showStep(which) {
-    step = which;
-    var isDetails = which === "details";
-    body.hidden = isDetails; details.hidden = !isDetails;
-    shell.querySelector(".cart-head h2").textContent = isDetails ? "Checkout" : "Your Cart";
-    checkoutBtn.textContent = isDetails ? "Continue to payment" : "Checkout";
-    if (isDetails) { buildDetails(); render(); (F.name.value ? details.querySelector("input[data-line]") || F.phone : F.name).focus(); }
+  function fillAccount() {
+    var saved = loadDetails(), p = saved.purchaser || {};
+    F.name.value = p.name || (member && member.name) || "";
+    F.email.value = p.email || (member && member.email) || "";
+    F.phone.value = p.phone || (member && member.phone) || "";
+    signedInNote.hidden = !member;
+    if (member) signedInNote.innerHTML = "Signed in as <strong>" + esc(member.email) + "</strong>";
   }
-  shell.querySelector(".cart-back").addEventListener("click", function () { showStep("cart"); });
+  function showStep(which) {
+    var inForm = which === "account" || which === "details";
+    if (which === "details" && step !== "details") { saveDetails(readDetails()); }
+    step = which;
+    body.hidden = inForm; details.hidden = !inForm;
+    accountPart.hidden = which !== "account"; detailsPart.hidden = which !== "details";
+    shell.querySelector(".cart-back").innerHTML = which === "details" ? "&larr; Back" : "&larr; Back to cart";
+    shell.querySelector(".cart-head h2").textContent = which === "account" || which === "details" ? "Checkout" : "Your Cart";
+    checkoutBtn.textContent = which === "account" ? "Continue" : which === "details" ? "Continue to payment" : "Checkout";
+    detailsErr.textContent = "";
+    if (which === "account") { fillAccount(); render(); checkoutBtn.textContent = "Continue"; (F.name.value ? (F.phone.value ? F.email : F.phone) : F.name).focus(); }
+    if (which === "details") { buildDetails(); render(); var first = details.querySelector(".cart-step-details input:not([type=radio]):not([hidden]), .cart-step-details select"); if (first && first.offsetParent) first.focus(); }
+  }
+  shell.querySelector(".cart-back").addEventListener("click", function () { showStep(step === "details" ? "account" : "cart"); });
+  details.addEventListener("click", function (e) { if (e.target.closest(".cart-edit-account")) showStep("account"); });
   details.addEventListener("submit", function (e) { e.preventDefault(); checkoutBtn.click(); });
 
   function openDrawer() { drawer.classList.add("open"); drawer.setAttribute("aria-hidden", "false"); scrim.hidden = false; }
-  function closeDrawer() { drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true"); scrim.hidden = true; if (step === "details") showStep("cart"); }
+  function closeDrawer() { drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true"); scrim.hidden = true; if (step !== "cart") showStep("cart"); }
   function showToast(text) {
     toast.textContent = text; toast.classList.add("show");
     clearTimeout(toastTimer); toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 2600);
@@ -515,7 +571,17 @@
   checkoutBtn.addEventListener("click", function () {
     if (!cart.length) return;
     msg.textContent = "";
-    if (step !== "details") { showStep("details"); return; }
+    if (step === "cart") {
+      // Signed in with everything we need? Skip straight to the quick questions.
+      fillAccount();
+      showStep(member && !validateAccount(readDetails()) ? "details" : "account");
+      return;
+    }
+    if (step === "account") {
+      var a = readDetails(), ap = validateAccount(a);
+      if (ap) { detailsErr.textContent = ap[1]; var af = F[ap[0]]; if (af && af.focus) af.focus(); return; }
+      saveDetails(a); showStep("details"); return;
+    }
     var d = readDetails(), problem = validateDetails(d);
     if (problem) {
       detailsErr.textContent = problem[1];

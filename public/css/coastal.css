@@ -846,3 +846,19 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 }
 /* Buy menu link keeps its underline */
 @media (min-width:981px){ .navlinks a.nav-buy-link{border-color:var(--navy);} }
+/* Checkout steps: account, then who's coming + questions */
+.cart-step-note{margin:4px 0 12px;font-size:.82rem;line-height:1.5;color:#4A6683;}
+.cart-signed-in{background:#F2F8FE;border-radius:8px;padding:10px 12px;color:#12314F;}
+.cart-who-line{margin:0 0 6px;font-size:.85rem;color:#4A6683;}
+.cart-who-line:empty{display:none;}
+.cart-edit-account{background:none;border:0;padding:0;margin-left:4px;font:inherit;color:#12314F;text-decoration:underline;cursor:pointer;}
+.cart-spot{margin:6px 0 12px;}
+.cart-spot-label{display:block;font-size:.8rem;font-weight:500;margin:0 0 6px;color:#12314F;}
+.cart-spot-pick{display:flex;gap:8px;}
+.cart-pill{position:relative;flex:1;margin:0 !important;cursor:pointer;}
+.cart-pill input{position:absolute;opacity:0;width:1px;height:1px;}
+.cart-pill span{display:block;text-align:center;padding:10px 12px;border:1px solid rgba(18,49,79,.3);border-radius:999px;font-size:.85rem;color:#12314F;background:#fff;transition:background .15s,color .15s;}
+.cart-pill input:checked + span{background:#12314F;color:#fff;border-color:#12314F;}
+.cart-pill input:focus-visible + span{outline:2px solid #3A73A1;outline-offset:2px;}
+.cart-friend{margin-top:10px !important;}
+.cart-friend[hidden]{display:none !important;}

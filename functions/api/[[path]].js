@@ -5,10 +5,11 @@ async function ensureAccountForBooking(db, booking, env) {
     if (!email || booking.source === "test" || booking.livemode === false && !(env && env.ACCOUNTS_IN_TEST)) return false;
     const name = String(booking.purchaser.name || "").trim().slice(0, 80);
     const now = new Date().toISOString();
-    const r = await db.setJSON("users/" + email, { email, name, createdAt: now, createdFrom: "checkout", firstBookingRef: booking.ref || null }, { onlyIfNew: true });
+    const phone = String(booking.purchaser.phone || "").slice(0, 30);
+    const r = await db.setJSON("users/" + email, { email, name, phone, createdAt: now, createdFrom: "checkout", firstBookingRef: booking.ref || null }, { onlyIfNew: true });
     if (!r || !r.modified) return false;
     const sync = await syncAccountContact(env || {}, { email, name });
-    await db.setJSON("users/" + email, { email, name, createdAt: now, createdFrom: "checkout", firstBookingRef: booking.ref || null, sync, syncedAt: new Date().toISOString() });
+    await db.setJSON("users/" + email, { email, name, phone, createdAt: now, createdFrom: "checkout", firstBookingRef: booking.ref || null, sync, syncedAt: new Date().toISOString() });
     return true;
   } catch (err) {
     console.error("Could not create account:", err && err.message);

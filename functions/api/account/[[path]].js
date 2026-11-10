@@ -225,8 +225,11 @@ async function me(request, env, db) {
     .map(codeSummary)
     .sort((a, b) => (b.left - a.left) || String(b.createdAt).localeCompare(String(a.createdAt)));
 
+  const latest = bookings.slice().sort((a, b) => String(b.paidAt || b.createdAt || "").localeCompare(String(a.paidAt || a.createdAt || "")))[0];
+  const phone = user.phone || (latest && latest.purchaser && latest.purchaser.phone) || "";
+  const name = user.name || (latest && latest.purchaser && latest.purchaser.name) || "";
   return json(200, {
-    user: { email, name: user.name || "", since: user.createdAt || null },
+    user: { email, name, phone, since: user.createdAt || null },
     reservations, codes, giftsSent, purchases, creditValue: CREDIT_VALUE
   });
 }
