@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JNNNZ9YKTS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-JNNNZ9YKTS');
+</script>
+<!-- Start of HubSpot Embed Code -->
+<script type="text/javascript" id="hs-script-loader" async defer src="//js.hs-scripts.com/246935165.js"></script>
+<!-- End of HubSpot Embed Code -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>My Account | Sea Sculpt Club</title>
+<meta name="description" content="Sign in to your Sea Sculpt Club account to see your reservations and how many classes are left on your class packs and eGift cards.">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=cf7">
+<link rel="stylesheet" href="css/coastal.css?v=cf15">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sea Sculpt Club">
+<meta property="og:url" content="https://seasculptclub.com/account">
+<meta property="og:title" content="Liability Waiver &amp; Release | Sea Sculpt Club">
+<meta property="og:description" content="The Sea Sculpt Club liability waiver and release that every participant agrees to when booking a class or event.">
+<meta property="og:image" content="https://seasculptclub.com/assets/og-home.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sea Sculpt Club — Themed experiences, beach at sunset">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<header>
+  <nav class="wrap">
+    <a href="index.html" class="brand">
+      <img src="assets/logo.png" alt="Sea Sculpt Club" class="brand-stack">
+    </a>
+        <div class="navlinks" id="navlinks">
+      <a href="index.html">Home</a>
+      <div class="nav-dropdown"><a href="about.html">About</a>
+      <div class="nav-dropdown-menu">
+      <a href="about.html">About</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
+      </div></div>
+      <a href="classes.html" class="nav-mobile-only">Book a Class</a>
+      <a href="buy.html" class="nav-mobile-only">Buy</a>
+      <a href="/privates">Privates</a>
+      <a href="/parties">Parties</a>
+      <div class="nav-dropdown"><a href="collaborate.html">Collaborate</a>
+      <div class="nav-dropdown-menu">
+      <a href="collaborate.html">Collaborate</a>
+      <a href="wellness.html">Wellness</a>
+      </div></div>
+    </div>
+    <div class="nav-cta-wrap">
+      <a href="buy.html" class="nav-buy">Buy</a>
+      <a href="classes.html" class="btn btn-fill">Book a Class</a>
+      <a href="account.html" class="nav-account" aria-label="My account" title="My account"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.8 20c.9-3.6 3.8-5.6 7.2-5.6s6.3 2 7.2 5.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></a>
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+</header>
+<main class="acct">
+  <div class="acct-wrap">
+
+    <!-- Signed out -->
+    <section class="acct-card acct-signin" id="acctSignin" hidden>
+      <span class="eyebrow">Sea Sculpt Club</span>
+      <h1>My <span class="script">account.</span></h1>
+      <p class="acct-lead">See your reservations and how many classes are left on your class packs and eGift cards. Enter your email and we&rsquo;ll send you a link to sign in. No password needed.</p>
+      <form id="acctForm" novalidate>
+        <label for="acctName">First and last name <span class="acct-opt">(new accounts)</span></label>
+        <input id="acctName" name="name" autocomplete="name" maxlength="80">
+        <label for="acctEmail">Email</label>
+        <input id="acctEmail" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="you@example.com">
+        <button type="submit" class="cl-btn cl-btn-navy acct-submit">Email me a sign-in link</button>
+        <p class="acct-msg" role="status" aria-live="polite"></p>
+        <p class="acct-fine">Use the email you book with, and your past bookings and codes will show up automatically. By creating an account you agree to receive emails from Sea Sculpt Club; you can unsubscribe anytime. See our <a href="/privacy">Privacy Policy</a>.</p>
+      </form>
+      <div class="acct-sent" id="acctSent" hidden>
+        <h2>Check your email</h2>
+        <p>We sent a sign-in link to <strong id="acctSentTo"></strong>. Tap it on this device to sign in. It works for 20 minutes. Can&rsquo;t find it? Check your spam folder.</p>
+        <button type="button" class="cl-link" id="acctRetry">Use a different email</button>
+      </div>
+    </section>
+
+    <!-- Signing in from the email link -->
+    <section class="acct-card" id="acctVerifying" hidden>
+      <h1>Signing you in&hellip;</h1>
+      <p class="acct-msg" id="acctVerifyMsg" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- Signed in -->
+    <section id="acctDash" hidden>
+      <div class="acct-top">
+        <div>
+          <span class="eyebrow">My account</span>
+          <h1>Hi<span id="acctHi"></span><span class="script">.</span></h1>
+          <p class="acct-email" id="acctEmailShown"></p>
+        </div>
+        <div class="acct-top-actions">
+          <a href="classes.html#events" class="cl-btn cl-btn-navy">Book a Class</a>
+          <button type="button" class="cl-link" id="acctLogout">Sign out</button>
+        </div>
+      </div>
+
+      <div class="acct-section">
+        <h2>Class packs &amp; eGift cards</h2>
+        <div id="acctCodes"></div>
+      </div>
+
+      <div class="acct-section">
+        <h2>Upcoming reservations</h2>
+        <div id="acctUpcoming"></div>
+      </div>
+
+      <div class="acct-section" id="acctPastWrap" hidden>
+        <h2>Past classes</h2>
+        <div id="acctPast"></div>
+      </div>
+
+      <div class="acct-section" id="acctGiftsWrap" hidden>
+        <h2>eGifts you&rsquo;ve sent</h2>
+        <div id="acctGifts"></div>
+      </div>
+
+      <p class="acct-fine">Need to change or cancel a reservation? Email <a href="mailto:seasculptclub@gmail.com">seasculptclub@gmail.com</a> or call or text <a href="tel:+17327357589">732-735-7589</a>. See our <a href="/terms#cancellations">cancellation policy</a>.</p>
+    </section>
+
+  </div>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function show(id) { ["acctSignin", "acctVerifying", "acctDash"].forEach(function (x) { $(x).hidden = x !== id; }); }
+  function track(name, params) { if (typeof gtag === "function") gtag("event", name, params || {}); }
+  function fmtDate(iso) { try { return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); } catch (e) { return ""; } }
+
+  function renderDash(d) {
+    var first = (d.user.name || "").split(" ")[0];
+    $("acctHi").textContent = first ? " " + first : "";
+    $("acctEmailShown").textContent = d.user.email;
+
+    var codes = d.codes || [];
+    $("acctCodes").innerHTML = codes.length ? codes.map(function (c) {
+      var pct = c.credits ? Math.round((c.left / c.credits) * 100) : 0;
+      return '<div class="acct-code' + (c.left ? "" : " is-empty") + '">' +
+        '<div class="acct-code-main"><span class="cl-label">' + (c.kind === "pack" ? "Class code" : "eGift card") + '</span>' +
+        '<strong>' + esc(c.name) + '</strong>' +
+        '<span class="acct-code-id">' + esc(c.code) + ' <button type="button" class="acct-copy" data-code="' + esc(c.code) + '">Copy</button></span>' +
+        (c.fromName ? '<span class="acct-sub">From ' + esc(c.fromName) + '</span>' : '') +
+        '</div>' +
+        '<div class="acct-code-left"><span class="acct-big">' + c.left + '</span><span>of ' + c.credits + (c.credits === 1 ? " class" : " classes") + ' left</span>' +
+        '<span class="acct-bar"><i style="width:' + pct + '%"></i></span></div>' +
+        '<p class="acct-code-note">' +
+          (c.expiring ? "Book " + c.expiring.n + (c.expiring.n === 1 ? " class" : " classes") + " by " + esc(fmtDate(c.expiring.expiresAt)) + ". " : "") +
+          (c.left ? (c.shareable ? "Never expires. Share it with friends. " : "For you only, one class per booking. ") + "Each class is a $35 value; premium events just need the difference paid." : "All classes on this code have been used.") +
+        '</p></div>';
+    }).join("") : '<p class="acct-empty">No class packs or eGift cards yet. <a href="buy.html">See packs, eGift cards &amp; the new member deal &rarr;</a></p>';
+    if (codes.some(function (c) { return c.left; })) $("acctCodes").insertAdjacentHTML("beforeend", '<p class="acct-hint">To book with a code: add a class to your cart, then enter the code at checkout.</p>');
+
+    function resRow(r) {
+      var when = r.date ? new Date(r.date + "T12:00:00") : null;
+      return '<div class="acct-res">' +
+        (when ? '<time datetime="' + esc(r.date) + '"><span>' + when.toLocaleDateString("en-US", { month: "short" }) + '</span>' + when.getDate() + '</time>' : '<time></time>') +
+        '<div><strong>' + esc(r.name) + '</strong><span>' + esc([r.dateLabel && !r.date ? r.dateLabel : "", r.time, r.location].filter(Boolean).join(" · ")) + '</span>' +
+        '<span class="acct-sub">' + r.spots + (r.spots === 1 ? " spot" : " spots") + (r.attendees && r.attendees.filter(Boolean).length ? ": " + esc(r.attendees.filter(Boolean).join(", ")) : "") +
+        (r.coveredByCode ? " · " + r.coveredByCode + " paid with a code" : "") + ' · Ref ' + esc(r.ref || "") + '</span></div></div>';
+    }
+    var up = (d.reservations || []).filter(function (r) { return r.upcoming; });
+    var past = (d.reservations || []).filter(function (r) { return !r.upcoming; });
+    $("acctUpcoming").innerHTML = up.length ? up.map(resRow).join("") : '<p class="acct-empty">No upcoming classes. <a href="classes.html#events">See the schedule &rarr;</a></p>';
+    $("acctPastWrap").hidden = !past.length;
+    $("acctPast").innerHTML = past.map(resRow).join("");
+
+    var gifts = d.giftsSent || [];
+    $("acctGiftsWrap").hidden = !gifts.length;
+    $("acctGifts").innerHTML = gifts.map(function (g) {
+      var st = g.status === "sent" ? "Delivered" : g.status === "scheduled" ? (g.sendOn && g.sendOn !== "now" ? "Scheduled for " + esc(fmtDate(g.sendOn + "T12:00:00")) : "Sending") : esc(g.status || "");
+      return '<div class="acct-res acct-gift"><div><strong>' + esc(g.name) + '</strong><span>To ' + esc(g.toName || "a friend") + (st ? " · " + st : "") + '</span></div></div>';
+    }).join("");
+    show("acctDash");
+  }
+
+  function loadMe() {
+    return fetch("/api/account/me", { credentials: "same-origin" }).then(function (r) {
+      if (r.status === 401) { show("acctSignin"); return; }
+      return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "error"); renderDash(d); });
+    }).catch(function () { show("acctSignin"); setMsg(document.querySelector("#acctForm .acct-msg"), "Couldn't load your account right now. Please try again.", true); });
+  }
+  function setMsg(el, text, bad) { el.textContent = text; el.className = "acct-msg" + (bad ? " is-bad" : ""); }
+
+  // Email link: /account?login=TOKEN
+  var params = new URLSearchParams(location.search);
+  var token = params.get("login");
+  if (token) {
+    show("acctVerifying");
+    history.replaceState(null, "", location.pathname);
+    fetch("/api/account/verify", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ token: token }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) {
+        if (!x.ok) { show("acctSignin"); setMsg(document.querySelector("#acctForm .acct-msg"), x.d.error || "That link didn't work. Please request a new one.", true); return; }
+        track(x.d.isNew ? "sign_up" : "login", { method: "email_link" });
+        return loadMe();
+      })
+      .catch(function () { show("acctSignin"); setMsg(document.querySelector("#acctForm .acct-msg"), "Couldn't sign you in. Please try again.", true); });
+  } else {
+    loadMe();
+  }
+
+  $("acctForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var email = $("acctEmail").value.trim(), name = $("acctName").value.trim();
+    var msg = document.querySelector("#acctForm .acct-msg"), btn = document.querySelector(".acct-submit");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { setMsg(msg, "Please enter a valid email address.", true); $("acctEmail").focus(); return; }
+    btn.disabled = true; setMsg(msg, "Sending…");
+    fetch("/api/account/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email, name: name }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) {
+        if (!x.ok) { setMsg(msg, x.d.error || "Couldn't send the link. Please try again.", true); return; }
+        setMsg(msg, ""); $("acctSentTo").textContent = email; $("acctForm").hidden = true; $("acctSent").hidden = false;
+      })
+      .catch(function () { setMsg(msg, "Couldn't send the link. Please try again.", true); })
+      .then(function () { btn.disabled = false; });
+  });
+  $("acctRetry").addEventListener("click", function () { $("acctSent").hidden = true; $("acctForm").hidden = false; $("acctEmail").focus(); });
+  $("acctLogout").addEventListener("click", function () {
+    fetch("/api/account/logout", { method: "POST", credentials: "same-origin" }).then(function () { location.href = "/account"; });
+  });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest(".acct-copy"); if (!b) return;
+    var code = b.getAttribute("data-code");
+    (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1500); }, function () {});
+  });
+})();
+</script>
+
+<section class="club-banner club-banner-close" aria-label="Sea Sculpt Club. Themed experiences.">
+  <img loading="lazy" src="assets/banner-join-the-club.jpg" alt="Sea Sculpt Club. Themed experiences." width="1920" height="1080">
+  <a class="club-banner-btn" href="#join">Join the Club</a>
+</section>
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <img src="assets/logo.png" alt="Sea Sculpt Club" class="brand-stack">
+        </div>
+        <p>Sculpt your body. Flow with the sea. Beach Pilates, wellness events, and bachelorette experiences in Monmouth County, NJ.</p>
+        <form id="join" class="signup-row footer-signup-form" name="newsletter" method="POST" action="/api/form">
+          <input type="hidden" name="form-name" value="newsletter">
+          <input type="email" name="email" placeholder="Email address" required>
+          <button type="submit" class="btn btn-fill" style="padding:12px 22px;">Join</button>
+        </form>
+        <p class="footer-signup-confirm" style="display:none;color:rgba(251,246,236,0.8);font-size:0.78rem;margin-top:10px;">Thanks for joining &mdash; welcome to the club!</p>
+        <p class="footer-signup-error" style="display:none;color:#ffb3a7;font-size:0.78rem;margin-top:10px;">Something went wrong &mdash; please try again.</p>
+      </div>
+      <div>
+        <h4>Quick Links</h4>
+        <div class="flist">
+          <a href="index.html">Home</a><a href="about.html">About</a><a href="classes.html">Classes</a><a href="buy.html">Buy</a><a href="account.html">My Account</a><a href="/privates">Privates</a><a href="/parties">Parties</a>
+        </div>
+      </div>
+      <div>
+        <h4>More</h4>
+        <div class="flist">
+          <a href="wellness.html">Wellness</a><a href="collaborate.html">Collaborate</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div>
+        <h4>Connect</h4>
+        <div class="flist">
+          <a href="https://instagram.com/seasculptclub" target="_blank" rel="noopener">Instagram &middot; @seasculptclub</a>
+          <a href="https://tiktok.com/@seasculptclub" target="_blank" rel="noopener">TikTok &middot; @seasculptclub</a>
+          <a href="https://facebook.com/seasculptclub" target="_blank" rel="noopener">Facebook &middot; @seasculptclub</a>
+          <a href="mailto:seasculptclub@gmail.com">seasculptclub@gmail.com</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>&copy; 2026 Sea Sculpt Club. All rights reserved.</span>
+      <span class="foot-legal"><a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="/waiver">Waiver</a></span>
+      <span>Designed by the shore.</span>
+    </div>
+  </div>
+</footer>
+<script src="js/script.js?v=cf7"></script>
+<script src="js/cart.js?v=cf13" defer></script>
+</body>
+</html>
