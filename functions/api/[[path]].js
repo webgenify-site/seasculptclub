@@ -1,3 +1,44 @@
+// ---- Accounts: every buyer gets a Sea Sculpt Club account (signs in at /account with an email link) ----
+async function ensureAccountForBooking(db, booking, env) {
+  try {
+    const email = String(booking && booking.purchaser && booking.purchaser.email || "").trim().toLowerCase();
+    if (!email || booking.source === "test" || booking.livemode === false && !(env && env.ACCOUNTS_IN_TEST)) return false;
+    const name = String(booking.purchaser.name || "").trim().slice(0, 80);
+    const now = new Date().toISOString();
+    const r = await db.setJSON("users/" + email, { email, name, createdAt: now, createdFrom: "checkout", firstBookingRef: booking.ref || null }, { onlyIfNew: true });
+    if (!r || !r.modified) return false;
+    const sync = await syncAccountContact(env || {}, { email, name });
+    await db.setJSON("users/" + email, { email, name, createdAt: now, createdFrom: "checkout", firstBookingRef: booking.ref || null, sync, syncedAt: new Date().toISOString() });
+    return true;
+  } catch (err) {
+    console.error("Could not create account:", err && err.message);
+    return false;
+  }
+}
+async function syncAccountContact(env, user) {
+  const parts = (user.name || "").split(/\s+/).filter(Boolean);
+  const first = parts[0] || "", last = parts.slice(1).join(" ");
+  const out = {};
+  if (env.BREVO_API_KEY) {
+    try {
+      const body = { email: user.email, updateEnabled: true, attributes: { FIRSTNAME: first, LASTNAME: last } };
+      const lists = String(env.BREVO_LIST_ID || "").split(",").map((x) => parseInt(x, 10)).filter((x) => x > 0);
+      if (lists.length) body.listIds = lists;
+      const res = await fetch("https://api.brevo.com/v3/contacts", { method: "POST", headers: { "api-key": env.BREVO_API_KEY, "Content-Type": "application/json", accept: "application/json" }, body: JSON.stringify(body) });
+      out.brevo = res.ok ? "added" : "failed " + res.status;
+    } catch (e) { out.brevo = "failed"; }
+  } else out.brevo = "not set up";
+  if (env.HUBSPOT_TOKEN) {
+    try {
+      const props = { email: user.email };
+      if (first) props.firstname = first;
+      if (last) props.lastname = last;
+      const res = await fetch("https://api.hubapi.com/crm/v3/objects/contacts/batch/upsert", { method: "POST", headers: { Authorization: `Bearer ${env.HUBSPOT_TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify({ inputs: [{ id: user.email, idProperty: "email", properties: props }] }) });
+      out.hubspot = res.ok ? "added" : "failed " + res.status;
+    } catch (e) { out.hubspot = "failed"; }
+  } else out.hubspot = "not set up";
+  return out;
+}
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -561,11 +602,13 @@ Booking reference: ${booking.ref}` + (booking.intake && booking.intake.waiver ? 
 
 You agreed to our Liability Waiver & Release (seasculptclub.com/waiver) for everyone in this booking.` : "") + `
 
+Your Sea Sculpt Club account is ready. Sign in anytime at seasculptclub.com/account with this email to see your bookings and how many classes you have left.
+
 Please bring your own mat. Questions? Just reply to this email.
 
 See you on the mat,
 Sea Sculpt Club`;
-      const html = `<div style="font-family:Georgia,serif;color:#12314F;max-width:520px"><p>Hi ${esc(first)},</p><p>Thank you for booking with Sea Sculpt Club! Here are your details:</p>` + lines.map((l) => l.html).join("") + (booking.giftRedemption ? `<p>${booking.giftRedemption.kind === "pack" ? "Class code" : "eGift"} ${esc(booking.giftRedemption.code)}: ${booking.giftRedemption.credits} class ${booking.giftRedemption.credits === 1 ? "credit" : "credits"} used</p>` : "") + `<p>Total paid: <strong>${money(booking.amountTotal)}</strong><br>Booking reference: ${esc(booking.ref)}</p>` + (booking.intake && booking.intake.waiver ? `<p style="font-size:13px;color:#4A6683">You agreed to our <a href="https://seasculptclub.com/waiver" style="color:#3D6789">Liability Waiver &amp; Release</a> for everyone in this booking.</p>` : "") + `<p>Please bring your own mat. Questions? Just reply to this email.</p><p>See you on the mat,<br>Sea Sculpt Club</p></div>`;
+      const html = `<div style="font-family:Georgia,serif;color:#12314F;max-width:520px"><p>Hi ${esc(first)},</p><p>Thank you for booking with Sea Sculpt Club! Here are your details:</p>` + lines.map((l) => l.html).join("") + (booking.giftRedemption ? `<p>${booking.giftRedemption.kind === "pack" ? "Class code" : "eGift"} ${esc(booking.giftRedemption.code)}: ${booking.giftRedemption.credits} class ${booking.giftRedemption.credits === 1 ? "credit" : "credits"} used</p>` : "") + `<p>Total paid: <strong>${money(booking.amountTotal)}</strong><br>Booking reference: ${esc(booking.ref)}</p>` + (booking.intake && booking.intake.waiver ? `<p style="font-size:13px;color:#4A6683">You agreed to our <a href="https://seasculptclub.com/waiver" style="color:#3D6789">Liability Waiver &amp; Release</a> for everyone in this booking.</p>` : "") + `<p style="font-size:14px;color:#4A6683">Your Sea Sculpt Club account is ready. <a href="https://seasculptclub.com/account" style="color:#3D6789">Sign in anytime</a> with this email to see your bookings and how many classes you have left.</p><p>Please bring your own mat. Questions? Just reply to this email.</p><p>See you on the mat,<br>Sea Sculpt Club</p></div>`;
       return { subject, text, html };
     }
     async function sendConfirmation(booking, env) {
@@ -1054,6 +1097,7 @@ var require_create_checkout = __commonJS({
         confirmation: { status: "pending" }
       };
       await db.setJSON(`bookings/${id}`, booking, { onlyIfNew: true });
+      await ensureAccountForBooking(db, booking, process.env);
       booking.confirmation = await sendConfirmation(booking, process.env);
       await db.setJSON(`bookings/${id}`, booking);
       return json(200, { free: true, ref });
@@ -1547,6 +1591,7 @@ var require_stripe_webhook = __commonJS({
           await db.setJSON(key, booking);
         }
       }
+      await ensureAccountForBooking(db, booking, process.env);
       if (source === "pending" || source === "metadata") {
         booking.confirmation = await sendConfirmation(booking, process.env);
         await sendDueGifts(booking, process.env);
