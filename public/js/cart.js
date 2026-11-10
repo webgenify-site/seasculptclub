@@ -2,6 +2,7 @@
    Prices here are for display only. Stripe charges the Price IDs mapped in the server catalog
    (netlify/functions source: lib/catalog.js). Keep ids, names and amounts in sync with it. */
 (function () {
+  var TODAY_ET = (function () { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } })();
   var CATALOG = {
     "pumpkins-oct18": { kind: "class", date: "2026-10-18", name: "Pumpkins & Pilates", detail: "Sun, Oct 18 · 10:00 AM · Annie's Orchard, Cream Ridge, NJ", amount: 2500 },
     "wave-oct23":     { kind: "class", date: "2026-10-23", name: "Wave Sculpt", detail: "Fri, Oct 23 · 8:00 AM · Indoors at Wave Resort, Long Branch, NJ", amount: 3500 },
@@ -9,7 +10,7 @@
     "seaview-nov4":   { kind: "class", date: "2026-11-04", name: "Seaview Sculpt", detail: "Wed, Nov 4 · 10:00 AM · McLoone's Pier House, Long Branch, NJ", amount: 3500 },
     "wave-nov14":     { kind: "class", date: "2026-11-14", name: "Wave Sculpt: Ocean View Pilates", detail: "Sat, Nov 14 · 10:00 AM · High Crest at Wave Resort, Long Branch, NJ", amount: 3500 },
     "friendsgiving-nov21": { kind: "class", date: "2026-11-21", name: "Friendsgiving Pilates & Brunch", detail: "Sat, Nov 21 · 10:00 AM · High Crest at Wave Resort, Long Branch, NJ · Complimentary Bellini", amount: 3500 },
-    "santa-dec5":     { kind: "class", date: "2026-12-05", name: "Santa Sculpt: A Christmas Party", detail: "Sat, Dec 5 · 12:00–2:00 PM · Tim McLoone's Supper Club, Asbury Park, NJ · Early bird: code SANTA5 for $40 until Nov 21", amount: 4500 },
+    "santa-dec5":     { kind: "class", date: "2026-12-05", name: "Santa Sculpt: A Christmas Party", detail: "Sat, Dec 5 · 12:00–2:00 PM · Tim McLoone's Supper Club, Asbury Park, NJ" + (TODAY_ET <= "2026-11-21" ? " · Early bird: code SANTA5 for $40 until Nov 21" : ""), amount: 4500 },
     "seaview-nov18":  { kind: "class", date: "2026-11-18", name: "Seaview Sculpt", detail: "Wed, Nov 18 · 10:00 AM · McLoone's Pier House, Long Branch, NJ", amount: 3500 },
     // Not bookable online until a Stripe Price ID is added for it in the server catalog.
     "single":         { kind: "pack", name: "Single Class", detail: "One class", amount: 3500 },
@@ -73,7 +74,7 @@
         '</div>' +
         '<div class="cart-code" hidden>' +
           '<label for="cartGiftCode">Have a promo code, eGift or class pack code?</label>' +
-          '<div class="cart-code-row"><input id="cartGiftCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="e.g. SANTA5 or SSC-XXXX-XXXX">' +
+          '<div class="cart-code-row"><input id="cartGiftCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="Promo or SSC-XXXX-XXXX code">' +
           '<button type="button" class="cart-code-apply">Apply</button></div>' +
           '<p class="cart-code-msg" role="status" aria-live="polite"></p>' +
         '</div>' +
@@ -114,7 +115,7 @@
       '<button type="button" class="cart-x cart-pay-x" aria-label="Close checkout">&times;</button>' +
       '<div class="cart-code cart-pay-promo" hidden>' +
         '<label for="cartPayPromo">Promo code</label>' +
-        '<div class="cart-code-row"><input id="cartPayPromo" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="e.g. SANTA5">' +
+        '<div class="cart-code-row"><input id="cartPayPromo" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="Enter promo code">' +
         '<button type="button" class="cart-code-apply cart-pay-promo-apply">Apply</button></div>' +
         '<p class="cart-code-msg cart-pay-promo-msg" role="status" aria-live="polite"></p>' +
       '</div>' +
