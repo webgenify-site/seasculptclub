@@ -844,3 +844,5 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
   .navlinks .nav-dropdown-menu::before{display:none;}
   .navlinks .nav-dropdown-menu a{padding:10px 0 10px 16px;font-size:.72rem;opacity:.8;border-bottom:1px solid var(--line);}
 }
+/* Buy menu link keeps its underline */
+@media (min-width:981px){ .navlinks a.nav-buy-link{border-color:var(--navy);} }
