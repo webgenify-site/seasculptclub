@@ -2219,6 +2219,7 @@ var require_gift_code = __commonJS({
     var { store } = require_store();
     var { lookup, emptyReason, expiringLeft } = require_giftcodes();
     var { sha256, toHex } = require_webcrypto();
+    var { CATALOG } = require_catalog();
     var MAX_FAILS = 20;
     var WINDOW_MS = 15 * 60 * 1e3;
     var json = (statusCode, body) => ({ statusCode, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(body) });
