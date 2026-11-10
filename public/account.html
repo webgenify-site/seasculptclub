@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf7">
-<link rel="stylesheet" href="css/coastal.css?v=cf24">
+<link rel="stylesheet" href="css/coastal.css?v=cf26">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/account">
@@ -168,6 +168,31 @@
         <div id="acctGifts"></div>
       </div>
 
+      <div class="acct-section acct-settings">
+        <h2>Settings</h2>
+        <form id="settingsForm" novalidate>
+          <h3>Communication</h3>
+          <label class="acct-switch"><input type="checkbox" id="cmEmail"> <span><strong>Email</strong> me about new classes, events and offers</span></label>
+          <label class="acct-switch"><input type="checkbox" id="cmSms"> <span><strong>Text</strong> me class updates, reminders and offers</span></label>
+          <div class="acct-sms" id="smsWrap" hidden>
+            <label for="cmPhone">Mobile number</label>
+            <input id="cmPhone" type="tel" autocomplete="tel" maxlength="20" placeholder="(732) 555-0100">
+            <p class="acct-fine">By providing your mobile phone number, you agree to receive text messages from Sea Sculpt Club at the number provided, sent using an automated system. Consent is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply STOP to cancel or HELP for help. See our <a href="/terms#sms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+          </div>
+          <p class="acct-fine">Booking confirmations, receipts and important updates about your classes are always sent by email.</p>
+
+          <h3>Emergency contact</h3>
+          <p class="acct-fine acct-fine-top">Who should we call if something happens during class?</p>
+          <div class="acct-grid">
+            <div><label for="emName">Name</label><input id="emName" autocomplete="off" maxlength="80"></div>
+            <div><label for="emPhone">Phone</label><input id="emPhone" type="tel" autocomplete="off" maxlength="25"></div>
+            <div><label for="emRel">Relationship <span class="acct-opt">(optional)</span></label><input id="emRel" autocomplete="off" maxlength="40" placeholder="Partner, parent, friend…"></div>
+          </div>
+          <button type="submit" class="cl-btn cl-btn-navy acct-save">Save settings</button>
+          <p class="acct-msg" id="settingsMsg" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+
       <p class="acct-fine">Cancel a class with the Cancel button above. Need to change something else? Email <a href="mailto:seasculptclub@gmail.com">seasculptclub@gmail.com</a> or call or text <a href="tel:+17327357589">732-735-7589</a>. See our <a href="/terms#cancellations">cancellation policy</a>.</p>
     </section>
 
@@ -198,7 +223,7 @@
     var first = (d.user.name || "").split(" ")[0];
     $("acctHi").textContent = first ? " " + first : "";
     $("acctEmailShown").textContent = d.user.email;
-    lastData = d; renderBday(d.user.birthday || "");
+    lastData = d; renderBday(d.user.birthday || ""); renderSettings(d.user);
 
     var codes = d.codes || [];
     $("acctCodes").innerHTML = codes.length ? codes.map(function (c) {
@@ -335,6 +360,30 @@
   } else {
     loadMe();
   }
+
+  // Settings: communication + emergency contact
+  function renderSettings(u) {
+    var c = u.comms || { email: true, sms: false }, e = u.emergency || {};
+    $("cmEmail").checked = c.email !== false; $("cmSms").checked = !!c.sms;
+    $("cmPhone").value = u.phone || ""; $("smsWrap").hidden = !c.sms;
+    $("emName").value = e.name || ""; $("emPhone").value = e.phone || ""; $("emRel").value = e.relationship || "";
+    $("settingsMsg").textContent = "";
+  }
+  $("cmSms").addEventListener("change", function () { $("smsWrap").hidden = !this.checked; if (this.checked && !$("cmPhone").value) $("cmPhone").focus(); });
+  $("settingsForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var msg = $("settingsMsg"), btn = this.querySelector(".acct-save");
+    var body = { comms: { email: $("cmEmail").checked, sms: $("cmSms").checked }, phone: $("cmPhone").value.trim(),
+      emergency: { name: $("emName").value.trim(), phone: $("emPhone").value.trim(), relationship: $("emRel").value.trim() } };
+    if (body.comms.sms && body.phone.replace(/\D/g, "").length < 10) { setMsg(msg, "Add your mobile number to get text messages.", true); $("cmPhone").focus(); return; }
+    if ((body.emergency.name || body.emergency.phone) && (body.emergency.name.length < 2 || body.emergency.phone.replace(/\D/g, "").length < 10)) { setMsg(msg, "Please enter your emergency contact's name and full phone number.", true); (body.emergency.name.length < 2 ? $("emName") : $("emPhone")).focus(); return; }
+    btn.disabled = true; setMsg(msg, "Saving…");
+    post("profile", body).then(function (x) {
+      if (!x.ok) { setMsg(msg, x.d.error || "Couldn't save. Please try again.", true); return; }
+      if (lastData && lastData.user) { lastData.user.comms = x.d.comms; lastData.user.emergency = x.d.emergency; lastData.user.phone = x.d.phone; }
+      setMsg(msg, "Saved."); track("settings_saved", { email: body.comms.email, sms: body.comms.sms });
+    }).catch(function () { setMsg(msg, "Couldn't save. Please try again.", true); }).then(function () { btn.disabled = false; });
+  });
 
   // Birthday on the dashboard
   function renderBday(b) {

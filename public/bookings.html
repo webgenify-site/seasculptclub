@@ -225,7 +225,7 @@
           var refUrl = r.paymentIntent ? "https://dashboard.stripe.com/" + (r.livemode === false ? "test/" : "") + "payments/" + encodeURIComponent(r.paymentIntent) : null;
           return '<tr><td><strong>' + esc(r.purchaser.name) + '</strong>' + (r.ref ? '<br><small>' + esc(r.ref) + '</small>' : "") +
             (flags.length ? '<ul class="flags">' + flags.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "") +
-            (notes.length ? '<div class="notes">' + esc(notes.join(" ")) + '</div>' : "") + intakeCell(r.intake) + '</td>' +
+            (notes.length ? '<div class="notes">' + esc(notes.join(" ")) + '</div>' : "") + intakeCell(r.intake) + (r.emergency ? '<div class="notes">Emergency contact: ' + esc(r.emergency.name + (r.emergency.relationship ? " (" + r.emergency.relationship + ")" : "") + ", " + r.emergency.phone) + '</div>' : "") + '</td>' +
             '<td>' + (x.it.gifts && x.it.gifts.length ? giftCell(x.it.gifts) : x.it.attendees && x.it.attendees.length ? esc(x.it.attendees.join(", ")) : '<span class="notes">Not collected</span>') + '</td>' +
             '<td>' + esc(r.purchaser.email) + '</td><td>' + esc(r.purchaser.phone || "") + '</td><td>' + esc(x.it.spots) + '</td>' +
             '<td>' + status + '</td>' +

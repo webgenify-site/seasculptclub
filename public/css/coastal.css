@@ -948,3 +948,19 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .acct-bday{margin:4px 0 0;color:#4A6683;font-size:.92rem;}
 .acct-bday .acct-textlink{margin-top:0;font-size:.85rem;}
 .acct-bday input[type=date]{padding:6px 8px;border:1px solid rgba(18,49,79,.25);border-radius:6px;font:inherit;}
+/* account: settings */
+.acct-settings h3{font-family:'Jost',sans-serif;font-size:.78rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;margin:18px 0 10px;color:#12314F;}
+.acct-settings h3:first-of-type{margin-top:4px;}
+.acct-switch{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px;font-size:.95rem;line-height:1.45;color:#12314F;cursor:pointer;}
+.acct-switch input{margin-top:3px;width:18px;height:18px;accent-color:#12314F;flex-shrink:0;}
+.acct-settings label:not(.acct-switch){display:block;margin:10px 0 6px;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;font-weight:500;}
+.acct-settings input[type=tel],.acct-settings input:not([type]){width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid rgba(18,49,79,.25);border-radius:8px;font:inherit;font-size:.95rem;}
+.acct-sms{padding:2px 0 4px 28px;}
+.acct-sms[hidden]{display:none;}
+.acct-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px;}
+.acct-fine-top{margin-top:0;}
+.acct-save{margin-top:18px;}
+@media (max-width:600px){ .acct-grid{grid-template-columns:1fr;} .acct-sms{padding-left:0;} }
+.acct form label.acct-switch{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;text-transform:none;letter-spacing:0;font-size:.95rem;font-weight:400;line-height:1.45;}
+.acct form label.acct-switch input{width:18px;height:18px;padding:0;margin:3px 0 0;flex-shrink:0;}
+.acct form label.acct-switch strong{font-weight:600;}

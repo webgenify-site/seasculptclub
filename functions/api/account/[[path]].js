@@ -296,9 +296,48 @@ async function profile(request, env, db) {
   const user = (await db.get("users/" + email)) || { email, createdAt: new Date().toISOString() };
   if ("birthday" in body) { const b = cleanBirthday(body.birthday); if (b === null) return json(400, { error: "Please check your birthday." }); user.birthday = b; }
   if ("name" in body) { const n = cleanName(body.name); if (n.length >= 2) user.name = n; }
+  let commsChanged = false;
+  if ("phone" in body) {
+    const ph = String(body.phone || "").replace(/[^\d+]/g, "").slice(0, 16);
+    if (ph && ph.replace(/\D/g, "").length < 10) return json(400, { error: "Please enter a full phone number." });
+    if (ph !== (user.phone || "")) commsChanged = true;
+    user.phone = ph;
+  }
+  if (body.comms && typeof body.comms === "object") {
+    const now = new Date().toISOString(), prev = user.comms || {};
+    const next = { email: body.comms.email !== false, sms: body.comms.sms === true };
+    if (next.sms && !(user.phone || "").replace(/\D/g, "")) return json(400, { error: "Add your mobile number to get text messages." });
+    // Keep a record of when consent was given or withdrawn (needed for text messaging rules).
+    user.comms = { ...next,
+      emailUpdatedAt: prev.email === next.email && prev.emailUpdatedAt ? prev.emailUpdatedAt : now,
+      smsUpdatedAt: prev.sms === next.sms && prev.smsUpdatedAt ? prev.smsUpdatedAt : now,
+      smsConsentText: next.sms ? SMS_CONSENT : prev.smsConsentText || "" };
+    if (prev.email !== next.email || prev.sms !== next.sms) commsChanged = true;
+  }
+  if (body.emergency && typeof body.emergency === "object") {
+    const e = body.emergency;
+    const em = { name: cleanName(e.name), phone: String(e.phone || "").replace(/[^\d+()\-\s]/g, "").trim().slice(0, 25), relationship: cleanName(e.relationship).slice(0, 40) };
+    if ((em.name || em.phone) && (em.name.length < 2 || em.phone.replace(/\D/g, "").length < 10)) return json(400, { error: "Please enter your emergency contact's name and full phone number." });
+    user.emergency = em.name ? { ...em, updatedAt: new Date().toISOString() } : null;
+  }
   await db.set("users/" + email, user);
-  if (user.birthday) await syncBirthday(env, user).catch(() => {});
-  return json(200, { ok: true, birthday: user.birthday || "", name: user.name || "" });
+  if (user.birthday && "birthday" in body) await syncBirthday(env, user).catch(() => {});
+  if (commsChanged) await syncComms(env, user).catch(() => {});
+  return json(200, { ok: true, birthday: user.birthday || "", name: user.name || "", phone: user.phone || "", comms: user.comms || { email: true, sms: false }, emergency: user.emergency || null });
+}
+const SMS_CONSENT = "By providing your mobile phone number, you agree to receive text messages from Sea Sculpt Club at the number provided, sent using an automated system. Consent is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply STOP to cancel or HELP for help.";
+function e164(ph) { const d = String(ph || "").replace(/\D/g, ""); return d.length === 10 ? "+1" + d : d.length === 11 && d[0] === "1" ? "+" + d : ph && ph[0] === "+" ? "+" + d : ""; }
+async function syncComms(env, user) {
+  const c = user.comms || { email: true, sms: false };
+  if (env.BREVO_API_KEY) {
+    const attributes = {};
+    const sms = e164(user.phone);
+    if (sms) attributes.SMS = sms;
+    await fetch("https://api.brevo.com/v3/contacts", {
+      method: "POST", headers: { "api-key": env.BREVO_API_KEY, "Content-Type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ email: user.email, updateEnabled: true, emailBlacklisted: !c.email, smsBlacklisted: !c.sms, attributes })
+    });
+  }
 }
 async function syncBirthday(env, user) {
   if (env.HUBSPOT_TOKEN) {
@@ -360,7 +399,8 @@ async function me(request, env, db) {
   const phone = user.phone || (latest && latest.purchaser && latest.purchaser.phone) || "";
   const name = user.name || (latest && latest.purchaser && latest.purchaser.name) || "";
   return json(200, {
-    user: { email, name, phone, birthday: user.birthday || "", hasPassword: !!user.password, since: user.createdAt || null },
+    user: { email, name, phone, birthday: user.birthday || "", hasPassword: !!user.password, since: user.createdAt || null,
+      comms: user.comms ? { email: user.comms.email !== false, sms: !!user.comms.sms } : { email: true, sms: false }, emergency: user.emergency || null },
     reservations, codes, giftsSent, purchases, creditValue: CREDIT_VALUE
   });
 }

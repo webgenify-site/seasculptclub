@@ -1751,6 +1751,14 @@ var require_admin_bookings = __commonJS({
         const rec = await db.get(b.key, { type: "json" });
         if (rec) out.push(rec);
       }
+      // Attach each customer's emergency contact from their account (if they added one).
+      const cache = {};
+      for (const rec of out) {
+        const em = String(rec.purchaser && rec.purchaser.email || "").trim().toLowerCase();
+        if (!em) continue;
+        if (!(em in cache)) { const u = await db.get("users/" + em, { type: "json" }); cache[em] = u && u.emergency ? u.emergency : null; }
+        if (cache[em]) rec.emergency = cache[em];
+      }
       return out.sort((a, b) => (b.paidAt || b.createdAt || "").localeCompare(a.paidAt || a.createdAt || ""));
     }
     async function recoverFromStripe(db) {
@@ -1807,7 +1815,8 @@ var require_admin_bookings = __commonJS({
       "Injuries / modifications",
       "Photo consent",
       "Waiver accepted",
-      "Cancellation policy accepted"
+      "Cancellation policy accepted",
+      "Emergency contact"
     ];
     function toCsv(records) {
       const cell = (v) => {
@@ -1842,7 +1851,8 @@ var require_admin_bookings = __commonJS({
             r.intake ? r.intake.injuries || "" : "",
             r.intake ? r.intake.photoConsent || "" : "",
             r.intake && r.intake.waiver ? `Yes (v${r.intake.waiver.version}, ${r.intake.waiver.at})` : "",
-            r.intake && r.intake.cancelPolicy ? `Yes (v${r.intake.cancelPolicy.version}, ${r.intake.cancelPolicy.at})` : ""
+            r.intake && r.intake.cancelPolicy ? `Yes (v${r.intake.cancelPolicy.version}, ${r.intake.cancelPolicy.at})` : "",
+            r.emergency ? [r.emergency.name, r.emergency.relationship ? "(" + r.emergency.relationship + ")" : "", r.emergency.phone].filter(Boolean).join(" ") : ""
           ]);
         }
       }
