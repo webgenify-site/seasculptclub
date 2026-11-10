@@ -769,3 +769,10 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cl-buy-teaser{padding-top:64px;padding-bottom:64px;}
 .cl-buy-teaser .cl-head{margin-bottom:0;}
 .cl-buy-teaser .cl-btn{margin-top:24px;}
+/* Header: Book a Class (blue) + Buy buttons replace the Classes/Buy tabs on desktop */
+.navlinks a.nav-mobile-only{display:none;}
+@media (max-width:980px){ .navlinks a.nav-mobile-only{display:block;} }
+.nav-cta-wrap{gap:12px;}
+.nav-cta-wrap .nav-buy{background:#fff;border-color:var(--navy);color:var(--navy);}
+.nav-cta-wrap .nav-buy:hover{background:var(--navy);color:var(--sand);}
+.nav-cta-wrap .cart-btn{margin-left:10px;}

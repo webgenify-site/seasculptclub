@@ -109,7 +109,7 @@
   fab.type = "button"; fab.className = "cart-btn"; fab.setAttribute("aria-label", "Open cart");
   fab.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><b class="cart-count">0</b>';
   var navWrap = document.querySelector(".nav-cta-wrap");
-  if (navWrap) { var bookBtn = navWrap.querySelector(".btn"); navWrap.insertBefore(fab, bookBtn ? bookBtn.nextSibling : navWrap.firstChild); }
+  if (navWrap) { var btns = navWrap.querySelectorAll(".btn"), bookBtn = btns[btns.length - 1]; navWrap.insertBefore(fab, bookBtn ? bookBtn.nextSibling : navWrap.firstChild); }
   else { fab.classList.add("cart-btn-float"); document.body.appendChild(fab); }
   var countEl = fab.querySelector(".cart-count");
   var drawer = shell.querySelector(".cart-drawer"), scrim = shell.querySelector(".cart-scrim");
