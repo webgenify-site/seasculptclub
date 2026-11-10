@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf7">
-<link rel="stylesheet" href="css/coastal.css?v=cf23">
+<link rel="stylesheet" href="css/coastal.css?v=cf24">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/account">
@@ -72,26 +72,64 @@
     <section class="acct-card acct-signin" id="acctSignin" hidden>
       <span class="eyebrow">Sea Sculpt Club</span>
       <h1>My <span class="script">account.</span></h1>
-      <p class="acct-lead">See your reservations and how many classes are left on your class packs and eGift cards. Enter your email and we&rsquo;ll send you a link to sign in. No password needed.</p>
-      <form id="acctForm" novalidate>
-        <label for="acctName">First and last name <span class="acct-opt">(new accounts)</span></label>
-        <input id="acctName" name="name" autocomplete="name" maxlength="80">
-        <label for="acctEmail">Email</label>
-        <input id="acctEmail" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="you@example.com">
-        <button type="submit" class="cl-btn cl-btn-navy acct-submit">Email me a sign-in link</button>
+      <p class="acct-lead">See your reservations and how many classes are left on your class packs and eGift cards.</p>
+      <div class="acct-tabs" role="tablist">
+        <button type="button" role="tab" class="acct-tab is-on" data-tab="signin" aria-selected="true">Sign in</button>
+        <button type="button" role="tab" class="acct-tab" data-tab="signup" aria-selected="false">Create account</button>
+      </div>
+
+      <form class="acct-pane" id="paneSignin" novalidate>
+        <label for="inEmail">Email</label>
+        <input id="inEmail" name="email" type="email" autocomplete="email" required maxlength="200">
+        <label for="inPw">Password</label>
+        <input id="inPw" name="password" type="password" autocomplete="current-password" required maxlength="200">
+        <button type="submit" class="cl-btn cl-btn-navy acct-submit">Sign in</button>
         <p class="acct-msg" role="status" aria-live="polite"></p>
-        <p class="acct-fine">Use the email you book with, and your past bookings and codes will show up automatically. By creating an account you agree to receive emails from Sea Sculpt Club; you can unsubscribe anytime. See our <a href="/privacy">Privacy Policy</a>.</p>
+        <button type="button" class="acct-textlink" data-go="forgot">Forgot or never set a password?</button>
+        <p class="acct-fine">Booked with us before? Your account was made for you at checkout. Tap the link above to set your password.</p>
       </form>
+
+      <form class="acct-pane" id="paneSignup" novalidate hidden>
+        <label for="upName">First and last name</label>
+        <input id="upName" name="name" autocomplete="name" required maxlength="80">
+        <label for="upEmail">Email</label>
+        <input id="upEmail" name="email" type="email" autocomplete="email" required maxlength="200">
+        <label for="upPw">Password <span class="acct-opt">(at least 8 characters)</span></label>
+        <input id="upPw" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="200">
+        <label for="upBday">Birthday <span class="acct-opt">(optional, so we can celebrate you)</span></label>
+        <input id="upBday" name="birthday" type="date">
+        <button type="submit" class="cl-btn cl-btn-navy acct-submit">Create account</button>
+        <p class="acct-msg" role="status" aria-live="polite"></p>
+        <p class="acct-fine">Use the email you book with, and your past bookings and codes will show up automatically. We&rsquo;ll email you once to confirm it&rsquo;s you. By creating an account you agree to receive emails from Sea Sculpt Club; you can unsubscribe anytime. See our <a href="/privacy">Privacy Policy</a>.</p>
+      </form>
+
+      <form class="acct-pane" id="paneForgot" novalidate hidden>
+        <p class="acct-lead">Enter your email and we&rsquo;ll send you a link to set a new password.</p>
+        <label for="fgEmail">Email</label>
+        <input id="fgEmail" name="email" type="email" autocomplete="email" required maxlength="200">
+        <button type="submit" class="cl-btn cl-btn-navy acct-submit">Email me a link</button>
+        <p class="acct-msg" role="status" aria-live="polite"></p>
+        <button type="button" class="acct-textlink" data-go="signin">&larr; Back to sign in</button>
+      </form>
+
+      <form class="acct-pane" id="paneReset" novalidate hidden>
+        <h2>Choose a new password</h2>
+        <label for="rsPw">New password <span class="acct-opt">(at least 8 characters)</span></label>
+        <input id="rsPw" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="200">
+        <button type="submit" class="cl-btn cl-btn-navy acct-submit">Save password &amp; sign in</button>
+        <p class="acct-msg" role="status" aria-live="polite"></p>
+      </form>
+
       <div class="acct-sent" id="acctSent" hidden>
         <h2>Check your email</h2>
-        <p>We sent a sign-in link to <strong id="acctSentTo"></strong>. Tap it on this device to sign in. It works for 20 minutes. Can&rsquo;t find it? Check your spam folder.</p>
-        <button type="button" class="cl-link" id="acctRetry">Use a different email</button>
+        <p id="acctSentText"></p>
+        <button type="button" class="acct-textlink" data-go="signin">&larr; Back to sign in</button>
       </div>
     </section>
 
     <!-- Signing in from the email link -->
     <section class="acct-card" id="acctVerifying" hidden>
-      <h1>Signing you in&hellip;</h1>
+      <h1>Confirming your account&hellip;</h1>
       <p class="acct-msg" id="acctVerifyMsg" role="status" aria-live="polite"></p>
     </section>
 
@@ -102,9 +140,10 @@
           <span class="eyebrow">My account</span>
           <h1>Hi<span id="acctHi"></span><span class="script">.</span></h1>
           <p class="acct-email" id="acctEmailShown"></p>
+          <p class="acct-bday" id="acctBday"></p>
         </div>
         <div class="acct-top-actions">
-          <a href="classes.html#events" class="cl-btn cl-btn-navy">Book a Class</a>
+          <a href="classes.html#events" class="cl-btn cl-btn-navy">Book Class</a>
           <button type="button" class="cl-link" id="acctLogout">Sign out</button>
         </div>
       </div>
@@ -159,6 +198,7 @@
     var first = (d.user.name || "").split(" ")[0];
     $("acctHi").textContent = first ? " " + first : "";
     $("acctEmailShown").textContent = d.user.email;
+    lastData = d; renderBday(d.user.birthday || "");
 
     var codes = d.codes || [];
     $("acctCodes").innerHTML = codes.length ? codes.map(function (c) {
@@ -209,44 +249,118 @@
     return fetch("/api/account/me", { credentials: "same-origin" }).then(function (r) {
       if (r.status === 401) { show("acctSignin"); return; }
       return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "error"); renderDash(d); });
-    }).catch(function () { show("acctSignin"); setMsg(document.querySelector("#acctForm .acct-msg"), "Couldn't load your account right now. Please try again.", true); });
+    }).catch(function () { show("acctSignin"); setMsg($("paneSignin").querySelector(".acct-msg"), "Couldn't load your account right now. Please try again.", true); });
   }
   function setMsg(el, text, bad) { el.textContent = text; el.className = "acct-msg" + (bad ? " is-bad" : ""); }
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-  // Email link: /account?login=TOKEN
+  // Panes: signin / signup / forgot / reset / sent
+  function pane(which) {
+    ["Signin", "Signup", "Forgot", "Reset"].forEach(function (p) { $("pane" + p).hidden = p.toLowerCase() !== which; });
+    $("acctSent").hidden = which !== "sent";
+    document.querySelector(".acct-tabs").hidden = which === "reset" || which === "sent" || which === "forgot";
+    document.querySelectorAll(".acct-tab").forEach(function (t) { var on = t.getAttribute("data-tab") === which; t.classList.toggle("is-on", on); t.setAttribute("aria-selected", on ? "true" : "false"); });
+    var first = which !== "sent" && $("pane" + which.charAt(0).toUpperCase() + which.slice(1)); var inp = first && first.querySelector("input");
+    if (inp) setTimeout(function () { inp.focus(); }, 30);
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-tab], [data-go]"); if (!t || !$("acctSignin").contains(t)) return;
+    var to = t.getAttribute("data-tab") || t.getAttribute("data-go");
+    if (to === "forgot") $("fgEmail").value = $("inEmail").value;
+    pane(to);
+  });
+  function post(path, body) {
+    return fetch("/api/account/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); });
+  }
+  function busy(form, on, label) { var b = form.querySelector(".acct-submit"); b.disabled = on; if (label) b.textContent = label; }
+
+  $("paneSignin").addEventListener("submit", function (e) {
+    e.preventDefault(); var f = this, msg = f.querySelector(".acct-msg");
+    var email = $("inEmail").value.trim(), pw = $("inPw").value;
+    if (!EMAIL_RE.test(email)) { setMsg(msg, "Please enter a valid email address.", true); $("inEmail").focus(); return; }
+    if (!pw) { setMsg(msg, "Please enter your password.", true); $("inPw").focus(); return; }
+    busy(f, true); setMsg(msg, "Signing in…");
+    post("login", { email: email, password: pw }).then(function (x) {
+      if (!x.ok) { setMsg(msg, x.d.error || "Couldn't sign in. Please try again.", true); return; }
+      setMsg(msg, ""); track("login", { method: "password" }); return loadMe();
+    }).catch(function () { setMsg(msg, "Couldn't sign in. Please try again.", true); }).then(function () { busy(f, false); });
+  });
+  $("paneSignup").addEventListener("submit", function (e) {
+    e.preventDefault(); var f = this, msg = f.querySelector(".acct-msg");
+    var body = { name: $("upName").value.trim(), email: $("upEmail").value.trim(), password: $("upPw").value, birthday: $("upBday").value };
+    if (body.name.length < 2) { setMsg(msg, "Please enter your name.", true); $("upName").focus(); return; }
+    if (!EMAIL_RE.test(body.email)) { setMsg(msg, "Please enter a valid email address.", true); $("upEmail").focus(); return; }
+    if (body.password.length < 8) { setMsg(msg, "Please choose a password with at least 8 characters.", true); $("upPw").focus(); return; }
+    busy(f, true); setMsg(msg, "Creating your account…");
+    post("signup", body).then(function (x) {
+      if (!x.ok) { setMsg(msg, x.d.error || "Couldn't create your account. Please try again.", true); return; }
+      setMsg(msg, ""); $("acctSentText").innerHTML = "We sent a confirmation link to <strong>" + esc(body.email) + "</strong>. Tap it to finish creating your account. You only need to do this once; after that, just sign in with your email and password.";
+      pane("sent");
+    }).catch(function () { setMsg(msg, "Couldn't create your account. Please try again.", true); }).then(function () { busy(f, false); });
+  });
+  $("paneForgot").addEventListener("submit", function (e) {
+    e.preventDefault(); var f = this, msg = f.querySelector(".acct-msg"), email = $("fgEmail").value.trim();
+    if (!EMAIL_RE.test(email)) { setMsg(msg, "Please enter a valid email address.", true); $("fgEmail").focus(); return; }
+    busy(f, true); setMsg(msg, "Sending…");
+    post("forgot", { email: email }).then(function (x) {
+      if (!x.ok) { setMsg(msg, x.d.error || "Couldn't send the email. Please try again.", true); return; }
+      setMsg(msg, ""); $("acctSentText").innerHTML = "If there&rsquo;s an account or booking for <strong>" + esc(email) + "</strong>, we&rsquo;ve sent a link to set your password. It works for 20 minutes. Can&rsquo;t find it? Check your spam folder.";
+      pane("sent");
+    }).catch(function () { setMsg(msg, "Couldn't send the email. Please try again.", true); }).then(function () { busy(f, false); });
+  });
+
+  // Email links: /account?login=TOKEN (confirm new account) or /account?reset=TOKEN (choose a password)
   var params = new URLSearchParams(location.search);
-  var token = params.get("login");
-  if (token) {
+  var loginToken = params.get("login"), resetToken = params.get("reset");
+  if (loginToken || resetToken) history.replaceState(null, "", location.pathname);
+  if (resetToken) {
+    show("acctSignin"); pane("reset");
+    $("paneReset").addEventListener("submit", function (e) {
+      e.preventDefault(); var f = this, msg = f.querySelector(".acct-msg"), pw = $("rsPw").value;
+      if (pw.length < 8) { setMsg(msg, "Please choose a password with at least 8 characters.", true); $("rsPw").focus(); return; }
+      busy(f, true); setMsg(msg, "Saving…");
+      post("verify", { token: resetToken, password: pw }).then(function (x) {
+        if (!x.ok) { setMsg(msg, x.d.error || "That link didn't work. Please request a new one.", true); return; }
+        track("password_set", {}); return loadMe();
+      }).catch(function () { setMsg(msg, "Couldn't save your password. Please try again.", true); }).then(function () { busy(f, false); });
+    });
+  } else if (loginToken) {
     show("acctVerifying");
-    history.replaceState(null, "", location.pathname);
-    fetch("/api/account/verify", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ token: token }) })
-      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-      .then(function (x) {
-        if (!x.ok) { show("acctSignin"); setMsg(document.querySelector("#acctForm .acct-msg"), x.d.error || "That link didn't work. Please request a new one.", true); return; }
-        track(x.d.isNew ? "sign_up" : "login", { method: "email_link" });
-        return loadMe();
-      })
-      .catch(function () { show("acctSignin"); setMsg(document.querySelector("#acctForm .acct-msg"), "Couldn't sign you in. Please try again.", true); });
+    post("verify", { token: loginToken }).then(function (x) {
+      if (!x.ok) { show("acctSignin"); pane("signin"); setMsg($("paneSignin").querySelector(".acct-msg"), x.d.error || "That link didn't work. Please sign in or request a new one.", true); return; }
+      track(x.d.isNew ? "sign_up" : "login", { method: "password" });
+      return loadMe();
+    }).catch(function () { show("acctSignin"); setMsg($("paneSignin").querySelector(".acct-msg"), "Couldn't confirm your account. Please try again.", true); });
   } else {
     loadMe();
   }
 
-  $("acctForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var email = $("acctEmail").value.trim(), name = $("acctName").value.trim();
-    var msg = document.querySelector("#acctForm .acct-msg"), btn = document.querySelector(".acct-submit");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { setMsg(msg, "Please enter a valid email address.", true); $("acctEmail").focus(); return; }
-    btn.disabled = true; setMsg(msg, "Sending…");
-    fetch("/api/account/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email, name: name }) })
-      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-      .then(function (x) {
-        if (!x.ok) { setMsg(msg, x.d.error || "Couldn't send the link. Please try again.", true); return; }
-        setMsg(msg, ""); $("acctSentTo").textContent = email; $("acctForm").hidden = true; $("acctSent").hidden = false;
-      })
-      .catch(function () { setMsg(msg, "Couldn't send the link. Please try again.", true); })
-      .then(function () { btn.disabled = false; });
+  // Birthday on the dashboard
+  function renderBday(b) {
+    var el = $("acctBday");
+    if (b) {
+      var d = new Date(b + "T12:00:00");
+      el.innerHTML = "Birthday: " + esc(d.toLocaleDateString("en-US", { month: "long", day: "numeric" })) + ' <button type="button" class="acct-textlink" id="bdayEdit">Edit</button>';
+    } else {
+      el.innerHTML = '<button type="button" class="acct-textlink" id="bdayEdit">+ Add your birthday</button>';
+    }
+  }
+  document.addEventListener("click", function (e) {
+    if (e.target.id === "bdayEdit") {
+      var cur = lastData && lastData.user && lastData.user.birthday || "";
+      $("acctBday").innerHTML = '<input type="date" id="bdayIn" value="' + esc(cur) + '" aria-label="Birthday"> <button type="button" class="acct-cancel" id="bdaySave">Save</button>';
+      $("bdayIn").focus();
+    } else if (e.target.id === "bdaySave") {
+      var v = $("bdayIn").value;
+      post("profile", { birthday: v }).then(function (x) {
+        if (!x.ok) { alertBday(x.d.error || "Couldn't save. Please try again."); return; }
+        if (lastData && lastData.user) lastData.user.birthday = x.d.birthday; renderBday(x.d.birthday);
+      });
+    }
   });
-  $("acctRetry").addEventListener("click", function () { $("acctSent").hidden = true; $("acctForm").hidden = false; $("acctEmail").focus(); });
+  function alertBday(t) { var p = document.createElement("span"); p.className = "acct-msg is-bad"; p.textContent = " " + t; $("acctBday").appendChild(p); }
+
   $("acctLogout").addEventListener("click", function () {
     fetch("/api/account/logout", { method: "POST", credentials: "same-origin" }).then(function () { location.href = "/account"; });
   });

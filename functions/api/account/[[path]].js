@@ -1,7 +1,10 @@
-// Sea Sculpt Club accounts: sign in with an emailed link (no passwords), then see your
+// Sea Sculpt Club accounts: email + password (one confirmation email at sign-up), then see your
 // reservations and class codes. Routes (this file handles /api/account/*):
-//   POST /api/account/login   { email, name? }  -> emails a sign-in link (always answers ok)
-//   POST /api/account/verify  { token }         -> starts a 30-day session (HttpOnly cookie)
+//   POST /api/account/signup  { name, email, password, birthday? } -> emails a one-time confirmation link
+//   POST /api/account/login   { email, password }  -> starts a 30-day session (HttpOnly cookie)
+//   POST /api/account/forgot  { email }            -> emails a link to set a new password
+//   POST /api/account/verify  { token, password? } -> confirms sign-up / sets the new password, signs in
+//   POST /api/account/profile { birthday?, name? } -> updates the signed-in person's details
 //   GET  /api/account/me                        -> the signed-in person's reservations and codes
 //   POST /api/account/logout                    -> ends the session
 // New accounts are added to Brevo and HubSpot when BREVO_API_KEY / HUBSPOT_TOKEN are set.
@@ -129,63 +132,187 @@ async function syncContact(env, user) {
   return out;
 }
 
+// ---------- passwords (PBKDF2-SHA256, salted; plain passwords are never stored) ----------
+const PBKDF2_ITER = 100000;
+async function hashPassword(password, saltHex) {
+  const salt = saltHex ? new Uint8Array(saltHex.match(/../g).map((h) => parseInt(h, 16))) : crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: PBKDF2_ITER }, key, 256);
+  const hex = (u) => [...u].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return { hash: hex(new Uint8Array(bits)), salt: hex(salt), iter: PBKDF2_ITER };
+}
+async function checkPassword(password, rec) {
+  if (!rec || !rec.hash || !rec.salt) return false;
+  const h = await hashPassword(password, rec.salt);
+  let diff = h.hash.length ^ rec.hash.length;
+  for (let i = 0; i < Math.min(h.hash.length, rec.hash.length); i++) diff |= h.hash.charCodeAt(i) ^ rec.hash.charCodeAt(i);
+  return diff === 0;
+}
+function passwordProblem(pw) {
+  pw = String(pw || "");
+  if (pw.length < 8) return "Please choose a password with at least 8 characters.";
+  if (pw.length > 200) return "That password is too long.";
+  return null;
+}
+function cleanBirthday(b) {
+  const v = String(b || "").trim();
+  if (!v) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (!m) return null;
+  const y = +m[1], mo = +m[2], d = +m[3], now = new Date().getFullYear();
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < now - 110 || y > now - 5) return null;
+  return v;
+}
+
 // ---------- email ----------
-async function sendLoginEmail(env, email, link, isNew) {
+async function sendAccountEmail(env, email, link, kind) {
   if (!env.RESEND_API_KEY) return false;
-  const subject = isNew ? "Finish creating your Sea Sculpt Club account" : "Your Sea Sculpt Club sign-in link";
-  const lead = isNew ? "Tap the button below to finish creating your account." : "Tap the button below to sign in to your account.";
+  const T = {
+    signup: { subject: "Confirm your Sea Sculpt Club account", lead: "Tap the button below to confirm your email and finish creating your account. You only need to do this once; after that, just sign in with your email and password.", btn: "CONFIRM MY ACCOUNT" },
+    reset: { subject: "Set your Sea Sculpt Club password", lead: "Tap the button below to choose a new password for your account.", btn: "SET MY PASSWORD" }
+  }[kind];
   const html = `<div style="font-family:Helvetica,Arial,sans-serif;color:#12314F;max-width:520px;margin:0 auto;padding:24px">
 <p style="font-size:20px;margin:0 0 14px">Sea Sculpt Club</p>
-<p style="margin:0 0 18px;line-height:1.5">${lead} See your reservations and how many classes are left on your class packs and eGift cards.</p>
-<p style="margin:0 0 22px"><a href="${esc(link)}" style="display:inline-block;background:#12314F;color:#fff;text-decoration:none;padding:13px 26px;border-radius:999px;font-size:14px;letter-spacing:.08em">SIGN IN</a></p>
+<p style="margin:0 0 18px;line-height:1.5">${T.lead}</p>
+<p style="margin:0 0 22px"><a href="${esc(link)}" style="display:inline-block;background:#12314F;color:#fff;text-decoration:none;padding:13px 26px;border-radius:999px;font-size:14px;letter-spacing:.08em">${T.btn}</a></p>
 <p style="margin:0 0 8px;font-size:13px;color:#4A6683;line-height:1.5">This link works for ${LINK_MINUTES} minutes. If you didn't ask for it, you can ignore this email.</p>
 </div>`;
-  const text = `${lead}\n\n${link}\n\nThis link works for ${LINK_MINUTES} minutes. If you didn't ask for it, you can ignore this email.`;
+  const text = `${T.lead}\n\n${link}\n\nThis link works for ${LINK_MINUTES} minutes. If you didn't ask for it, you can ignore this email.`;
   try {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: env.BOOKING_EMAIL_FROM || "Sea Sculpt Club <bookings@seasculptclub.com>", to: [email], reply_to: "seasculptclub@gmail.com", subject, html, text })
+      body: JSON.stringify({ from: env.BOOKING_EMAIL_FROM || "Sea Sculpt Club <bookings@seasculptclub.com>", to: [email], reply_to: "seasculptclub@gmail.com", subject: T.subject, html, text })
     });
     return r.ok;
   } catch (e) { return false; }
 }
 
+async function startSession(db, email) {
+  const session = newToken();
+  await db.set("acctsess/" + (await hash(session)), { email, exp: Date.now() + SESSION_DAYS * 864e5 });
+  return `${COOKIE}=${session}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`;
+}
+async function emailLink(request, env, db, email, kind, extra) {
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
+  if (await limited(db, "acctrl/ip/" + (await hash(ip)).slice(0, 24), 20, 3600e3)) return json(429, { error: "Too many requests. Please try again in an hour." });
+  if (await limited(db, "acctrl/email/" + (await hash(email)).slice(0, 24), 5, 3600e3)) return json(429, { error: "We've sent several emails to this address already. Please check your inbox (and spam), or try again in an hour." });
+  const token = newToken();
+  await db.set("acctlogin/" + (await hash(token)), { email, kind, ...extra, exp: Date.now() + LINK_MINUTES * 60e3 });
+  const site = (env.SITE_URL || new URL(request.url).origin).replace(/\/+$/, "");
+  const sent = await sendAccountEmail(env, email, `${site}/account?${kind === "reset" ? "reset" : "login"}=${token}`, kind);
+  if (!sent) return json(502, { error: "We couldn't send the email right now. Please try again in a moment." });
+  return null;
+}
+
 // ---------- handlers ----------
+// Create an account: name, email, password, optional birthday. One confirmation email (proves the email is theirs).
+async function signup(request, env, db) {
+  let body; try { body = await request.json(); } catch (e) { return json(400, { error: "Bad request" }); }
+  const email = cleanEmail(body.email), name = cleanName(body.name), birthday = cleanBirthday(body.birthday);
+  if (name.length < 2) return json(400, { error: "Please enter your name." });
+  if (!validEmail(email)) return json(400, { error: "Please enter a valid email address." });
+  const bad = passwordProblem(body.password); if (bad) return json(400, { error: bad });
+  if (birthday === null) return json(400, { error: "Please check your birthday." });
+  const existing = await db.get("users/" + email);
+  if (existing && existing.password) return json(409, { error: "There's already an account with this email. Please sign in, or use Forgot password." });
+  const password = await hashPassword(String(body.password));
+  const r = await emailLink(request, env, db, email, "signup", { name, birthday: birthday || "", password });
+  if (r) return r;
+  return json(200, { ok: true, confirm: true });
+}
+
 async function login(request, env, db) {
   let body; try { body = await request.json(); } catch (e) { return json(400, { error: "Bad request" }); }
-  const email = cleanEmail(body.email), name = cleanName(body.name);
+  const email = cleanEmail(body.email);
   if (!validEmail(email)) return json(400, { error: "Please enter a valid email address." });
   const ip = request.headers.get("cf-connecting-ip") || "unknown";
-  if (await limited(db, "acctrl/ip/" + (await hash(ip)).slice(0, 24), 20, 3600e3)) return json(429, { error: "Too many sign-in requests. Please try again in an hour." });
-  if (await limited(db, "acctrl/email/" + (await hash(email)).slice(0, 24), 5, 3600e3)) return json(429, { error: "We've sent several links to this email already. Please check your inbox (and spam), or try again in an hour." });
-  const token = newToken();
-  const existing = await db.get("users/" + email);
-  await db.set("acctlogin/" + (await hash(token)), { email, name, exp: Date.now() + LINK_MINUTES * 60e3 });
-  const site = (env.SITE_URL || new URL(request.url).origin).replace(/\/+$/, "");
-  const sent = await sendLoginEmail(env, email, `${site}/account?login=${token}`, !existing);
-  if (!sent) return json(502, { error: "We couldn't send the email right now. Please try again in a moment." });
+  const failKey = "acctrl/pw/" + (await hash(email + "|" + ip)).slice(0, 24);
+  const fails = (await db.get(failKey)) || { n: 0, start: Date.now() };
+  if (Date.now() - fails.start < 900e3 && fails.n >= 8) return json(429, { error: "Too many tries. Please wait 15 minutes, or use Forgot password." });
+  const user = await db.get("users/" + email);
+  if (!user || !user.password) {
+    if (user) return json(400, { error: "You haven't set a password yet. Tap “Forgot or never set a password?” and we'll email you a link to set one.", code: "no_password" });
+    return json(400, { error: "That email and password don't match." });
+  }
+  if (!(await checkPassword(String(body.password || ""), user.password))) {
+    await db.set(failKey, Date.now() - fails.start > 900e3 ? { n: 1, start: Date.now() } : { n: fails.n + 1, start: fails.start });
+    return json(400, { error: "That email and password don't match." });
+  }
+  await db.del(failKey);
+  await db.set("users/" + email, { ...user, lastLoginAt: new Date().toISOString() });
+  return json(200, { ok: true }, { "Set-Cookie": await startSession(db, email) });
+}
+
+// Forgot (or never set) a password: email a link to choose one. Always answers ok so it can't reveal who has an account.
+async function forgot(request, env, db) {
+  let body; try { body = await request.json(); } catch (e) { return json(400, { error: "Bad request" }); }
+  const email = cleanEmail(body.email);
+  if (!validEmail(email)) return json(400, { error: "Please enter a valid email address." });
+  const user = await db.get("users/" + email);
+  const booked = user ? null : (await db.search("bookings/", email)).find((b) => b && cleanEmail(b.purchaser && b.purchaser.email) === email);
+  if (user || booked) {
+    const r = await emailLink(request, env, db, email, "reset", { name: (user && user.name) || (booked && booked.purchaser.name) || "" });
+    if (r) return r;
+  }
   return json(200, { ok: true });
 }
 
+// Email link landing: confirm a new account (signup) or set a new password (reset, needs body.password).
 async function verify(request, env, db, ctx) {
   let body; try { body = await request.json(); } catch (e) { return json(400, { error: "Bad request" }); }
   const token = String(body.token || "").slice(0, 100);
   const key = "acctlogin/" + (await hash(token));
   const rec = token ? await db.get(key) : null;
-  if (!rec || rec.exp < Date.now()) return json(400, { error: "This sign-in link has expired. Please request a new one." });
+  if (!rec || rec.exp < Date.now()) return json(400, { error: "This link has expired. Please request a new one." });
+  let password = rec.password || null;
+  if (rec.kind === "reset") {
+    const bad = passwordProblem(body.password); if (bad) return json(400, { error: bad });
+    password = await hashPassword(String(body.password));
+  }
   const email = rec.email, now = new Date().toISOString();
-  const isNew = await db.addIfNew("users/" + email, { email, name: rec.name || "", createdAt: now, lastLoginAt: now });
+  const isNew = await db.addIfNew("users/" + email, { email, name: rec.name || "", birthday: rec.birthday || "", password, createdAt: now, lastLoginAt: now });
   let user = await db.get("users/" + email);
-  if (!isNew) { user = { ...user, name: user.name || rec.name || "", lastLoginAt: now }; await db.set("users/" + email, user); }
+  if (!isNew) {
+    user = { ...user, name: user.name || rec.name || "", lastLoginAt: now };
+    if (password) user.password = password;
+    if (rec.birthday && !user.birthday) user.birthday = rec.birthday;
+    await db.set("users/" + email, user);
+  }
+  await db.del(key); // links work once
   if (isNew) {
-    const task = syncContact(env, user).then((sync) => db.set("users/" + email, { ...user, sync, syncedAt: new Date().toISOString() })).catch(() => {});
+    const task = syncContact(env, user).then((sync) => db.get("users/" + email).then((u) => db.set("users/" + email, { ...u, sync, syncedAt: new Date().toISOString() }))).catch(() => {});
     if (ctx && ctx.waitUntil) ctx.waitUntil(task); else await task;
   }
-  const session = newToken();
-  await db.set("acctsess/" + (await hash(session)), { email, exp: Date.now() + SESSION_DAYS * 864e5 });
-  const cookie = `${COOKIE}=${session}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`;
-  return json(200, { ok: true, isNew }, { "Set-Cookie": cookie });
+  if (user.birthday) syncBirthday(env, user).catch(() => {});
+  return json(200, { ok: true, isNew }, { "Set-Cookie": await startSession(db, email) });
+}
+
+// Signed-in profile updates (birthday, name).
+async function profile(request, env, db) {
+  const email = await currentEmail(request, db);
+  if (!email) return json(401, { error: "Please sign in again." });
+  let body; try { body = await request.json(); } catch (e) { return json(400, { error: "Bad request" }); }
+  const user = (await db.get("users/" + email)) || { email, createdAt: new Date().toISOString() };
+  if ("birthday" in body) { const b = cleanBirthday(body.birthday); if (b === null) return json(400, { error: "Please check your birthday." }); user.birthday = b; }
+  if ("name" in body) { const n = cleanName(body.name); if (n.length >= 2) user.name = n; }
+  await db.set("users/" + email, user);
+  if (user.birthday) await syncBirthday(env, user).catch(() => {});
+  return json(200, { ok: true, birthday: user.birthday || "", name: user.name || "" });
+}
+async function syncBirthday(env, user) {
+  if (env.HUBSPOT_TOKEN) {
+    await fetch("https://api.hubapi.com/crm/v3/objects/contacts/batch/upsert", {
+      method: "POST", headers: { Authorization: `Bearer ${env.HUBSPOT_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ inputs: [{ id: user.email, idProperty: "email", properties: { email: user.email, date_of_birth: user.birthday } }] })
+    });
+  }
+  if (env.BREVO_API_KEY && env.BREVO_BIRTHDAY_ATTRIBUTE) {
+    await fetch("https://api.brevo.com/v3/contacts", {
+      method: "POST", headers: { "api-key": env.BREVO_API_KEY, "Content-Type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ email: user.email, updateEnabled: true, attributes: { [env.BREVO_BIRTHDAY_ATTRIBUTE]: user.birthday } })
+    });
+  }
 }
 
 async function currentEmail(request, db) {
@@ -233,7 +360,7 @@ async function me(request, env, db) {
   const phone = user.phone || (latest && latest.purchaser && latest.purchaser.phone) || "";
   const name = user.name || (latest && latest.purchaser && latest.purchaser.name) || "";
   return json(200, {
-    user: { email, name, phone, since: user.createdAt || null },
+    user: { email, name, phone, birthday: user.birthday || "", hasPassword: !!user.password, since: user.createdAt || null },
     reservations, codes, giftsSent, purchases, creditValue: CREDIT_VALUE
   });
 }
@@ -366,7 +493,10 @@ export async function onRequest(context) {
   const path = Array.isArray(context.params && context.params.path) ? context.params.path.join("/") : String((context.params && context.params.path) || "");
   try {
     const db = store(env.DB);
+    if (path === "signup" && request.method === "POST") return await signup(request, env, db);
     if (path === "login" && request.method === "POST") return await login(request, env, db);
+    if (path === "forgot" && request.method === "POST") return await forgot(request, env, db);
+    if (path === "profile" && request.method === "POST") return await profile(request, env, db);
     if (path === "verify" && request.method === "POST") return await verify(request, env, db, context);
     if (path === "me" && request.method === "GET") return await me(request, env, db);
     if (path === "logout" && request.method === "POST") return await logout(request, env, db);
