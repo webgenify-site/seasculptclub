@@ -881,3 +881,8 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cart-q-msg:empty{display:none;}
 .cart-q-send{margin-top:18px;justify-content:center;}
 .cart-q-skip{margin:12px auto 0;background:none;border:0;font:500 .72rem 'Jost',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#4A6683;text-decoration:underline;cursor:pointer;}
+/* Buy page: sand texture on the intro, headings for each section, pack cards in one even row */
+.cl-hero.cl-buy-hero{background-color:var(--c-ivory) !important;background-image:url("../assets/tex-sand-seamless.jpg") !important;background-size:2800px auto !important;background-repeat:repeat !important;}
+.cl-packs-head-2{margin-top:72px;}
+.cl-compare .cl-pack-best,.cl-compare .cl-pack-best:hover{transform:none;}
+.cl-compare .cl-pack:hover{transform:none;}

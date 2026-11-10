@@ -242,7 +242,7 @@
           (line.qty > 1 ? '<span class="cart-spot-label">Spot ' + (n + 1) + '</span>' : '') +
           '<div class="cart-spot-pick" role="radiogroup" aria-label="Spot ' + (n + 1) + '">' +
             '<label class="cart-pill"><input type="radio" name="' + nm + '" value="me"' + (choice === "me" ? " checked" : "") + '><span>Me</span></label>' +
-            '<label class="cart-pill"><input type="radio" name="' + nm + '" value="friend"' + (choice === "friend" ? " checked" : "") + '><span>A friend</span></label>' +
+            '<label class="cart-pill"><input type="radio" name="' + nm + '" value="friend"' + (choice === "friend" ? " checked" : "") + '><span>Friend</span></label>' +
           '</div>' +
           '<label class="cart-friend"' + (choice === "friend" ? "" : " hidden") + '>Friend&rsquo;s name<input data-friend="1" maxlength="80" value="' + esc(friendName) + '" autocomplete="off"></label>' +
         '</div>';
