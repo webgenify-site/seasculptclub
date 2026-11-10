@@ -810,9 +810,7 @@ var require_create_checkout = __commonJS({
         waiver: null,
         cancelPolicy: null
       };
-      if (!intake.heard) errors.push("Please tell us how you heard about us.");
       if (hasClass) {
-        if (!intake.photoConsent) errors.push("Please choose Yes or No for photo and video consent.");
         if (q.waiver !== true) errors.push("Please agree to the Liability Waiver & Release to book a class.");
         else intake.waiver = { accepted: true, version: WAIVER_VERSION, at: (/* @__PURE__ */ new Date()).toISOString() };
         if (q.cancelPolicy !== true) errors.push("Please confirm you understand the cancellation policy to book a class.");
@@ -1101,7 +1099,7 @@ var require_create_checkout = __commonJS({
       await ensureAccountForBooking(db, booking, process.env);
       booking.confirmation = await sendConfirmation(booking, process.env);
       await db.setJSON(`bookings/${id}`, booking);
-      return json(200, { free: true, ref });
+      return json(200, { free: true, ref, bookingId: id });
     }
   }
 });

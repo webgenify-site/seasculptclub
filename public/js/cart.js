@@ -65,18 +65,8 @@
         '<p class="cart-who-line"></p>' +
         '<div class="cart-attendees"></div>' +
         '<div class="cart-intake">' +
-          '<h3>A few quick questions</h3>' +
-          '<label>How did you hear about us?<select name="heard" required><option value="">Choose one</option>' +
-            '<option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Friend or family</option><option>Google search</option>' +
-            '<option>Wave Resort or another venue</option><option>Flyer or poster</option><option>Event or pop-up</option><option>Other</option></select></label>' +
-          '<label class="cart-heard-other" hidden>Tell us more <em>(optional)</em><input name="heardOther" maxlength="120"></label>' +
           '<div class="cart-intake-class">' +
-            '<label>Any injuries, health conditions or modifications we should know about? <em>(optional)</em>' +
-              '<textarea name="injuries" rows="3" maxlength="600" placeholder="For example: lower back pain, pregnancy, recent surgery. Leave blank if none."></textarea></label>' +
-            '<fieldset class="cart-photo"><legend>Photo &amp; video consent<span>We sometimes take photos and videos in class to share on our website and social media.</span></legend>' +
-              '<label class="cart-radio"><input type="radio" name="photo" value="yes"> Yes, I&rsquo;m happy to be in photos and videos</label>' +
-              '<label class="cart-radio"><input type="radio" name="photo" value="no"> No, please keep me out of photos and videos</label>' +
-            '</fieldset>' +
+            '<h3>Before you pay</h3>' +
             '<label class="cart-check"><input type="checkbox" name="waiver"> <span>I have read and agree to the <a href="/waiver" target="_blank" rel="noopener">Liability Waiver &amp; Release</a>, for myself and everyone in my booking.</span></label>' +
             '<label class="cart-check"><input type="checkbox" name="cancelPolicy"> <span>I understand the <a href="/terms#cancellations" target="_blank" rel="noopener">cancellation policy</a>: refunds are available up to 12 hours before class, with no refunds less than 12 hours before class. If weather cancels a class, I can choose a credit toward the next class or a refund.</span></label>' +
           '</div>' +
@@ -98,6 +88,28 @@
         '<p class="cart-fine">Secure payment by Stripe. A receipt is emailed to you after checkout.</p>' +
       '</div>' +
     '</aside>' +
+    '<dialog class="cart-q" aria-labelledby="cartQTitle">' +
+      '<form class="cart-q-form" novalidate>' +
+        '<p class="cart-q-done">&#10003; You&rsquo;re all set</p>' +
+        '<h2 id="cartQTitle">A few quick questions</h2>' +
+        '<p class="cart-q-lead">Your confirmation is on its way to your email. These help us get ready for you.</p>' +
+        '<label>How did you hear about us?<select name="qheard"><option value="">Choose one</option>' +
+          '<option>Instagram</option><option>TikTok</option><option>Facebook</option><option>Friend or family</option><option>Google search</option>' +
+          '<option>Wave Resort or another venue</option><option>Flyer or poster</option><option>Event or pop-up</option><option>Other</option></select></label>' +
+        '<label class="cart-q-other" hidden>Tell us more <em>(optional)</em><input name="qheardOther" maxlength="120"></label>' +
+        '<div class="cart-q-class">' +
+          '<label>Any injuries, health conditions or modifications we should know about? <em>(optional)</em>' +
+            '<textarea name="qinjuries" rows="3" maxlength="600" placeholder="For example: lower back pain, pregnancy, recent surgery. Leave blank if none."></textarea></label>' +
+          '<fieldset class="cart-photo"><legend>Photo &amp; video consent<span>We sometimes take photos and videos in class to share on our website and social media.</span></legend>' +
+            '<label class="cart-radio"><input type="radio" name="qphoto" value="yes"> Yes, I&rsquo;m happy to be in photos and videos</label>' +
+            '<label class="cart-radio"><input type="radio" name="qphoto" value="no"> No, please keep me out of photos and videos</label>' +
+          '</fieldset>' +
+        '</div>' +
+        '<p class="cart-q-msg" role="alert"></p>' +
+        '<button type="submit" class="cl-btn cl-btn-navy cart-q-send">Send answers</button>' +
+        '<button type="button" class="cart-q-skip">Skip for now</button>' +
+      '</form>' +
+    '</dialog>' +
     '<dialog class="cart-pay" aria-label="Checkout">' +
       '<button type="button" class="cart-x cart-pay-x" aria-label="Close checkout">&times;</button>' +
       '<div class="cart-code cart-pay-promo" hidden>' +
@@ -136,10 +148,8 @@
   var codeBox = shell.querySelector(".cart-code"), codeInput = shell.querySelector("#cartGiftCode");
   var codeBtn = shell.querySelector(".cart-code-apply"), codeMsg = shell.querySelector(".cart-code-msg");
   var creditEl = shell.querySelector(".cart-credit"), totalLabel = shell.querySelector(".cart-total span");
-  var IN = { heard: details.querySelector('select[name="heard"]'), heardOther: details.querySelector('input[name="heardOther"]'),
-    injuries: details.querySelector('textarea[name="injuries"]'), waiver: details.querySelector('input[name="waiver"]'), cancelPolicy: details.querySelector('input[name="cancelPolicy"]'),
-    otherWrap: details.querySelector(".cart-heard-other"), classWrap: details.querySelector(".cart-intake-class") };
-  function photoChoice() { var r = details.querySelector('input[name="photo"]:checked'); return r ? r.value : ""; }
+  var IN = { waiver: details.querySelector('input[name="waiver"]'), cancelPolicy: details.querySelector('input[name="cancelPolicy"]'),
+    classWrap: details.querySelector(".cart-intake-class") };
   var giftState = null; // { code, creditsLeft } once a valid eGift code is applied
   var promoState = null; // { code } for a Stripe promotion code such as SANTA5 (applied on the payment step)
   var F = { name: details.querySelector('input[name="name"]'), email: details.querySelector('input[name="email"]'), phone: details.querySelector('input[name="phone"]') };
@@ -196,8 +206,7 @@
   function saveDetails(d) { try { sessionStorage.setItem(DETAILS_KEY, JSON.stringify(d)); } catch (e) {} }
   function readDetails() {
     var d = { purchaser: { name: F.name.value.trim(), email: F.email.value.trim(), phone: F.phone.value.trim() }, attendees: {}, gifts: {},
-      intake: { heard: IN.heard.value, heardOther: IN.heard.value === "Other" ? IN.heardOther.value.trim() : "", injuries: IN.injuries.value.trim(),
-        photo: photoChoice(), waiver: IN.waiver.checked, cancelPolicy: IN.cancelPolicy.checked } };
+      intake: { waiver: IN.waiver.checked, cancelPolicy: IN.cancelPolicy.checked } };
     attendeesEl.querySelectorAll("[data-spotbox]").forEach(function (box) {
       var id = box.getAttribute("data-line"), n = +box.getAttribute("data-spot");
       var me = box.querySelector('input[value="me"]').checked;
@@ -230,7 +239,7 @@
         var choice = who[line.id + ":" + n] || (n === 0 ? "me" : "friend"), nm = "who-" + line.id + "-" + n;
         var friendName = choice === "friend" ? prev[n] || "" : "";
         html += '<div class="cart-spot" data-spotbox="1" data-line="' + line.id + '" data-spot="' + n + '">' +
-          '<span class="cart-spot-label">' + (line.qty > 1 ? "Spot " + (n + 1) : "Who&rsquo;s coming?") + '</span>' +
+          (line.qty > 1 ? '<span class="cart-spot-label">Spot ' + (n + 1) + '</span>' : '') +
           '<div class="cart-spot-pick" role="radiogroup" aria-label="Spot ' + (n + 1) + '">' +
             '<label class="cart-pill"><input type="radio" name="' + nm + '" value="me"' + (choice === "me" ? " checked" : "") + '><span>Me</span></label>' +
             '<label class="cart-pill"><input type="radio" name="' + nm + '" value="friend"' + (choice === "friend" ? " checked" : "") + '><span>A friend</span></label>' +
@@ -267,18 +276,13 @@
     attendeesEl.innerHTML = (html ? '<h3>Who&rsquo;s coming?</h3>' + html : "") + (gh ? '<h3>Gift details</h3>' + gh : "");
     whoLine.innerHTML = F.name.value ? "Booking as <strong>" + esc(F.name.value) + "</strong> &middot; " + esc(F.email.value) + ' <button type="button" class="cart-edit-account">Edit</button>' : "";
     codeBox.hidden = !html; // eGift codes cover class spots
-    // Questions: "how did you hear" always; injuries, photo consent and the waiver when a class is booked.
-    var it = saved.intake || {};
-    IN.heard.value = it.heard || ""; IN.heardOther.value = it.heardOther || ""; IN.otherWrap.hidden = IN.heard.value !== "Other";
-    IN.injuries.value = it.injuries || "";
-    details.querySelectorAll('input[name="photo"]').forEach(function (r) { r.checked = r.value === it.photo; });
+    // Waiver + cancellation policy before payment (class bookings); the other questions come after payment.
     IN.waiver.checked = false; // agreed fresh at every checkout
     IN.cancelPolicy.checked = false;
     IN.classWrap.hidden = !html;
     detailsErr.textContent = "";
   }
   // Spot 1 follows the purchaser's name until it's edited by hand.
-  IN.heard.addEventListener("change", function () { IN.otherWrap.hidden = IN.heard.value !== "Other"; if (!IN.otherWrap.hidden) IN.heardOther.focus(); });
   details.addEventListener("change", function (e) {
     var spot = e.target.closest && e.target.closest("[data-spotbox]");
     if (spot && e.target.type === "radio") {
@@ -332,9 +336,7 @@
       else if (later && (!dt.value || dt.value <= today || (dt.max && dt.value > dt.max))) gp = [dt, "Please choose a send date after today (or choose Send now)."];
     });
     if (gp) return gp;
-    if (!d.intake.heard) return [IN.heard, "Please tell us how you heard about us."];
     if (hasClass()) {
-      if (!d.intake.photo) return [details.querySelector('input[name="photo"]'), "Please choose Yes or No for photo and video consent."];
       if (!d.intake.waiver) return [IN.waiver, "Please agree to the Liability Waiver & Release to book a class."];
       if (!d.intake.cancelPolicy) return [IN.cancelPolicy, "Please confirm you understand the cancellation policy to book a class."];
     }
@@ -649,6 +651,40 @@
       });
   });
 
+  /* ---------- after payment: a few quick questions ---------- */
+  var qDlg = shell.querySelector(".cart-q"), qForm = shell.querySelector(".cart-q-form");
+  var qMsg = qForm.querySelector(".cart-q-msg"), qSend = qForm.querySelector(".cart-q-send");
+  var qOther = qForm.querySelector(".cart-q-other"), qBooking = null, qThanks = "";
+  qForm.qheard.addEventListener("change", function () { qOther.hidden = qForm.qheard.value !== "Other"; });
+  function askQuestions(bookingId, withClass, thanksText) {
+    qThanks = thanksText;
+    if (!bookingId || typeof qDlg.showModal !== "function") { showThanks(thanksText); return; }
+    qBooking = bookingId;
+    qForm.querySelector(".cart-q-class").hidden = !withClass;
+    qMsg.textContent = "";
+    qDlg.showModal();
+  }
+  function finishQuestions() { if (qDlg.open) qDlg.close(); showThanks(qThanks); }
+  function sendAnswers(body, tries) {
+    return fetch("/api/booking-questions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) {
+        if ((r.status === 404 || r.status === 409) && tries > 0) return new Promise(function (res) { setTimeout(res, 2000); }).then(function () { return sendAnswers(body, tries - 1); });
+        if (!r.ok) throw new Error("save_failed");
+      });
+  }
+  qForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var photo = qForm.querySelector('input[name="qphoto"]:checked');
+    var body = { bookingId: qBooking, heard: qForm.qheard.value, heardOther: qForm.qheardOther.value.trim(), injuries: qForm.qinjuries.value.trim(), photo: photo ? photo.value : "" };
+    if (!body.heard && !body.injuries && !body.photo) { finishQuestions(); return; }
+    qSend.disabled = true; qMsg.textContent = "Saving…";
+    sendAnswers(body, 6).then(function () { track("booking_questions", { heard: body.heard }); finishQuestions(); })
+      .catch(function () { qMsg.textContent = "Couldn't save your answers. You can reply to your confirmation email instead."; })
+      .then(function () { qSend.disabled = false; });
+  });
+  qForm.querySelector(".cart-q-skip").addEventListener("click", finishQuestions);
+  qDlg.addEventListener("cancel", function (e) { e.preventDefault(); finishQuestions(); });
+
   function showThanks(text) {
     var note = document.createElement("div");
     note.className = "cart-thanks"; note.setAttribute("role", "status");
@@ -659,12 +695,13 @@
   }
   // Everything was covered by an eGift: booked without payment.
   function bookedWithGift(d) {
+    var hadClass = hasClass();
     track("purchase", { transaction_id: d.ref, currency: "USD", value: 0, coupon: "egift", items: gaItems(cart) });
     cart = []; save(cart); giftState = null; promoState = null; codeInput.value = ""; codeMsg.textContent = "";
     try { sessionStorage.removeItem(DETAILS_KEY); } catch (e) {}
     closeDrawer(); render();
     checkoutBtn.textContent = "Checkout";
-    showThanks("Your code covered it. Your confirmation (ref " + esc(d.ref || "") + ") is on its way to your email.");
+    askQuestions(d.bookingId, hadClass, "Your code covered it. Your confirmation (ref " + esc(d.ref || "") + ") is on its way to your email.");
   }
 
   /* ---------- return from a completed payment ---------- */
@@ -677,7 +714,8 @@
     }
     cart = []; save(cart);
     try { sessionStorage.removeItem(DETAILS_KEY); } catch (e) {}
-    showThanks("Your booking confirmation and receipt are on their way to your email.");
+    var hadClassPaid = !pending || (pending.items || []).some(function (i) { return CATALOG[i.id] && CATALOG[i.id].kind === "class"; });
+    askQuestions(q.get("session_id"), hadClassPaid, "Your booking confirmation and receipt are on their way to your email.");
     history.replaceState(null, "", location.pathname + location.hash);
   }
 

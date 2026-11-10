@@ -862,3 +862,22 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cart-pill input:focus-visible + span{outline:2px solid #3A73A1;outline-offset:2px;}
 .cart-friend{margin-top:10px !important;}
 .cart-friend[hidden]{display:none !important;}
+/* After-payment questions */
+.cart-q{width:min(480px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;border:0;border-radius:16px;padding:0;box-shadow:0 30px 80px rgba(18,49,79,.3);color:#12314F;}
+.cart-q::backdrop{background:rgba(18,49,79,.45);}
+.cart-q-form{padding:28px 26px 22px;display:flex;flex-direction:column;}
+.cart-q-done{margin:0 0 4px;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:#1F6B4A;font-weight:500;}
+.cart-q h2{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:1.9rem;margin:0 0 6px;}
+.cart-q-lead{margin:0 0 16px;font-size:.9rem;line-height:1.5;color:#4A6683;}
+.cart-q label{display:block;margin:10px 0 0;font-size:.8rem;font-weight:500;line-height:1.4;}
+.cart-q label em{font-weight:400;color:#6A7F95;}
+.cart-q select,.cart-q input:not([type=radio]),.cart-q textarea{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:11px 12px;border:1px solid rgba(18,49,79,.25);border-radius:8px;font:inherit;font-size:.95rem;background:#fff;color:inherit;}
+.cart-q .cart-photo{margin:14px 0 0;border:0;padding:0;}
+.cart-q .cart-photo legend{font-size:.8rem;font-weight:500;margin-bottom:4px;}
+.cart-q .cart-photo legend span{display:block;font-weight:400;color:#6A7F95;font-size:.78rem;margin-top:2px;}
+.cart-q .cart-radio{display:flex;gap:8px;align-items:center;font-weight:400;font-size:.9rem;margin-top:8px;}
+.cart-q-class[hidden],.cart-q-other[hidden]{display:none;}
+.cart-q-msg{margin:12px 0 0;font-size:.85rem;color:#A2401B;}
+.cart-q-msg:empty{display:none;}
+.cart-q-send{margin-top:18px;justify-content:center;}
+.cart-q-skip{margin:12px auto 0;background:none;border:0;font:500 .72rem 'Jost',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#4A6683;text-decoration:underline;cursor:pointer;}
