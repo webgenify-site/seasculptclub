@@ -425,6 +425,7 @@ var require_giftcodes = __commonJS({
       }
       return { code: c, rec, available: available(rec), usable: usableNow(rec) };
     }
+    const CREDIT_VALUE = 3500;
     function planCoverage(lines, credits) {
       const spots = [];
       for (const l of lines) {
@@ -435,12 +436,15 @@ var require_giftcodes = __commonJS({
       spots.sort((a, b) => b.amount - a.amount);
       const n = Math.min(credits, spots.length);
       const cover = {};
-      let value = 0;
+      const topUp = {};
+      let value = 0, topUpTotal = 0;
       for (const s of spots.slice(0, n)) {
         cover[s.id] = (cover[s.id] || 0) + 1;
-        value += s.amount;
+        value += Math.min(s.amount, CREDIT_VALUE);
+        const diff = Math.max(0, s.amount - CREDIT_VALUE);
+        if (diff) { topUp[s.id] = { unit: diff, qty: ((topUp[s.id] && topUp[s.id].qty) || 0) + 1 }; topUpTotal += diff; }
       }
-      return { n, cover, value, classSpots: spots.length };
+      return { n, cover, value, topUp, topUpTotal, classSpots: spots.length };
     }
     async function spend(db, code, n, bookingId, ref) {
       return db.update(keyOf(code), (rec) => {
@@ -834,10 +838,10 @@ var require_create_checkout = __commonJS({
         const plan = planCoverage(lines, g.usable);
         if (!plan.classSpots) return json(400, { error: "Codes cover class spots. Add a class to your cart to use yours.", code: "gift_invalid" });
         if (plan.n < 1) return json(400, { error: emptyReason(g.rec), code: "gift_invalid" });
-        gift = { code: g.code, kind: g.rec.kind || "gift", credits: plan.n, value: plan.value, cover: plan.cover };
+        gift = { code: g.code, kind: g.rec.kind || "gift", credits: plan.n, value: plan.value, cover: plan.cover, topUp: plan.topUp, topUpTotal: plan.topUpTotal };
         chargeLines = lines.map((l) => ({ ...l, chargeQty: l.qty - (plan.cover[l.id] || 0) })).filter((l) => l.chargeQty > 0);
       }
-      if (gift && !chargeLines.length) return freeBooking(event, { ref, mode, purchaser, lines, gift, intake });
+      if (gift && !chargeLines.length && !gift.topUpTotal) return freeBooking(event, { ref, mode, purchaser, lines, gift, intake });
       const byPrice = /* @__PURE__ */ new Map();
       const missing = [];
       for (const line of chargeLines) {
@@ -872,6 +876,7 @@ var require_create_checkout = __commonJS({
       }
       const summary = lines.map((l) => describe(CATALOG[l.id], l.qty));
       if (gift) summary.push(`${gift.kind === "pack" ? "Class code" : "eGift"} ${gift.code} covers ${gift.credits} ${gift.credits === 1 ? "spot" : "spots"}`);
+      if (gift && gift.topUpTotal) summary.push(`premium event difference $${(gift.topUpTotal / 100).toFixed(2).replace(/\.00$/, "")}`);
       const params = new URLSearchParams();
       params.append("ui_mode", hosted ? "hosted_page" : "form");
       params.append("mode", "payment");
@@ -890,6 +895,17 @@ var require_create_checkout = __commonJS({
         params.append(`line_items[${i}][quantity]`, String(group.reduce((n, l) => n + l.chargeQty, 0)));
         params.append(`line_items[${i}][metadata][items]`, group.map((l) => `${l.id}:${l.chargeQty}`).join(","));
         i++;
+      }
+      // Premium events booked with a code: each class on a code is worth $35, so the difference is paid here.
+      if (gift && gift.topUpTotal) {
+        for (const [id, t] of Object.entries(gift.topUp)) {
+          params.append(`line_items[${i}][price_data][currency]`, "usd");
+          params.append(`line_items[${i}][price_data][unit_amount]`, String(t.unit));
+          params.append(`line_items[${i}][price_data][product_data][name]`, `${CATALOG[id].className}: premium event difference`);
+          params.append(`line_items[${i}][quantity]`, String(t.qty));
+          params.append(`line_items[${i}][metadata][items]`, `${id}:topup:${t.qty}`);
+          i++;
+        }
       }
       params.append("metadata[booking_ref]", ref);
       params.append("metadata[purchaser_name]", purchaser.name);
@@ -969,7 +985,7 @@ var require_create_checkout = __commonJS({
           intake,
           lines: lines.map((l) => ({ ...l, ...pick(CATALOG[l.id]), giftCovered: gift ? gift.cover[l.id] || 0 : 0 })),
           giftRedemption: gift ? { code: gift.code, kind: gift.kind, credits: gift.credits, value: gift.value } : null,
-          expectedAmount: chargeLines.reduce((n, l) => n + CATALOG[l.id].amount * l.chargeQty, 0)
+          expectedAmount: chargeLines.reduce((n, l) => n + CATALOG[l.id].amount * l.chargeQty, 0) + (gift && gift.topUpTotal || 0)
         });
       } catch (err) {
         console.error("Could not save pending booking (metadata backup will be used):", err && err.message);
@@ -1426,7 +1442,7 @@ var require_stripe_webhook = __commonJS({
         code: md.gift_code,
         kind: md.gift_kind || "gift",
         credits: parseInt(md.gift_credits, 10) || 0,
-        value: lines.reduce((n, l) => n + l.unitAmount * (l.giftCovered || 0), 0)
+        value: lines.reduce((n, l) => n + Math.min(l.unitAmount, CREDIT_VALUE) * (l.giftCovered || 0), 0)
       } : null;
       const wv = /^accepted v(\S+) at (\S+)$/.exec(md.intake_waiver || "");
       const cp = /^accepted v(\S+) at (\S+)$/.exec(md.intake_cancel || "");
@@ -1445,7 +1461,7 @@ var require_stripe_webhook = __commonJS({
         purchaser: { name: md.purchaser_name || "", email: md.purchaser_email || "", phone: md.purchaser_phone || "" },
         lines,
         giftRedemption,
-        expectedAmount: lines.reduce((n, l) => n + l.unitAmount * (l.qty - (l.giftCovered || 0)), 0)
+        expectedAmount: lines.reduce((n, l) => n + l.unitAmount * (l.qty - (l.giftCovered || 0)) + Math.max(0, l.unitAmount - CREDIT_VALUE) * (l.giftCovered || 0), 0)
       };
     }
     async function finalize(db, session, evt) {
