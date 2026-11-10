@@ -22,7 +22,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf7">
-<link rel="stylesheet" href="css/coastal.css?v=cf9">
+<link rel="stylesheet" href="css/coastal.css?v=cf10">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/classes">
@@ -49,6 +49,7 @@
       <a href="contact.html">Contact</a>
       </div></div>
       <a href="classes.html" class="active">Classes</a>
+      <a href="buy.html">Buy</a>
       <a href="/privates">Privates</a>
       <a href="/parties">Parties</a>
       <div class="nav-dropdown"><a href="collaborate.html">Collaborate</a>
@@ -80,8 +81,8 @@
       <div class="cl-actions cl-actions-stack">
         <a href="#events" class="cl-btn cl-btn-fill">View Upcoming Classes</a>
         <div class="cl-actions-sub">
-          <a href="#packs" class="cl-link">View Class Packs</a>
-          <a href="#gift-cards" class="cl-link">eGift Cards</a>
+          <a href="buy.html#packs" class="cl-link">View Class Packs</a>
+          <a href="buy.html#gift-cards" class="cl-link">eGift Cards</a>
           <a href="/privates" class="cl-link">Book a Private</a>
         </div>
       </div>
@@ -295,104 +296,15 @@
     </div>
   </section>
 
-  <!-- 4. Class packs -->
-  <section class="cl-packs" id="packs">
+  <!-- 4. Packs, gifts & deals live on the Buy page -->
+  <section class="cl-packs cl-buy-teaser" id="packs">
     <div class="cl-wrap">
       <div class="cl-head cl-packs-head">
-        <span class="eyebrow">Class Packs</span>
+        <span class="eyebrow">Class Packs &middot; eGift Cards &middot; New Member Deal</span>
         <h2>Save when you <span class="script">sculpt more.</span></h2>
-        <p class="cl-packs-sub">Now offering class packs: 3 for $90 and 4 for $110!</p>
+        <p class="cl-packs-sub">Class packs start at $27.50 a class, eGift cards make an easy present, and new members get BOGO 50% off.</p>
+        <a href="buy.html" class="cl-btn cl-btn-navy">Shop Packs &amp; Gifts</a>
       </div>
-
-      <div class="cl-offer">
-        <div class="cl-offer-copy">
-          <span class="cl-offer-tag">Introductory offer</span>
-          <span class="cl-label">New to Sea Sculpt Club?</span>
-          <h3>BOGO 50% OFF</h3>
-          <p class="cl-offer-terms">New members only &middot; One per person &middot; No sharing the extra class &middot; Extra class expires 21 days after purchase</p>
-          <p class="cl-offer-terms">After checkout we email you a class code. To book your dates, add a class to your cart and enter the code at checkout.</p>
-        </div>
-        <div class="cl-offer-buy">
-          <p class="cl-pack-price">$50 <small>for 2 classes</small></p>
-          <button type="button" class="cl-btn cl-btn-navy" data-add="intro-bogo">Add to Cart</button>
-        </div>
-      </div>
-
-      <div class="cl-compare-head">
-        <h3>Standard pricing</h3>
-        <p>Compare a drop-in with our class packs.</p>
-      </div>
-      <div class="cl-pack-grid cl-compare" role="list">
-        <div class="cl-pack" role="listitem">
-          <h4 class="cl-pack-name"><span class="cl-label">Drop-In</span>Single Class</h4>
-          <p class="cl-pack-price">$35</p>
-          <p class="cl-pack-per"><strong>$35</strong> per class</p>
-          <p class="cl-pack-save is-none">Standard rate</p>
-          <p class="cl-pack-terms">One class</p>
-          <button type="button" class="cl-btn cl-btn-fill" data-add="single">Add to Cart</button>
-        </div>
-        <div class="cl-pack" role="listitem">
-          <h4 class="cl-pack-name"><span class="cl-label">Class Pack</span>3-Class Pack</h4>
-          <p class="cl-pack-price">$90</p>
-          <p class="cl-pack-per"><strong>$30</strong> per class</p>
-          <p class="cl-pack-save">Save $15</p>
-          <p class="cl-pack-terms">No expiration</p>
-          <button type="button" class="cl-btn cl-btn-fill" data-add="pack-3">Add to Cart</button>
-        </div>
-        <div class="cl-pack cl-pack-best" role="listitem">
-          <span class="cl-best">Best Value</span>
-          <h4 class="cl-pack-name"><span class="cl-label">Class Pack</span>4-Class Pack</h4>
-          <p class="cl-pack-price">$110</p>
-          <p class="cl-pack-per"><strong>$27.50</strong> per class</p>
-          <p class="cl-pack-save">Save $30</p>
-          <p class="cl-pack-terms">No expiration</p>
-          <button type="button" class="cl-btn cl-btn-navy" data-add="pack-4">Add to Cart</button>
-        </div>
-      </div>
-      <p class="cl-packs-fine"><strong>How it works:</strong> After checkout, we email you a class code. To book, add any class to your cart and enter the code at checkout. Share it with friends, and your classes never expire.</p>
-      <p class="cl-packs-fine"><strong>Premium events:</strong> Each class on a pack is a $35 value. Special events that cost more, like Santa Sculpt, are welcome too. Just pay the difference at checkout (for example, $10 for a $45 event).</p>
-    </div>
-  </section>
-
-  <!-- 4b. eGift cards -->
-  <section class="cl-gift" id="gift-cards">
-    <div class="cl-wrap">
-      <div class="cl-head cl-gift-head">
-        <span class="eyebrow">eGift Cards</span>
-        <h2>Give the gift of <span class="script">Sea Sculpt.</span></h2>
-        <p class="cl-gift-sub">Treat a friend, a sister, or your favorite workout buddy.</p>
-      </div>
-      <div class="cl-gift-grid">
-        <div class="cl-gift-item">
-          <div class="gc gc-blue" role="img" aria-label="Sea Sculpt Club eGift card for 1 Class, $35">
-            <span class="gc-waves" aria-hidden="true"></span>
-            <span class="gc-ribbon-v" aria-hidden="true"></span>
-            <span class="gc-ribbon-h" aria-hidden="true"></span>
-            <span class="gc-bow" aria-hidden="true"><svg viewBox="0 0 140 120"><path class="t" d="M62 62 C58 78 50 92 38 108 L52 104 L58 116 C66 100 70 82 70 66 Z"/><path class="t" d="M78 62 C82 78 90 92 102 108 L88 104 L82 116 C74 100 70 82 70 66 Z"/><path class="l" d="M66 56 C56 30 30 14 16 24 C2 34 8 58 30 64 C44 68 58 64 66 60 Z"/><path class="l" d="M74 56 C84 30 110 14 124 24 C138 34 132 58 110 64 C96 68 82 64 74 60 Z"/><path class="f" d="M64 56 C52 40 36 32 26 38"/><path class="f" d="M76 56 C88 40 104 32 114 38"/><path class="s" d="M22 30 C28 24 38 24 46 30"/><path class="s" d="M94 30 C102 24 112 24 118 30"/><circle class="k" cx="70" cy="58" r="11"/><ellipse class="h" cx="66" cy="54" rx="4" ry="3"/></svg></span>
-            <img class="gc-logo" src="assets/logo.png" alt="">
-            <span class="gc-label">eGift Card</span>
-            <span class="gc-amount">$35</span>
-            <span class="gc-what">1 Class</span>
-          </div>
-          <div class="cl-gift-meta"><h3>1 Class</h3><span class="cl-gift-price">$35</span></div>
-          <button type="button" class="cl-btn cl-btn-navy" data-add="gift-1">Add to Cart</button>
-        </div>
-        <div class="cl-gift-item">
-          <div class="gc gc-butter" role="img" aria-label="Sea Sculpt Club eGift card for 2 Classes, $50">
-            <span class="gc-waves" aria-hidden="true"></span>
-            <span class="gc-ribbon-v" aria-hidden="true"></span>
-            <span class="gc-ribbon-h" aria-hidden="true"></span>
-            <span class="gc-bow" aria-hidden="true"><svg viewBox="0 0 140 120"><path class="t" d="M62 62 C58 78 50 92 38 108 L52 104 L58 116 C66 100 70 82 70 66 Z"/><path class="t" d="M78 62 C82 78 90 92 102 108 L88 104 L82 116 C74 100 70 82 70 66 Z"/><path class="l" d="M66 56 C56 30 30 14 16 24 C2 34 8 58 30 64 C44 68 58 64 66 60 Z"/><path class="l" d="M74 56 C84 30 110 14 124 24 C138 34 132 58 110 64 C96 68 82 64 74 60 Z"/><path class="f" d="M64 56 C52 40 36 32 26 38"/><path class="f" d="M76 56 C88 40 104 32 114 38"/><path class="s" d="M22 30 C28 24 38 24 46 30"/><path class="s" d="M94 30 C102 24 112 24 118 30"/><circle class="k" cx="70" cy="58" r="11"/><ellipse class="h" cx="66" cy="54" rx="4" ry="3"/></svg></span>
-            <img class="gc-logo" src="assets/logo.png" alt="">
-            <span class="gc-label">eGift Card</span>
-            <span class="gc-amount">$50</span>
-            <span class="gc-what">2 Classes</span>
-          </div>
-          <div class="cl-gift-meta"><h3>2 Classes</h3><span class="cl-gift-price">$50</span></div>
-          <button type="button" class="cl-btn cl-btn-navy" data-add="gift-2">Add to Cart</button>
-        </div>
-      </div>
-      <p class="cl-gift-fine">At checkout, add who it&rsquo;s for and a personal note, then choose <strong>Send now</strong> or pick a date. We&rsquo;ll email the eGift to them and send you a copy. They redeem it right here: add any class to the cart and enter the code at checkout. Each class on the card is a $35 value and covers one spot in any regular class (for premium events that cost more, they just pay the difference), and unused classes stay on the code.</p>
     </div>
   </section>
 
@@ -414,7 +326,7 @@
         </details>
         <details>
           <summary>How do I use a class pack?</summary>
-          <p>After checkout, we email you a class code with your classes on it. To book, add any class to your cart and enter the code at checkout. You can use it for friends too, and your classes never expire. Each class is a $35 value, so for premium events that cost more, like Santa Sculpt, you just pay the difference at checkout.</p>
+          <p>Buy packs on our <a href="buy.html">Buy page</a>. After checkout, we email you a class code with your classes on it. To book, add any class to your cart and enter the code at checkout. You can use it for friends too, and your classes never expire. Each class is a $35 value, so for premium events that cost more, like Santa Sculpt, you just pay the difference at checkout.</p>
         </details>
       </div>
     </div>
@@ -484,7 +396,7 @@
       <div>
         <h4>Quick Links</h4>
         <div class="flist">
-          <a href="index.html">Home</a><a href="about.html">About</a><a href="classes.html">Classes</a><a href="/privates">Privates</a><a href="/parties">Parties</a>
+          <a href="index.html">Home</a><a href="about.html">About</a><a href="classes.html">Classes</a><a href="buy.html">Buy</a><a href="/privates">Privates</a><a href="/parties">Parties</a>
         </div>
       </div>
       <div>
