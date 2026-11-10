@@ -468,11 +468,13 @@ var require_giftcodes = __commonJS({
       return { code: c, rec, available: available(rec), usable: usableNow(rec) };
     }
     const CREDIT_VALUE = 3500;
-    function planCoverage(lines, credits) {
+    function planCoverage(lines, credits, onlyFor) {
       const spots = [];
+      const allowed = Array.isArray(onlyFor) && onlyFor.length ? new Set(onlyFor) : null;
       for (const l of lines) {
         const item = CATALOG[l.id];
         if (!item || item.kind !== "class") continue;
+        if (allowed && !allowed.has(l.id)) continue;
         for (let i = 0; i < l.qty; i++) spots.push({ id: l.id, amount: item.amount });
       }
       spots.sort((a, b) => b.amount - a.amount);
@@ -877,7 +879,8 @@ var require_create_checkout = __commonJS({
       if (body.giftCode) {
         const g = await lookup(store(event), body.giftCode, purchaser.email);
         if (g.error) return json(400, { error: g.error, code: "gift_invalid" });
-        const plan = planCoverage(lines, g.usable);
+        const plan = planCoverage(lines, g.usable, g.rec.onlyFor);
+        if (!plan.classSpots && g.rec.onlyFor && g.rec.onlyFor.length) return json(400, { error: `This code is for ${g.rec.onlyFor.map((id) => CATALOG[id] ? CATALOG[id].className : id).join(" or ")}. Add it to your cart to use your code.`, code: "gift_invalid" });
         if (!plan.classSpots) return json(400, { error: "Codes cover class spots. Add a class to your cart to use yours.", code: "gift_invalid" });
         if (plan.n < 1) return json(400, { error: emptyReason(g.rec), code: "gift_invalid" });
         gift = { code: g.code, kind: g.rec.kind || "gift", credits: plan.n, value: plan.value, cover: plan.cover, topUp: plan.topUp, topUpTotal: plan.topUpTotal };
@@ -2256,6 +2259,8 @@ var require_gift_code = __commonJS({
         usableNow: r.usable,
         credits: r.rec.credits,
         perBooking: r.rec.maxPerBooking || null,
+        onlyFor: r.rec.onlyFor || null,
+        onlyForNames: r.rec.onlyFor ? r.rec.onlyFor.map((id) => CATALOG[id] ? CATALOG[id].className : id) : null,
         expiring: expiringLeft(r.rec)
       });
     };

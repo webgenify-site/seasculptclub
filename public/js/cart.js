@@ -160,7 +160,7 @@
   function coverage() {
     if (!giftState) return { n: 0, value: 0, topUp: 0 };
     var spots = [];
-    cart.forEach(function (l) { var it = CATALOG[l.id]; if (it.kind === "class") for (var i = 0; i < l.qty; i++) spots.push(it.amount); });
+    cart.forEach(function (l) { var it = CATALOG[l.id]; if (it.kind === "class" && (!giftState.onlyFor || giftState.onlyFor.indexOf(l.id) >= 0)) for (var i = 0; i < l.qty; i++) spots.push(it.amount); });
     spots.sort(function (a, b) { return b - a; });
     var n = Math.min(giftState.creditsLeft, spots.length), v = 0, t = 0;
     for (var i = 0; i < n; i++) { v += Math.min(spots[i], CREDIT_VALUE); t += Math.max(0, spots[i] - CREDIT_VALUE); }
@@ -444,7 +444,8 @@
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (x) {
         if (!x.ok) { giftState = null; codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = x.d.error || "That code didn't work."; render(); return; }
-        giftState = { code: x.d.code, creditsLeft: x.d.usableNow != null ? x.d.usableNow : x.d.creditsLeft, total: x.d.creditsLeft, kind: x.d.kind, expiring: x.d.expiring };
+        giftState = { code: x.d.code, creditsLeft: x.d.usableNow != null ? x.d.usableNow : x.d.creditsLeft, total: x.d.creditsLeft, kind: x.d.kind, expiring: x.d.expiring, onlyFor: x.d.onlyFor || null };
+        if (giftState.onlyFor && !coverage().n) { var only = (x.d.onlyForNames || []).join(" or "); giftState = null; codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = "This code is for " + only + ". Add it to your cart to use your code."; render(); return; }
         codeInput.value = x.d.code;
         render();
         var cov = coverage();
