@@ -3,3 +3,13 @@
 /parties   /bachelorette 200
 /events      /classes 301
 /events.html /classes 301
+
+# Direct booking links: open the site with that class (or pack) already in the cart
+/santa          /classes?book=santa-dec5           302
+/friendsgiving  /classes?book=friendsgiving-nov21  302
+/wave           /classes?book=wave-nov14           302
+/seaview        /classes?book=seaview-nov18        302
+/bogo           /buy?book=intro-bogo               302
+/3pack          /buy?book=pack-3                   302
+/4pack          /buy?book=pack-4                   302
+/giftcard       /buy?book=gift-1                   302

@@ -706,6 +706,20 @@
     askQuestions(d.bookingId, hadClass, "Your code covered it. Your confirmation (ref " + esc(d.ref || "") + ") is on its way to your email.");
   }
 
+  /* ---------- direct links: any page with ?book=<item> adds it to the cart and opens checkout ---------- */
+  (function () {
+    var qs = new URLSearchParams(location.search), id = qs.get("book");
+    if (!id) return;
+    qs.delete("book");
+    history.replaceState(null, "", location.pathname + (qs.toString() ? "?" + qs : "") + location.hash);
+    var p = CATALOG[id];
+    if (!p) return;
+    if (p.date && p.date < TODAY_ET) { showToast(p.name + " has already happened. See what's coming up below."); return; }
+    if (!cart.some(function (i) { return i.id === id; })) add(id);
+    track("direct_link", { item: id });
+    openDrawer();
+  })();
+
   /* ---------- return from a completed payment ---------- */
   var q = new URLSearchParams(location.search);
   if (q.get("checkout") === "complete") {
