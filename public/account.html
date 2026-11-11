@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf7">
-<link rel="stylesheet" href="css/coastal.css?v=cf30">
+<link rel="stylesheet" href="css/coastal.css?v=cf31">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/account">
@@ -326,7 +326,7 @@
     busy(f, true); setMsg(msg, "Creating your account…");
     post("signup", body).then(function (x) {
       if (!x.ok) { setMsg(msg, x.d.error || "Couldn't create your account. Please try again.", true); return; }
-      setMsg(msg, ""); $("acctSentText").innerHTML = "We sent a confirmation link to <strong>" + esc(body.email) + "</strong>. Tap it to finish creating your account. You only need to do this once; after that, just sign in with your email and password.";
+      setMsg(msg, ""); $("acctSentText").innerHTML = "We sent a confirmation link to <strong>" + esc(body.email) + "</strong>. Tap it to finish creating your account. You only need to do this once; after that, just sign in with your email and password.<span class=\"acct-junk\"><strong>Don&rsquo;t see it?</strong> Check your <strong>junk or spam folder</strong>, and mark it &ldquo;Not spam&rdquo; so you get our emails.</span>";
       pane("sent");
     }).catch(function () { setMsg(msg, "Couldn't create your account. Please try again.", true); }).then(function () { busy(f, false); });
   });
@@ -336,7 +336,7 @@
     busy(f, true); setMsg(msg, "Sending…");
     post("forgot", { email: email }).then(function (x) {
       if (!x.ok) { setMsg(msg, x.d.error || "Couldn't send the email. Please try again.", true); return; }
-      setMsg(msg, ""); $("acctSentText").innerHTML = "If there&rsquo;s an account or booking for <strong>" + esc(email) + "</strong>, we&rsquo;ve sent a link to set your password. It works for 20 minutes. Can&rsquo;t find it? Check your spam folder.";
+      setMsg(msg, ""); $("acctSentText").innerHTML = "If there&rsquo;s an account or booking for <strong>" + esc(email) + "</strong>, we&rsquo;ve sent a link to set your password. It works for 20 minutes.<span class=\"acct-junk\"><strong>Don&rsquo;t see it?</strong> Check your <strong>junk or spam folder</strong>, and mark it &ldquo;Not spam&rdquo; so you get our emails.</span>";
       pane("sent");
     }).catch(function () { setMsg(msg, "Couldn't send the email. Please try again.", true); }).then(function () { busy(f, false); });
   });
