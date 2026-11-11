@@ -24,7 +24,7 @@ BOOKING_EMAIL_FROM = "Sea Sculpt Club <bookings@seasculptclub.com>"
 PAYPAL_ENV = "live"
 PAYPAL_ENABLED = "preview"
 PAYPAL_CLIENT_ID = "AXQKe8awo9QS_qal_GZ_nUCAJVI-d8vaiFsPxQweqqVyFx2zG9tvhhmsrItK0IX4JJ2xrnjy5nl8y1CX"
-PAYPAL_WEBHOOK_ID = ""
+PAYPAL_WEBHOOK_ID = "9GX95843ED9006203"
 
 # ---- Preview deployments (e.g. the "sandbox" branch → sandbox.seasculptclub-website.pages.dev) ----
 # Used for Stripe test-mode (sandbox) testing: its own database, so tests never mix with real bookings.
