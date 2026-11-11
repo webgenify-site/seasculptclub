@@ -159,9 +159,17 @@
   </section>
 </div>
 
-<section class="club-banner club-banner-close" aria-label="Sea Sculpt Club. Themed experiences.">
-  <img loading="lazy" src="assets/banner-join-the-club.jpg" alt="Sea Sculpt Club. Themed experiences." width="1920" height="1080">
-  <a class="club-banner-btn" href="#join">Join the Club</a>
+<section class="club-banner club-banner-beach" aria-label="Join the Club">
+  <img loading="lazy" src="assets/banner-join-the-club-beach.jpg" alt="Sea Sculpt Club. Join the Club: be the first to hear about new classes, events and exclusive discounts." width="1920" height="1080">
+  <div class="club-banner-signup">
+    <form class="club-banner-form" novalidate>
+      <label class="club-pop-sr" for="bannerEmail">Email address</label>
+      <input id="bannerEmail" type="email" name="email" placeholder="Your email" autocomplete="email" required>
+      <button type="submit">Join</button>
+    </form>
+    <p class="club-banner-msg" role="alert"></p>
+    <p class="club-banner-done" hidden>You&rsquo;re in. Welcome to the club!</p>
+  </div>
 </section>
 <footer>
   <div class="wrap">

@@ -206,6 +206,31 @@ function initSignupPopup() {
   if (!seen && !quiet) setTimeout(function () { if (!document.querySelector("dialog[open]") && !document.querySelector(".cart-drawer.open")) openPopup("auto"); }, DELAY_MS);
 }
 
+// Footer banner email signup (same newsletter list as the popup and footer form).
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(".club-banner-form").forEach(function (form) {
+    var box = form.closest(".club-banner-signup"), msg = box.querySelector(".club-banner-msg"), done = box.querySelector(".club-banner-done");
+    function say(t) { msg.innerHTML = t ? "<span>" + t + "</span>" : ""; }
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var email = form.email.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { say("Please enter a valid email address."); form.email.focus(); return; }
+      say("");
+      var btn = form.querySelector("button"); btn.disabled = true; btn.textContent = "Joining…";
+      var data = new URLSearchParams(); data.append("form-name", "newsletter"); data.append("email", email);
+      fetch("/api/form", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: data.toString() })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          form.hidden = true; done.hidden = false;
+          try { localStorage.setItem("seaSculptPopupV8", "1"); } catch (err) {}
+          if (typeof gtag === "function") gtag("event", "email_signup", { form_location: "footer_banner" });
+        })
+        .catch(function () { say("Something went wrong. Please try again."); })
+        .then(function () { btn.disabled = false; btn.textContent = "Join"; });
+    });
+  });
+});
+
 // Defensive autoplay for the hero videos: some mobile browsers (iOS Safari in
 // particular) can silently refuse to autoplay even with the muted/playsinline
 // attributes set, especially right after a media-query-driven display swap.

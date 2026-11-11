@@ -1052,3 +1052,29 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
   .club-pop-beach .club-pop-msg{position:static;transform:none;white-space:normal;margin-top:8px !important;}
   .club-pop-beach .club-pop-find{position:static;transform:none;margin-top:14px;max-width:100%;box-sizing:border-box;white-space:normal;text-align:center;letter-spacing:.1em;font-size:.64rem;line-height:1.4;padding:7px 14px;}
 }
+
+/* ===== Nov 11: footer banner = beach artwork with a real email signup ===== */
+.club-banner.club-banner-beach{position:relative;display:block;line-height:0;background:#B09B88;overflow:hidden;}
+.club-banner-beach img{display:block;width:100%;height:auto !important;max-height:none !important;object-fit:initial !important;animation:none !important;}
+.club-banner-signup{position:absolute;left:50%;top:70%;transform:translateX(-50%);width:min(44%,640px);line-height:1.4;}
+.club-banner-form{display:flex;gap:12px;}
+.club-banner-form input{flex:1;min-width:0;padding:clamp(11px,1.1vw,16px) 22px;border:1.5px solid rgba(255,255,255,.95);border-radius:999px;background:rgba(18,49,79,.22);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#fff;font:400 clamp(1rem,1.35vw,1.3rem) 'Cormorant Garamond',Georgia,serif;}
+.club-banner-form input::placeholder{color:rgba(255,255,255,.92);font-style:italic;}
+.club-banner-form input:focus{outline:2px solid #F6E2B3;outline-offset:2px;}
+.club-banner-form button{flex:0 0 auto;padding:0 clamp(26px,3vw,44px) 0 calc(clamp(26px,3vw,44px) + .32em);border:0;border-radius:999px;background:#FBF6EC;color:#12314F;font:500 clamp(.8rem,1vw,.95rem) 'Cormorant Garamond',Georgia,serif;letter-spacing:.32em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px rgba(10,35,70,.25);}
+.club-banner-form button:hover{background:#fff;}
+.club-banner-form button:disabled{opacity:.6;cursor:wait;}
+.club-banner-msg{margin:10px 0 0;text-align:center;}
+.club-banner-msg:empty{display:none;}
+.club-banner-msg{color:#fff;font-size:.9rem;}
+.club-banner-msg span{display:inline-block;background:rgba(162,64,27,.88);padding:4px 12px;border-radius:999px;}
+.club-banner-done{margin:0;text-align:center;font:italic 500 clamp(1.3rem,2.2vw,2rem)/1.2 'Cormorant Garamond',Georgia,serif;color:#fff;text-shadow:0 2px 14px rgba(10,35,70,.55);}
+@media (max-width:700px){
+  .club-banner-beach img{width:150%;max-width:none;margin-left:-25%;}
+  .club-banner.club-banner-beach::after{content:"";position:absolute;left:0;right:0;top:calc(150vw * .5625 * .78);height:calc(150vw * .5625 * .22);background:linear-gradient(180deg,rgba(176,155,136,0),#B09B88);pointer-events:none;}
+  .club-banner-signup{position:relative;left:auto;top:auto;transform:none;width:auto;padding:0 20px 26px;margin-top:-12px;z-index:1;}
+  .club-banner-form{gap:8px;}
+  .club-banner-form input{padding:12px 16px;font-size:1rem;}
+  .club-banner-form button{padding:0 18px 0 calc(18px + .32em);}
+}
+.club-banner-form[hidden],.club-banner-done[hidden]{display:none !important;}
