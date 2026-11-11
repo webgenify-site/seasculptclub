@@ -1081,7 +1081,7 @@ var require_create_checkout = __commonJS({
         }
       } catch (err) {
         console.error("Stripe request failed", err);
-        return json(502, { error: "Checkout couldn't start. Please try again in a moment.", code: "stripe_unreachable" });
+        return json(424, { error: "Checkout couldn't start. Please try again in a moment.", code: "stripe_unreachable" });
       }
       if (!res.ok) {
         const msg = data && data.error && data.error.message || "";
@@ -1090,7 +1090,7 @@ var require_create_checkout = __commonJS({
           return json(400, { error: `${promo.code} can't be used with the items in your cart.`, code: "promo_invalid", detail: msg });
         }
         const code = res.status === 403 || /permission/i.test(msg) ? "stripe_key_missing_permission" : /No such price/i.test(msg) ? "stripe_price_not_found" : "stripe_" + (data && data.error && (data.error.code || data.error.type) || "error");
-        return json(502, { error: "Checkout couldn't start. Please try again in a moment.", code, detail: msg });
+        return json(424, { error: "Checkout couldn't start. Please try again in a moment.", code, detail: msg });
       }
       if (gift) {
         const until = new Date(Date.now() + 36 * 60 * 1e3).toISOString();
@@ -1100,7 +1100,7 @@ var require_create_checkout = __commonJS({
           await expireSession(secret, data.id);
           if (err.code === "not_enough") return json(409, { error: "This code was just used. Please check it and try again.", code: "gift_invalid" });
           console.error("Could not hold eGift credits:", err && err.message);
-          return json(502, { error: "Checkout couldn't start. Please try again in a moment.", code: "gift_hold_failed" });
+          return json(424, { error: "Checkout couldn't start. Please try again in a moment.", code: "gift_hold_failed" });
         }
       }
       try {
@@ -1171,11 +1171,11 @@ var require_create_checkout = __commonJS({
         });
       } catch (err) {
         console.error("PayPal order failed:", err && err.message);
-        return json(502, { error: "PayPal couldn't start. Please try again or pay by card.", code: "paypal_unreachable" });
+        return json(424, { error: "PayPal couldn't start. Please try again or pay by card.", code: "paypal_unreachable", detail: String(err && err.message || "").slice(0, 200) });
       }
       if (!res.ok || !res.data.id) {
         console.error("PayPal order error:", JSON.stringify(res.data).slice(0, 500));
-        return json(502, { error: "PayPal couldn't start. Please try again or pay by card.", code: "paypal_error", detail: res.data && (res.data.message || res.data.name) });
+        return json(424, { error: "PayPal couldn't start. Please try again or pay by card.", code: "paypal_error", detail: res.data && (res.data.message || res.data.name) });
       }
       const id = "pp_" + res.data.id;
       const db = store(event);
@@ -1184,7 +1184,7 @@ var require_create_checkout = __commonJS({
           await hold(db, gift.code, gift.credits, id, new Date(Date.now() + 3 * 3600e3).toISOString());
         } catch (err) {
           if (err.code === "not_enough") return json(409, { error: "This code was just used. Please check it and try again.", code: "gift_invalid" });
-          return json(502, { error: "Checkout couldn't start. Please try again in a moment.", code: "gift_hold_failed" });
+          return json(424, { error: "Checkout couldn't start. Please try again in a moment.", code: "gift_hold_failed" });
         }
       }
       await db.setJSON(`pending/${id}`, {
@@ -1204,7 +1204,7 @@ var require_create_checkout = __commonJS({
       } catch (err) {
         if (err.code === "not_enough") return json(409, { error: "This code was just used. Please check it and try again.", code: "gift_invalid" });
         console.error("Could not use eGift credits:", err && err.message);
-        return json(502, { error: "Booking couldn't be completed. Please try again in a moment.", code: "gift_spend_failed" });
+        return json(424, { error: "Booking couldn't be completed. Please try again in a moment.", code: "gift_spend_failed" });
       }
       const now = (/* @__PURE__ */ new Date()).toISOString();
       const booking = {
@@ -1935,10 +1935,10 @@ var require_paypal = __commonJS({
       if (!res.ok) {
         if (issue === "INSTRUMENT_DECLINED" || issue === "PAYER_ACTION_REQUIRED") return { ok: false, status: 402, restart: true, error: "That payment method was declined. Please choose another in PayPal.", code: "declined" };
         console.error("PayPal capture failed:", JSON.stringify(res.data).slice(0, 500));
-        return { ok: false, status: 502, error: "PayPal couldn't complete the payment. You haven't been charged. Please try again or pay by card.", code: "capture_failed" };
+        return { ok: false, status: 424, error: "PayPal couldn't complete the payment. You haven't been charged. Please try again or pay by card.", code: "capture_failed" };
       }
       const order = res.data, cap = captureOf(order);
-      if (!cap) return { ok: false, status: 502, error: "PayPal couldn't complete the payment. Please try again.", code: "no_capture" };
+      if (!cap) return { ok: false, status: 424, error: "PayPal couldn't complete the payment. Please try again.", code: "no_capture" };
       if (cap.status === "COMPLETED") {
         const f = await finalizePaypal(db, orderId, order, cap, via);
         if (f.error) return { ok: false, status: 404, error: "We couldn't find this order.", code: f.error };
@@ -1976,11 +1976,11 @@ var require_paypal = __commonJS({
       if (!ORDER_RE.test(orderId || "")) return json(400, { error: "Unknown order" });
       try {
         const r = await captureAndBook(store(event), orderId, "browser");
-        if (!r.ok) return json(r.status || 502, { error: r.error, code: r.code, restart: !!r.restart });
+        if (!r.ok) return json(r.status || 424, { error: r.error, code: r.code, restart: !!r.restart });
         return json(200, { ok: true, ref: r.ref, bookingId: r.bookingId, pendingReview: !!r.pendingReview });
       } catch (err) {
         console.error("PayPal capture error:", err && err.message);
-        return json(502, { error: "PayPal couldn't complete the payment. Please try again.", code: "capture_error" });
+        return json(424, { error: "PayPal couldn't complete the payment. Please try again.", code: "capture_error" });
       }
     };
     exports.cancel = async (event) => {
@@ -2224,9 +2224,9 @@ var require_admin_bookings = __commonJS({
       try {
         bookings = await pull("bookings");
       } catch (err) {
-        return json(502, { error: err.message });
+        return json(424, { error: err.message });
       }
-      if (!bookings) return json(502, { error: "Couldn't reach the old Netlify bookings. Is the Netlify site still online?" });
+      if (!bookings) return json(424, { error: "Couldn't reach the old Netlify bookings. Is the Netlify site still online?" });
       let added = 0, already = 0, forms = 0;
       for (const b of bookings) {
         if (!b || !b.id) continue;
@@ -2279,7 +2279,7 @@ var require_admin_bookings = __commonJS({
       }
       if (view === "recovered") {
         const r = await recoverFromStripe(db);
-        if (r.error) return json(502, { error: r.error });
+        if (r.error) return json(424, { error: r.error });
         records = r.records;
       } else {
         records = await listBookings(db);
@@ -2443,7 +2443,7 @@ var require_get_posts = __commonJS({
           if (!res.ok) {
             const details = await res.text();
             console.error("Airtable request failed", res.status, details.slice(0, 300));
-            return json(502, { error: "Airtable request failed", status: res.status });
+            return json(424, { error: "Airtable request failed", status: res.status });
           }
           const data = await res.json();
           records.push(...data.records || []);
@@ -2572,7 +2572,7 @@ Sent ${rec.createdAt}`;
         } catch (e) {
         }
       }
-      if (!saved && rec.email.status !== "sent") return reply(event, 502, { error: "Your message couldn't be sent. Please email seasculptclub@gmail.com." });
+      if (!saved && rec.email.status !== "sent") return reply(event, 424, { error: "Your message couldn't be sent. Please email seasculptclub@gmail.com." });
       return reply(event, 200, { ok: true });
     };
     exports._sendFormEmail = sendFormEmail;

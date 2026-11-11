@@ -201,7 +201,7 @@ async function emailLink(request, env, db, email, kind, extra) {
   await db.set("acctlogin/" + (await hash(token)), { email, kind, ...extra, exp: Date.now() + LINK_MINUTES * 60e3 });
   const site = (env.SITE_URL || new URL(request.url).origin).replace(/\/+$/, "");
   const sent = await sendAccountEmail(env, email, `${site}/account?${kind === "reset" ? "reset" : "login"}=${token}`, kind);
-  if (!sent) return json(502, { error: "We couldn't send the email right now. Please try again in a moment." });
+  if (!sent) return json(424, { error: "We couldn't send the email right now. Please try again in a moment." });
   return null;
 }
 
@@ -579,7 +579,7 @@ async function removeCard(request, env, db) {
   const pm = await g.json().catch(() => ({}));
   if (!g.ok || pm.customer !== cus) return json(404, { error: "Unknown card" });
   const r = await fetch(`https://api.stripe.com/v1/payment_methods/${pmId}/detach`, { method: "POST", headers: { Authorization: `Bearer ${key}` } });
-  if (!r.ok) return json(502, { error: "Couldn't remove that card right now. Please try again." });
+  if (!r.ok) return json(424, { error: "Couldn't remove that card right now. Please try again." });
   return json(200, { ok: true });
 }
 
