@@ -1022,3 +1022,7 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 /* "Find your class" link: readable over the sand */
 .club-pop-beach .club-pop-find{background:rgba(12,35,62,.72);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);color:#fff;border:0;border-radius:999px;padding:8px 16px;font-size:.72rem;font-weight:600;text-shadow:none;box-shadow:0 4px 14px rgba(10,30,55,.35);}
 .club-pop-beach .club-pop-find:hover{background:rgba(12,35,62,.9);color:#F6E2B3;}
+.acct-card-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid rgba(18,49,79,.1);}
+.acct-card-row:first-child{border-top:0;padding-top:2px;}
+.acct-card-brand{font-weight:600;min-width:90px;}
+.acct-card-row .acct-card-remove{margin-left:auto;}

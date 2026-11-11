@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf7">
-<link rel="stylesheet" href="css/coastal.css?v=cf29">
+<link rel="stylesheet" href="css/coastal.css?v=cf30">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/account">
@@ -168,6 +168,12 @@
         <div id="acctGifts"></div>
       </div>
 
+      <div class="acct-section" id="acctCardsWrap">
+        <h2>Saved cards</h2>
+        <div id="acctCards"><p class="acct-empty">Loading…</p></div>
+        <p class="acct-fine">Cards are stored securely by Stripe, never on our website. To save a card, tick &ldquo;Save my card&rdquo; when you pay while signed in.</p>
+      </div>
+
       <div class="acct-section acct-settings">
         <h2>Settings</h2>
         <form id="settingsForm" novalidate>
@@ -223,7 +229,7 @@
     var first = (d.user.name || "").split(" ")[0];
     $("acctHi").textContent = first ? " " + first : "";
     $("acctEmailShown").textContent = d.user.email;
-    lastData = d; renderBday(d.user.birthday || ""); renderSettings(d.user);
+    lastData = d; renderBday(d.user.birthday || ""); renderSettings(d.user); loadCards();
 
     var codes = d.codes || [];
     $("acctCodes").innerHTML = codes.length ? codes.map(function (c) {
@@ -360,6 +366,27 @@
   } else {
     loadMe();
   }
+
+  // Saved cards
+  function loadCards() {
+    fetch("/api/account/cards", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (d) {
+      var list = d.cards || [];
+      $("acctCards").innerHTML = list.length ? list.map(function (c) {
+        return '<div class="acct-card-row"><span class="acct-card-brand">' + esc(String(c.brand || "Card").replace(/^\w/, function (x) { return x.toUpperCase(); })) + '</span>' +
+          '<span>' + (c.last4 ? "&bull;&bull;&bull;&bull; " + esc(c.last4) : "") + (c.exp ? ' <small>exp ' + esc(c.exp) + '</small>' : "") + '</span>' +
+          '<button type="button" class="acct-cancel acct-card-remove" data-pm="' + esc(c.id) + '">Remove</button></div>';
+      }).join("") : '<p class="acct-empty">No saved cards yet.</p>';
+    }).catch(function () { $("acctCards").innerHTML = '<p class="acct-empty">No saved cards yet.</p>'; });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest(".acct-card-remove"); if (!b) return;
+    b.disabled = true; b.textContent = "Removing…";
+    post("cards/remove", { id: b.getAttribute("data-pm") }).then(function (x) {
+      if (!x.ok) { b.disabled = false; b.textContent = "Remove"; alertCard(x.d.error); return; }
+      loadCards();
+    });
+  });
+  function alertCard(t) { var p = document.createElement("p"); p.className = "acct-msg is-bad"; p.textContent = t || "Couldn't remove that card."; $("acctCards").appendChild(p); }
 
   // Settings: communication + emergency contact
   function renderSettings(u) {

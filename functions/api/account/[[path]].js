@@ -522,6 +522,43 @@ async function cancel(request, env, db) {
   return json(200, { ok: true, cancelled: result });
 }
 
+// ---------- saved cards (stored by Stripe; we only list and remove them) ----------
+function customerIdFor(env, user) {
+  const live = String(env.STRIPE_SECRET_KEY || "").includes("_live_");
+  return live ? user.stripeCustomerId : user.stripeTestCustomerId;
+}
+async function cards(request, env, db) {
+  const email = await currentEmail(request, db);
+  if (!email) return json(401, { error: "Please sign in again." });
+  const user = (await db.get("users/" + email)) || {};
+  const cus = customerIdFor(env, user);
+  if (!cus || !env.STRIPE_SECRET_KEY) return json(200, { cards: [] });
+  const r = await fetch(`https://api.stripe.com/v1/customers/${encodeURIComponent(cus)}/payment_methods?limit=20`, { headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY.trim()}` } });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) return json(200, { cards: [], unavailable: true });
+  const list = (d.data || []).map((pm) => pm.card ? { id: pm.id, brand: pm.card.display_brand || pm.card.brand, last4: pm.card.last4, exp: `${String(pm.card.exp_month).padStart(2, "0")}/${String(pm.card.exp_year).slice(-2)}` }
+    : pm.type === "link" ? { id: pm.id, brand: "Link", last4: "", exp: "" } : { id: pm.id, brand: pm.type, last4: "", exp: "" });
+  return json(200, { cards: list });
+}
+async function removeCard(request, env, db) {
+  const email = await currentEmail(request, db);
+  if (!email) return json(401, { error: "Please sign in again." });
+  let body; try { body = await request.json(); } catch (e) { return json(400, { error: "Bad request" }); }
+  const pmId = String(body.id || "");
+  if (!/^pm_[A-Za-z0-9]{8,100}$/.test(pmId)) return json(400, { error: "Unknown card" });
+  const user = (await db.get("users/" + email)) || {};
+  const cus = customerIdFor(env, user);
+  if (!cus) return json(404, { error: "Unknown card" });
+  const key = env.STRIPE_SECRET_KEY.trim();
+  // Only remove cards that belong to this person.
+  const g = await fetch(`https://api.stripe.com/v1/payment_methods/${pmId}`, { headers: { Authorization: `Bearer ${key}` } });
+  const pm = await g.json().catch(() => ({}));
+  if (!g.ok || pm.customer !== cus) return json(404, { error: "Unknown card" });
+  const r = await fetch(`https://api.stripe.com/v1/payment_methods/${pmId}/detach`, { method: "POST", headers: { Authorization: `Bearer ${key}` } });
+  if (!r.ok) return json(502, { error: "Couldn't remove that card right now. Please try again." });
+  return json(200, { ok: true });
+}
+
 async function logout(request, env, db) {
   const token = cookieValue(request, COOKIE);
   if (token && token.length <= 100) await db.del("acctsess/" + (await hash(token)));
@@ -541,6 +578,8 @@ export async function onRequest(context) {
     if (path === "me" && request.method === "GET") return await me(request, env, db);
     if (path === "logout" && request.method === "POST") return await logout(request, env, db);
     if (path === "cancel" && request.method === "POST") return await cancel(request, env, db);
+    if (path === "cards" && request.method === "GET") return await cards(request, env, db);
+    if (path === "cards/remove" && request.method === "POST") return await removeCard(request, env, db);
     return json(404, { error: "Not found" });
   } catch (err) {
     console.error("/api/account failed:", err && (err.stack || err.message || err));

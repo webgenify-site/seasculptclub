@@ -40,6 +40,32 @@ async function syncAccountContact(env, user) {
   } else out.hubspot = "not set up";
   return out;
 }
+// ---- Saved cards: signed-in account holders get a Stripe customer so Stripe can offer "save my card" ----
+async function accountForRequest(db, event) {
+  try {
+    const cookie = String(event.headers && (event.headers.cookie || event.headers.Cookie) || "");
+    const m = cookie.match(/(?:^|;\s*)ssc_session=([^;]+)/);
+    if (!m || m[1].length > 100) return null;
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(m[1]));
+    const h = [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    const s = await db.get("acctsess/" + h, { type: "json" });
+    if (!s || s.exp < Date.now()) return null;
+    const u = await db.get("users/" + s.email, { type: "json" });
+    return u ? { email: s.email, user: u } : null;
+  } catch (e) { return null; }
+}
+async function stripeCustomerFor(db, account, purchaser, secret, livemode) {
+  const field = livemode ? "stripeCustomerId" : "stripeTestCustomerId";
+  if (account.user[field]) return account.user[field];
+  const p = new URLSearchParams({ email: account.email, name: purchaser.name || account.user.name || "", "metadata[source]": "seasculptclub.com account" });
+  if (purchaser.phone) p.append("phone", purchaser.phone);
+  const r = await fetch("https://api.stripe.com/v1/customers", { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": "acct-customer-" + account.email + (livemode ? "" : "-test") }, body: p.toString() });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.id) { console.warn("Could not create Stripe customer:", d.error && d.error.message); return null; }
+  const fresh = (await db.get("users/" + account.email, { type: "json" })) || account.user;
+  await db.setJSON("users/" + account.email, { ...fresh, [field]: d.id });
+  return d.id;
+}
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -932,7 +958,21 @@ var require_create_checkout = __commonJS({
       if (!hosted) params.append("integration_identifier", INTEGRATION_ID);
       if (promo) params.append("discounts[0][promotion_code]", promo.id);
       else params.append("allow_promotion_codes", "true");
-      params.append("customer_email", purchaser.email);
+      // Signed in with the same email? Attach their Stripe customer so saved cards appear and Stripe offers "save my card".
+      let savedCards = false;
+      const account = await accountForRequest(store(event), event);
+      if (account && account.email === purchaser.email.trim().toLowerCase()) {
+        const cus = await stripeCustomerFor(store(event), account, purchaser, secret, mode === "live");
+        if (cus) {
+          params.append("customer", cus);
+          params.append("customer_update[name]", "auto");
+          params.append("customer_update[address]", "auto");
+          params.append("saved_payment_method_options[payment_method_save]", "enabled");
+          params.append("saved_payment_method_options[allow_redisplay_filters][0]", "always");
+          savedCards = true;
+        }
+      }
+      if (!savedCards) params.append("customer_email", purchaser.email);
       params.append("client_reference_id", ref);
       let i = 0;
       for (const [priceId, group] of byPrice) {
@@ -996,6 +1036,19 @@ var require_create_checkout = __commonJS({
           body: params.toString()
         });
         data = await res.json();
+        // If Stripe won't accept the saved-card options, start checkout the normal way instead of failing.
+        if (!res.ok && savedCards && /customer|saved_payment_method|allow_redisplay/i.test(String(data && data.error && (data.error.param || data.error.message) || ""))) {
+          console.warn("Saved cards unavailable, retrying without:", data.error && data.error.message);
+          for (const k of ["customer", "customer_update[name]", "customer_update[address]", "saved_payment_method_options[payment_method_save]", "saved_payment_method_options[allow_redisplay_filters][0]"]) params.delete(k);
+          params.append("customer_email", purchaser.email);
+          savedCards = false;
+          res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${secret}`, "Stripe-Version": STRIPE_VERSION, "Content-Type": "application/x-www-form-urlencoded" },
+            body: params.toString()
+          });
+          data = await res.json();
+        }
       } catch (err) {
         console.error("Stripe request failed", err);
         return json(502, { error: "Checkout couldn't start. Please try again in a moment.", code: "stripe_unreachable" });
