@@ -23,7 +23,7 @@ BOOKING_EMAIL_FROM = "Sea Sculpt Club <bookings@seasculptclub.com>"
 # "preview" shows it only to people who open the site with ?paypal=preview (for a final live check).
 PAYPAL_ENV = "live"
 PAYPAL_ENABLED = "preview"
-PAYPAL_CLIENT_ID = "AXQKe8awo9QS_qal_GZ_nUCAJVI-d8vaiFsPxQweqqVyFx2zG9tvhhmsrItK0IX4JJ2xrnjy5nl8y1CX"
+PAYPAL_CLIENT_ID = "BAAbOmzO0EY767S_JjHulnzkyJbcj_7qVgVhcPgEiGQtGsIqCdVqa2lMLPsnCjoiSca5d1SYcnohES0-Fc"
 PAYPAL_WEBHOOK_ID = "9GX95843ED9006203"
 
 # ---- Preview deployments (e.g. the "sandbox" branch → sandbox.seasculptclub-website.pages.dev) ----
