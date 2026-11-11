@@ -63,6 +63,7 @@
   .roster-count strong{display:block;font-size:2rem;line-height:1;color:#12314F}
   .roster.is-past{opacity:.6}
   #memberSearch{padding:8px 12px;border:1px solid rgba(18,49,79,.3);border-radius:8px;font:inherit;min-width:240px}
+  .pp-tag{display:inline-block;background:#FFC439;color:#003087;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
@@ -297,14 +298,14 @@
             (flags.length ? ' <span class="pill check">check</span>' : "") + '<br><small>' + money(r.amountTotal) + ((r.items || []).length > 1 ? ' order total' : '') + '</small>' +
             (r.giftRedemption ? '<br><small>' + (r.giftRedemption.kind === "pack" ? "Class code" : "eGift") + ' <span class="mono">' + esc(r.giftRedemption.code) + '</span>: ' + r.giftRedemption.credits + (r.giftRedemption.credits === 1 ? " spot" : " spots") + (x.it.giftCovered ? ' (' + x.it.giftCovered + ' here)' : '') + '</small>' : "") +
             (r.confirmation && r.confirmation.status ? '<br><small>Email: ' + esc(r.confirmation.status.replace("_", " ")) + '</small>' : "");
-          var refUrl = r.paymentIntent ? "https://dashboard.stripe.com/" + (r.livemode === false ? "test/" : "") + "payments/" + encodeURIComponent(r.paymentIntent) : null;
+          var refUrl = r.provider === "paypal" ? null : r.paymentIntent ? "https://dashboard.stripe.com/" + (r.livemode === false ? "test/" : "") + "payments/" + encodeURIComponent(r.paymentIntent) : null;
           return '<tr><td><strong>' + esc(r.purchaser.name) + '</strong>' + (r.ref ? '<br><small>' + esc(r.ref) + '</small>' : "") +
             (flags.length ? '<ul class="flags">' + flags.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "") +
             (notes.length ? '<div class="notes">' + esc(notes.join(" ")) + '</div>' : "") + intakeCell(r.intake) + (r.emergency ? '<div class="notes">Emergency contact: ' + esc(r.emergency.name + (r.emergency.relationship ? " (" + r.emergency.relationship + ")" : "") + ", " + r.emergency.phone) + '</div>' : "") + '</td>' +
             '<td>' + (x.it.gifts && x.it.gifts.length ? giftCell(x.it.gifts) : x.it.attendees && x.it.attendees.length ? esc(x.it.attendees.join(", ")) : '<span class="notes">Not collected</span>') + '</td>' +
             '<td>' + esc(r.purchaser.email) + '</td><td>' + esc(r.purchaser.phone || "") + '</td><td>' + esc(x.it.spots) + '</td>' +
             '<td>' + status + '</td>' +
-            '<td class="mono">' + (refUrl ? '<a class="ref" href="' + refUrl + '" target="_blank" rel="noopener">' + esc(r.paymentIntent) + '</a>' : esc(r.sessionId)) + '</td>' +
+            '<td class="mono">' + (r.provider === "paypal" ? '<span class="pp-tag">PayPal</span> ' + esc(r.transactionId || r.paypalCaptureId || "") + (r.livemode === false ? ' <small>(sandbox)</small>' : "") : refUrl ? '<a class="ref" href="' + refUrl + '" target="_blank" rel="noopener">' + esc(r.paymentIntent) + '</a>' : esc(r.sessionId)) + '</td>' +
             '<td>' + esc(new Date(r.paidAt || r.createdAt).toLocaleString()) + '</td></tr>';
         }).join("") + '</tbody></table></div></section>';
     }).join("");

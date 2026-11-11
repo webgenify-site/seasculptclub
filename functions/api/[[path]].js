@@ -66,6 +66,34 @@ async function stripeCustomerFor(db, account, purchaser, secret, livemode) {
   await db.setJSON("users/" + account.email, { ...fresh, [field]: d.id });
   return d.id;
 }
+// ---- PayPal (Orders API v2, called directly with fetch so it runs on Cloudflare) ----
+// Settings (Cloudflare environment): PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET (secret), PAYPAL_WEBHOOK_ID,
+// PAYPAL_ENV ("sandbox" | "live"), PAYPAL_ENABLED ("off" | "preview" | "on").
+function paypalEnv(env) { return String(env.PAYPAL_ENV || "sandbox").trim().toLowerCase() === "live" ? "live" : "sandbox"; }
+function paypalConfigured(env) { return !!(String(env.PAYPAL_CLIENT_ID || "").trim() && String(env.PAYPAL_CLIENT_SECRET || "").trim()); }
+function paypalVisibility(env) { const v = String(env.PAYPAL_ENABLED || "off").trim().toLowerCase(); return v === "on" || v === "preview" ? v : "off"; }
+function paypalApi(env) { return paypalEnv(env) === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com"; }
+var __ppToken = { value: null, exp: 0, key: "" };
+async function paypalToken(env) {
+  const id = String(env.PAYPAL_CLIENT_ID || "").trim(), secret = String(env.PAYPAL_CLIENT_SECRET || "").trim();
+  const key = paypalEnv(env) + ":" + id;
+  if (__ppToken.value && __ppToken.key === key && Date.now() < __ppToken.exp) return __ppToken.value;
+  const r = await fetch(paypalApi(env) + "/v1/oauth2/token", { method: "POST", headers: { Authorization: "Basic " + btoa(id + ":" + secret), "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=client_credentials" });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.access_token) throw new Error("PayPal sign-in failed: " + (d.error_description || d.error || r.status));
+  __ppToken.value = d.access_token; __ppToken.key = key; __ppToken.exp = Date.now() + Math.max(60, (d.expires_in || 300) - 120) * 1e3;
+  return d.access_token;
+}
+async function paypalFetch(env, path, opts = {}) {
+  const token = await paypalToken(env);
+  const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json", Prefer: "return=representation" };
+  if (opts.requestId) headers["PayPal-Request-Id"] = opts.requestId;
+  const r = await fetch(paypalApi(env) + path, { method: opts.method || "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, data };
+}
+const ppMoney = (cents) => (cents / 100).toFixed(2);
+const ppCents = (v) => Math.round(parseFloat(v || "0") * 100);
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -913,6 +941,8 @@ var require_create_checkout = __commonJS({
         chargeLines = lines.map((l) => ({ ...l, chargeQty: l.qty - (plan.cover[l.id] || 0) })).filter((l) => l.chargeQty > 0);
       }
       if (gift && !chargeLines.length && !gift.topUpTotal) return freeBooking(event, { ref, mode, purchaser, lines, gift, intake });
+      // ---- PayPal: same cart, same server-side prices and codes; only the payment step differs ----
+      if (body.provider === "paypal") return paypalOrder(event, { ref, purchaser, lines, chargeLines, gift, intake, promoCode: String(body.promoCode || "").trim() });
       const byPrice = /* @__PURE__ */ new Map();
       const missing = [];
       for (const line of chargeLines) {
@@ -1104,6 +1134,67 @@ var require_create_checkout = __commonJS({
         });
       } catch (e) {
       }
+    }
+    async function paypalOrder(event, { ref, purchaser, lines, chargeLines, gift, intake, promoCode }) {
+      const env = process.env;
+      if (!paypalConfigured(env) || paypalVisibility(env) === "off") return json(400, { error: "PayPal isn't available right now. Please pay by card.", code: "paypal_off" });
+      if (promoCode) return json(400, { error: "Promo codes work with card payment. Remove the code to pay with PayPal, or pay by card.", code: "promo_paypal" });
+      const items = [];
+      for (const l of chargeLines) {
+        if (!l.chargeQty) continue;
+        const it = CATALOG[l.id];
+        items.push({ name: it.className.slice(0, 127), sku: l.id.slice(0, 127), quantity: String(l.chargeQty), category: "DIGITAL_GOODS", unit_amount: { currency_code: "USD", value: ppMoney(it.amount) } });
+      }
+      if (gift && gift.topUpTotal) {
+        for (const [id, t] of Object.entries(gift.topUp)) {
+          items.push({ name: `${CATALOG[id].className}: premium event difference`.slice(0, 127), sku: `${id}-difference`.slice(0, 127), quantity: String(t.qty), category: "DIGITAL_GOODS", unit_amount: { currency_code: "USD", value: ppMoney(t.unit) } });
+        }
+      }
+      const total = items.reduce((n, i) => n + ppCents(i.unit_amount.value) * Number(i.quantity), 0);
+      const expected = chargeLines.reduce((n, l) => n + CATALOG[l.id].amount * l.chargeQty, 0) + (gift && gift.topUpTotal || 0);
+      if (!total || total !== expected) return json(400, { error: "Nothing to pay for in this cart.", code: "paypal_total" });
+      let res;
+      try {
+        res = await paypalFetch(env, "/v2/checkout/orders", {
+          method: "POST",
+          requestId: "ssc-order-" + ref,
+          body: {
+            intent: "CAPTURE",
+            purchase_units: [{
+              reference_id: ref, custom_id: ref, invoice_id: ref,
+              description: `Sea Sculpt Club booking ${ref}`.slice(0, 127),
+              amount: { currency_code: "USD", value: ppMoney(total), breakdown: { item_total: { currency_code: "USD", value: ppMoney(total) } } },
+              items
+            }],
+            payment_source: { paypal: { experience_context: { brand_name: "Sea Sculpt Club", shipping_preference: "NO_SHIPPING", user_action: "PAY_NOW", locale: "en-US" } } }
+          }
+        });
+      } catch (err) {
+        console.error("PayPal order failed:", err && err.message);
+        return json(502, { error: "PayPal couldn't start. Please try again or pay by card.", code: "paypal_unreachable" });
+      }
+      if (!res.ok || !res.data.id) {
+        console.error("PayPal order error:", JSON.stringify(res.data).slice(0, 500));
+        return json(502, { error: "PayPal couldn't start. Please try again or pay by card.", code: "paypal_error", detail: res.data && (res.data.message || res.data.name) });
+      }
+      const id = "pp_" + res.data.id;
+      const db = store(event);
+      if (gift) {
+        try {
+          await hold(db, gift.code, gift.credits, id, new Date(Date.now() + 3 * 3600e3).toISOString());
+        } catch (err) {
+          if (err.code === "not_enough") return json(409, { error: "This code was just used. Please check it and try again.", code: "gift_invalid" });
+          return json(502, { error: "Checkout couldn't start. Please try again in a moment.", code: "gift_hold_failed" });
+        }
+      }
+      await db.setJSON(`pending/${id}`, {
+        ref, sessionId: id, provider: "paypal", paypalOrderId: res.data.id, livemode: paypalEnv(env) === "live",
+        createdAt: new Date().toISOString(), purchaser, intake,
+        lines: lines.map((l) => ({ ...l, ...pick(CATALOG[l.id]), giftCovered: gift ? gift.cover[l.id] || 0 : 0 })),
+        giftRedemption: gift ? { code: gift.code, kind: gift.kind, credits: gift.credits, value: gift.value } : null,
+        expectedAmount: total
+      });
+      return json(200, { paypalOrderId: res.data.id, ref });
     }
     async function freeBooking(event, { ref, mode, purchaser, lines, gift, intake }) {
       const db = store(event);
@@ -1762,6 +1853,204 @@ var require_stripe_webhook = __commonJS({
   }
 });
 
+// cf/src/functions/paypal.js : PayPal capture, webhook, cancel and public config
+var require_paypal = __commonJS({
+  "cf/src/functions/paypal.js"(exports) {
+    var { CATALOG } = require_catalog();
+    var { store } = require_store();
+    var { sendConfirmation } = require_email();
+    var { prepareGifts, sendDueGifts } = require_gifts();
+    var { createCodesForBooking, confirmHold, releaseHold } = require_giftcodes();
+    var json = (statusCode, body) => ({ statusCode, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(body) });
+    var ORDER_RE = /^[A-Z0-9]{10,40}$/;
+    function parse(event) { try { return JSON.parse(event.body || "{}"); } catch (e) { return null; } }
+
+    // Turns a paid PayPal order into a booking, exactly like a paid Stripe session. Safe to call more than once.
+    async function finalizePaypal(db, orderId, order, capture, via) {
+      const id = "pp_" + orderId, key = `bookings/${id}`;
+      const existing = await db.get(key, { type: "json" });
+      if (existing) return { duplicate: true, bookingId: id, ref: existing.ref };
+      const pending = await db.get(`pending/${id}`, { type: "json" });
+      if (!pending) return { error: "no_pending" };
+      const unit = (order.purchase_units || [])[0] || {};
+      const paid = ppCents(capture.amount && capture.amount.value);
+      const flags = [];
+      if (capture.amount && capture.amount.currency_code !== "USD") flags.push(`Paid in ${capture.amount.currency_code}, not USD.`);
+      if (paid !== pending.expectedAmount) flags.push(`Amount paid (${paid}) differs from the website price (${pending.expectedAmount}).`);
+      if ((unit.custom_id || unit.reference_id) !== pending.ref) flags.push("PayPal order reference doesn't match the booking reference.");
+      const payer = order.payer || {};
+      const booking = {
+        id, ref: pending.ref, status: "paid", livemode: !!pending.livemode,
+        provider: "paypal", paypalOrderId: orderId, paypalCaptureId: capture.id, transactionId: capture.id,
+        payerEmail: payer.email_address || null,
+        purchaser: pending.purchaser,
+        items: pending.lines.map((l) => ({
+          catalogId: l.id, kind: l.kind, className: l.className, date: l.date, dateLabel: l.dateLabel, time: l.time, location: l.location,
+          spots: l.qty, attendees: l.attendees || [], unitAmount: l.unitAmount,
+          ...l.giftCovered ? { giftCovered: l.giftCovered } : {},
+          ...l.kind === "gift" ? { gifts: l.gifts || [] } : {}
+        })),
+        amountTotal: paid, currency: "usd", paymentIntent: null, sessionId: null, stripeEventId: null,
+        source: "pending", confirmedVia: via, flags,
+        ...pending.intake ? { intake: pending.intake } : {},
+        ...pending.giftRedemption ? { giftRedemption: pending.giftRedemption } : {},
+        createdAt: pending.createdAt, paidAt: new Date().toISOString(), confirmation: { status: "pending" }
+      };
+      prepareGifts(booking);
+      const written = await db.setJSON(key, booking, { onlyIfNew: true });
+      if (written && written.modified === false) return { duplicate: true, bookingId: id, ref: booking.ref };
+      try { await createCodesForBooking(db, booking); } catch (err) { console.error("Could not save codes:", err && err.message); }
+      if (booking.giftRedemption) {
+        try { await confirmHold(db, booking.giftRedemption.code, id, booking.giftRedemption.credits, booking.ref); }
+        catch (err) { booking.flags.push(`Code ${booking.giftRedemption.code} use could not be recorded: check its balance.`); await db.setJSON(key, booking); }
+      }
+      await ensureAccountForBooking(db, booking, process.env);
+      booking.confirmation = await sendConfirmation(booking, process.env);
+      await sendDueGifts(booking, process.env);
+      await db.setJSON(key, booking);
+      try { await db.delete(`pending/${id}`); } catch (e) {}
+      return { created: true, bookingId: id, ref: booking.ref };
+    }
+    async function markPending(db, orderId, status) {
+      const key = `pending/pp_${orderId}`, p = await db.get(key, { type: "json" });
+      if (p) { p.status = status; p.updatedAt = new Date().toISOString(); await db.setJSON(key, p); }
+      return p;
+    }
+    async function releasePending(db, orderId, status) {
+      const p = await markPending(db, orderId, status);
+      if (p && p.giftRedemption) { try { await releaseHold(db, p.giftRedemption.code, "pp_" + orderId); } catch (e) {} }
+    }
+    function captureOf(order) { const u = (order.purchase_units || [])[0] || {}; return ((u.payments || {}).captures || [])[0] || null; }
+
+    // Capture an approved order (from the browser, or from the webhook if the browser never came back).
+    async function captureAndBook(db, orderId, via) {
+      const env = process.env;
+      const done = await db.get(`bookings/pp_${orderId}`, { type: "json" });
+      if (done) return { ok: true, duplicate: true, ref: done.ref, bookingId: done.id };
+      const pending = await db.get(`pending/pp_${orderId}`, { type: "json" });
+      if (!pending) return { ok: false, status: 404, error: "We couldn't find this order. Please try again.", code: "unknown_order" };
+      let res = await paypalFetch(env, `/v2/checkout/orders/${orderId}/capture`, { method: "POST", requestId: "ssc-capture-" + orderId, body: {} });
+      const issue = res.data && res.data.details && res.data.details[0] && res.data.details[0].issue;
+      if (!res.ok && issue === "ORDER_ALREADY_CAPTURED") res = await paypalFetch(env, `/v2/checkout/orders/${orderId}`);
+      if (!res.ok) {
+        if (issue === "INSTRUMENT_DECLINED" || issue === "PAYER_ACTION_REQUIRED") return { ok: false, status: 402, restart: true, error: "That payment method was declined. Please choose another in PayPal.", code: "declined" };
+        console.error("PayPal capture failed:", JSON.stringify(res.data).slice(0, 500));
+        return { ok: false, status: 502, error: "PayPal couldn't complete the payment. You haven't been charged. Please try again or pay by card.", code: "capture_failed" };
+      }
+      const order = res.data, cap = captureOf(order);
+      if (!cap) return { ok: false, status: 502, error: "PayPal couldn't complete the payment. Please try again.", code: "no_capture" };
+      if (cap.status === "COMPLETED") {
+        const f = await finalizePaypal(db, orderId, order, cap, via);
+        if (f.error) return { ok: false, status: 404, error: "We couldn't find this order.", code: f.error };
+        return { ok: true, ref: f.ref, bookingId: f.bookingId, duplicate: !!f.duplicate };
+      }
+      if (cap.status === "PENDING") { await markPending(db, orderId, "payment_pending"); return { ok: true, pendingReview: true, ref: pending.ref }; }
+      await releasePending(db, orderId, "payment_failed");
+      return { ok: false, status: 402, error: "The payment didn't go through, so you haven't been charged.", code: "capture_" + String(cap.status).toLowerCase() };
+    }
+
+    async function verifyWebhook(event, body) {
+      const env = process.env, h = event.headers || {};
+      if (!String(env.PAYPAL_WEBHOOK_ID || "").trim()) return false;
+      const res = await paypalFetch(env, "/v1/notifications/verify-webhook-signature", {
+        method: "POST",
+        body: {
+          auth_algo: h["paypal-auth-algo"], cert_url: h["paypal-cert-url"], transmission_id: h["paypal-transmission-id"],
+          transmission_sig: h["paypal-transmission-sig"], transmission_time: h["paypal-transmission-time"],
+          webhook_id: String(env.PAYPAL_WEBHOOK_ID).trim(), webhook_event: body
+        }
+      });
+      return res.ok && res.data.verification_status === "SUCCESS";
+    }
+
+    exports.config = async (event) => {
+      const env = process.env, vis = paypalVisibility(env);
+      const preview = event.queryStringParameters && event.queryStringParameters.preview === "1";
+      const enabled = paypalConfigured(env) && (vis === "on" || (vis === "preview" && preview));
+      return json(200, enabled ? { enabled: true, clientId: String(env.PAYPAL_CLIENT_ID).trim(), mode: paypalEnv(env) } : { enabled: false });
+    };
+    exports.capture = async (event) => {
+      if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
+      if (!paypalConfigured(process.env)) return json(400, { error: "PayPal isn't available right now.", code: "paypal_off" });
+      const b = parse(event); const orderId = b && String(b.orderID || "");
+      if (!ORDER_RE.test(orderId || "")) return json(400, { error: "Unknown order" });
+      try {
+        const r = await captureAndBook(store(event), orderId, "browser");
+        if (!r.ok) return json(r.status || 502, { error: r.error, code: r.code, restart: !!r.restart });
+        return json(200, { ok: true, ref: r.ref, bookingId: r.bookingId, pendingReview: !!r.pendingReview });
+      } catch (err) {
+        console.error("PayPal capture error:", err && err.message);
+        return json(502, { error: "PayPal couldn't complete the payment. Please try again.", code: "capture_error" });
+      }
+    };
+    exports.cancel = async (event) => {
+      if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
+      const b = parse(event); const orderId = b && String(b.orderID || "");
+      if (!ORDER_RE.test(orderId || "")) return json(400, { error: "Unknown order" });
+      const db = store(event);
+      if (await db.get(`bookings/pp_${orderId}`, { type: "json" })) return json(200, { ok: true, alreadyPaid: true });
+      await releasePending(db, orderId, "cancelled");
+      return json(200, { ok: true });
+    };
+    exports.webhook = async (event) => {
+      if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
+      const body = parse(event);
+      if (!body || !body.id || !body.event_type) return json(400, { error: "Bad request" });
+      let valid = false;
+      try { valid = await verifyWebhook(event, body); } catch (err) { console.error("PayPal webhook verify error:", err && err.message); }
+      if (!valid) { console.warn("Rejected PayPal webhook", body.event_type); return json(400, { error: "Invalid signature" }); }
+      const db = store(event);
+      const first = await db.setJSON(`ppevents/${body.id}`, { type: body.event_type, at: new Date().toISOString() }, { onlyIfNew: true });
+      if (first && first.modified === false) return json(200, { duplicate: true });
+      const res = body.resource || {};
+      try {
+        switch (body.event_type) {
+          case "CHECKOUT.ORDER.APPROVED": {
+            if (res.id && ORDER_RE.test(res.id)) return json(200, await captureAndBook(db, res.id, "webhook"));
+            break;
+          }
+          case "PAYMENT.CAPTURE.COMPLETED": {
+            const orderId = res.supplementary_data && res.supplementary_data.related_ids && res.supplementary_data.related_ids.order_id;
+            if (orderId && ORDER_RE.test(orderId)) {
+              const o = await paypalFetch(process.env, `/v2/checkout/orders/${orderId}`);
+              const cap = o.ok && captureOf(o.data);
+              if (cap && cap.status === "COMPLETED") return json(200, await finalizePaypal(db, orderId, o.data, cap, "webhook"));
+            }
+            break;
+          }
+          case "PAYMENT.CAPTURE.DENIED":
+          case "PAYMENT.CAPTURE.DECLINED": {
+            const orderId = res.supplementary_data && res.supplementary_data.related_ids && res.supplementary_data.related_ids.order_id;
+            if (orderId) await releasePending(db, orderId, "payment_failed");
+            break;
+          }
+          case "PAYMENT.CAPTURE.REFUNDED":
+          case "PAYMENT.CAPTURE.REVERSED": {
+            const capId = (res.links || []).map((l) => (l.href.match(/captures\/([A-Z0-9]+)/) || [])[1]).find(Boolean) || res.id;
+            const { blobs } = await db.list({ prefix: "bookings/pp_" });
+            for (const bl of blobs) {
+              const bk = await db.get(bl.key, { type: "json" });
+              if (bk && (bk.paypalCaptureId === capId || bk.paypalCaptureId === res.id)) {
+                const amt = ppCents(res.amount && res.amount.value);
+                bk.flags = [...(bk.flags || []), `PayPal ${body.event_type === "PAYMENT.CAPTURE.REVERSED" ? "reversal (chargeback)" : "refund"} of $${ppMoney(amt)} on ${new Date().toISOString().slice(0, 10)}.`];
+                if (body.event_type === "PAYMENT.CAPTURE.REFUNDED" && !bk.refundIds?.includes(res.id)) { bk.refundIds = [...(bk.refundIds || []), res.id]; }
+                await db.setJSON(bl.key, bk);
+                break;
+              }
+            }
+            break;
+          }
+        }
+        return json(200, { received: body.event_type });
+      } catch (err) {
+        console.error("PayPal webhook error:", err && err.message);
+        return json(500, { error: "Webhook handling failed" });
+      }
+    };
+    exports.finalizePaypal = finalizePaypal;
+  }
+});
+
 // cf/src/functions/admin-bookings.js
 var require_admin_bookings = __commonJS({
   "cf/src/functions/admin-bookings.js"(exports) {
@@ -1869,7 +2158,9 @@ var require_admin_bookings = __commonJS({
       "Photo consent",
       "Waiver accepted",
       "Cancellation policy accepted",
-      "Emergency contact"
+      "Emergency contact",
+      "Payment provider",
+      "Transaction ID"
     ];
     function toCsv(records) {
       const cell = (v) => {
@@ -1905,7 +2196,9 @@ var require_admin_bookings = __commonJS({
             r.intake ? r.intake.photoConsent || "" : "",
             r.intake && r.intake.waiver ? `Yes (v${r.intake.waiver.version}, ${r.intake.waiver.at})` : "",
             r.intake && r.intake.cancelPolicy ? `Yes (v${r.intake.cancelPolicy.version}, ${r.intake.cancelPolicy.at})` : "",
-            r.emergency ? [r.emergency.name, r.emergency.relationship ? "(" + r.emergency.relationship + ")" : "", r.emergency.phone].filter(Boolean).join(" ") : ""
+            r.emergency ? [r.emergency.name, r.emergency.relationship ? "(" + r.emergency.relationship + ")" : "", r.emergency.phone].filter(Boolean).join(" ") : "",
+            r.provider === "paypal" ? "PayPal" : r.amountTotal ? "Stripe" : (r.giftRedemption ? "Code" : ""),
+            r.provider === "paypal" ? r.transactionId || r.paypalCaptureId || "" : r.paymentIntent || ""
           ]);
         }
       }
@@ -2392,6 +2685,7 @@ var getPosts = __toESM(require_get_posts());
 var form = __toESM(require_form());
 var sendGifts = __toESM(require_send_gifts());
 var giftCode = __toESM(require_gift_code());
+var paypal = __toESM(require_paypal());
 var HANDLERS = {
   "create-checkout": createCheckout.handler,
   "stripe-webhook": stripeWebhook.handler,
@@ -2399,7 +2693,11 @@ var HANDLERS = {
   "get-posts": getPosts.handler,
   "form": form.handler,
   "send-gifts": sendGifts.handler,
-  "gift-code": giftCode.handler
+  "gift-code": giftCode.handler,
+  "paypal-config": paypal.config,
+  "paypal-capture": paypal.capture,
+  "paypal-cancel": paypal.cancel,
+  "paypal-webhook": paypal.webhook
 };
 function useEnv(env) {
   if (!globalThis.process) globalThis.process = { env: {} };

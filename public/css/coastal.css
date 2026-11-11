@@ -1027,3 +1027,13 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .acct-card-brand{font-weight:600;min-width:90px;}
 .acct-card-row .acct-card-remove{margin-left:auto;}
 .acct-junk{display:block;margin-top:12px;padding:10px 12px;background:#FFF6E0;border-radius:8px;color:#6B4A12;font-size:.9rem;line-height:1.45;}
+/* PayPal option in the cart */
+.cart-paypal{margin-top:12px;}
+.cart-paypal[hidden]{display:none;}
+.cart-or{display:flex;align-items:center;gap:10px;margin:0 0 10px;color:#6A7F95;font:500 .68rem 'Jost',sans-serif;letter-spacing:.16em;text-transform:uppercase;}
+.cart-or::before,.cart-or::after{content:"";flex:1;height:1px;background:rgba(18,49,79,.15);}
+.cart-paypal-btns{min-height:46px;}
+.cart-paypal-btns[hidden]{display:none;}
+.cart-paypal-note{margin:8px 0 0;font-size:.82rem;line-height:1.45;color:#4A6683;text-align:center;}
+.cart-paypal-note:empty{display:none;}
+.cart-paypal-note.is-bad{color:#A2401B;}

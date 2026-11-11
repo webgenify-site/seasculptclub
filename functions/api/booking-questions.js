@@ -9,7 +9,7 @@ const clean = (v, n) => String(v == null ? "" : v).replace(/[\u0000-\u001f<>]/g,
 export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch (e) { return json(400, { error: "Bad request" }); }
   const id = String(b.bookingId || "");
-  if (!/^(cs_(live|test)_[A-Za-z0-9]{10,200}|gift_SSC-[A-F0-9]{8})$/.test(id)) return json(400, { error: "Unknown booking" });
+  if (!/^(cs_(live|test)_[A-Za-z0-9]{10,200}|gift_SSC-[A-F0-9]{8}|pp_[A-Z0-9]{10,40})$/.test(id)) return json(400, { error: "Unknown booking" });
   const db = env.DB;
   if (!db) return json(500, { error: "Database not connected" });
   const key = "bookings/" + id;

@@ -375,7 +375,7 @@ async function me(request, env, db) {
       if (it.kind === "class") {
         const startsAt = classStart(it.date, it.time);
         reservations.push({
-          bookingId: b.id, item: it.catalogId, ref: b.ref, name: it.className, date: it.date || null, dateLabel: it.dateLabel || "", time: it.time || "", location: it.location || "",
+          bookingId: b.id, item: it.catalogId, ref: b.ref, provider: b.provider || "stripe", name: it.className, date: it.date || null, dateLabel: it.dateLabel || "", time: it.time || "", location: it.location || "",
           spots: it.spots || 1, attendees: it.attendees || [], coveredByCode: it.giftCovered || 0,
           upcoming: !it.date || it.date >= today,
           startsAt: startsAt ? new Date(startsAt).toISOString() : null,
@@ -430,6 +430,23 @@ function paidForItem(booking, it) {
   return Math.min(total, Math.round(lineOf(it) * Math.min(1, total / gross)));
 }
 
+// PayPal refund for a captured payment (amount in cents).
+async function paypalRefund(env, captureId, cents, requestId, note) {
+  const live = String(env.PAYPAL_ENV || "").trim().toLowerCase() === "live";
+  const api = live ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
+  const id = String(env.PAYPAL_CLIENT_ID || "").trim(), secret = String(env.PAYPAL_CLIENT_SECRET || "").trim();
+  if (!id || !secret) return { ok: false, status: 0, data: { message: "PayPal is not set up" } };
+  const t = await fetch(api + "/v1/oauth2/token", { method: "POST", headers: { Authorization: "Basic " + btoa(id + ":" + secret), "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=client_credentials" });
+  const td = await t.json().catch(() => ({}));
+  if (!t.ok || !td.access_token) return { ok: false, status: t.status, data: { message: "PayPal sign-in failed" } };
+  const r = await fetch(`${api}/v2/payments/captures/${encodeURIComponent(captureId)}/refund`, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + td.access_token, "Content-Type": "application/json", "PayPal-Request-Id": requestId, Prefer: "return=representation" },
+    body: JSON.stringify({ amount: { value: (cents / 100).toFixed(2), currency_code: "USD" }, note_to_payer: String(note || "Sea Sculpt Club cancellation").slice(0, 255) })
+  });
+  return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+}
+
 async function sendMail(env, to, subject, text, html) {
   if (!env.RESEND_API_KEY) return false;
   try {
@@ -476,7 +493,14 @@ async function cancel(request, env, db) {
       const already = booking.refundedAmount || 0;
       const toRefund = Math.min(amount, Math.max(0, (booking.amountTotal || 0) - already));
       let ok = false;
-      if (toRefund > 0 && booking.paymentIntent && env.STRIPE_SECRET_KEY) {
+      if (toRefund > 0 && booking.provider === "paypal" && booking.paypalCaptureId) {
+        try {
+          const rr = await paypalRefund(env, booking.paypalCaptureId, toRefund, `cancel-${bookingId}-${itemId}`, `${booking.ref || ""} ${it.className || ""}`);
+          ok = rr.ok;
+          result.refund = { amount: toRefund, id: rr.data.id || null, provider: "paypal", status: ok ? String(rr.data.status || "pending").toLowerCase() : "failed", error: ok ? null : (rr.data.message || rr.data.name || `HTTP ${rr.status}`) };
+          if (ok) booking.refundedAmount = already + toRefund;
+        } catch (e) { result.refund = { amount: toRefund, provider: "paypal", status: "failed", error: String(e && e.message || e) }; }
+      } else if (toRefund > 0 && booking.paymentIntent && env.STRIPE_SECRET_KEY) {
         try {
           const p = new URLSearchParams({ payment_intent: booking.paymentIntent, amount: String(toRefund), reason: "requested_by_customer", "metadata[booking_ref]": booking.ref || "", "metadata[class]": it.className || "" });
           const rr = await fetch("https://api.stripe.com/v1/refunds", {
@@ -498,7 +522,7 @@ async function cancel(request, env, db) {
 
   it.cancelled = result;
   booking.flags = [...(booking.flags || []), `Cancelled online by the customer: ${it.className} (${it.spots || 1} ${it.spots === 1 ? "spot" : "spots"}), ` +
-    (refundable ? [result.refund && result.refund.status !== "failed" ? `refunded ${money(result.refund.amount)} to their card` : "", result.manualRefund ? `REFUND ${money(result.refund.amount)} NEEDED IN STRIPE (automatic refund failed)` : "", result.codeReturned ? `${result.codeReturned} class back on code ${booking.giftRedemption.code}` : ""].filter(Boolean).join("; ") || "nothing to refund"
+    (refundable ? [result.refund && result.refund.status !== "failed" ? `refunded ${money(result.refund.amount)} to their ${result.refund.provider === "paypal" ? "PayPal" : "card"}` : "", result.manualRefund ? `REFUND ${money(result.refund.amount)} NEEDED IN ${result.refund.provider === "paypal" ? "PAYPAL" : "STRIPE"} (automatic refund failed)` : "", result.codeReturned ? `${result.codeReturned} class back on code ${booking.giftRedemption.code}` : ""].filter(Boolean).join("; ") || "nothing to refund"
       : "less than 12 hours before class, no refund") + "."];
   await db.set(key, booking);
 
@@ -506,7 +530,7 @@ async function cancel(request, env, db) {
   const first = (booking.purchaser.name || "").split(" ")[0] || "there";
   const when = [it.dateLabel, it.time].filter(Boolean).join(" at ");
   const lines = [];
-  if (refundable && result.refund && result.refund.status !== "failed") lines.push(`${money(result.refund.amount)} is being refunded to your card. It usually shows up in 5 to 10 business days.`);
+  if (refundable && result.refund && result.refund.status !== "failed") lines.push(result.refund.provider === "paypal" ? `${money(result.refund.amount)} is being refunded to your PayPal account. It usually shows up within a few days.` : `${money(result.refund.amount)} is being refunded to your card. It usually shows up in 5 to 10 business days.`);
   if (refundable && result.manualRefund) lines.push(`Your refund of ${money(result.refund.amount)} is on its way. We'll process it shortly and you'll see it in 5 to 10 business days.`);
   if (result.codeReturned) lines.push(`${result.codeReturned} ${result.codeReturned === 1 ? "class has" : "classes have"} been added back to your code ${booking.giftRedemption.code}.`);
   if (!refundable) lines.push("Because it was less than 12 hours before class, this cancellation isn't eligible for a refund, per our cancellation policy.");
@@ -515,7 +539,7 @@ async function cancel(request, env, db) {
   await sendMail(env, booking.purchaser.email, `Cancelled: ${it.className}`, custText, custHtml);
   const owner = env.BOOKING_NOTIFY_EMAIL || "seasculptclub@gmail.com";
   const ownText = `${booking.purchaser.name} (${booking.purchaser.email}) cancelled ${it.className}${when ? ", " + when : ""} (${it.spots || 1} ${it.spots === 1 ? "spot" : "spots"}${it.attendees && it.attendees.length ? ": " + it.attendees.join(", ") : ""}). Ref ${booking.ref || ""}.\n\n` +
-    (refundable ? (result.manualRefund ? `ACTION NEEDED: the automatic refund failed (${result.refund.error}). Please refund ${money(result.refund.amount)} in Stripe.` : result.refund ? `Refunded ${money(result.refund.amount)} automatically.` : "No card payment to refund.") + (result.codeReturned ? ` ${result.codeReturned} class returned to code ${booking.giftRedemption.code}.` : "")
+    (refundable ? (result.manualRefund ? `ACTION NEEDED: the automatic refund failed (${result.refund.error}). Please refund ${money(result.refund.amount)} in ${result.refund.provider === "paypal" ? "PayPal" : "Stripe"}.` : result.refund ? `Refunded ${money(result.refund.amount)} automatically.` : "No card payment to refund.") + (result.codeReturned ? ` ${result.codeReturned} class returned to code ${booking.giftRedemption.code}.` : "")
       : "Less than 12 hours before class: no refund given.");
   await sendMail(env, owner, `${result.manualRefund ? "Refund needed: " : ""}Cancellation: ${it.className} (${booking.purchaser.name})`, ownText, `<pre style="font-family:Helvetica,Arial,sans-serif;white-space:pre-wrap">${esc(ownText)}</pre>`);
 

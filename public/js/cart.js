@@ -86,6 +86,7 @@
         '<div class="cart-total"><span>Subtotal</span><strong></strong></div>' +
         '<p class="cart-msg" role="alert"></p>' +
         '<button type="button" class="cl-btn cl-btn-fill cart-checkout">Checkout</button>' +
+        '<div class="cart-paypal" hidden><div class="cart-or"><span>or</span></div><div class="cart-paypal-btns"></div><p class="cart-paypal-note" role="status" aria-live="polite"></p></div>' +
         '<p class="cart-fine">Secure payment by Stripe. A receipt is emailed to you after checkout.</p>' +
       '</div>' +
     '</aside>' +
@@ -196,6 +197,7 @@
     totalEl.textContent = money(total() - cov.value);
     if (step === "account") checkoutBtn.textContent = "Continue";
     if (step === "details") checkoutBtn.textContent = cov.n && total() - cov.value === 0 ? (giftState.kind === "pack" ? "Book with code" : "Book with eGift") : "Continue to payment";
+    renderPaypal(total() - cov.value);
     checkoutBtn.disabled = !cart.length;
     msg.textContent = "";
     if (!cart.length && step !== "cart") showStep("cart");
@@ -529,10 +531,15 @@
   pay.addEventListener("cancel", function (e) { e.preventDefault(); closePay(); });
 
   var currentDetails = { purchaser: {}, attendees: {}, gifts: {} };
+  function sessionPayload(extra) {
+    var b = { items: cart, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, intake: currentDetails.intake || {}, giftCode: giftState ? giftState.code : undefined, promoCode: promoState ? promoState.code : undefined };
+    for (var k in extra) b[k] = extra[k];
+    return JSON.stringify(b);
+  }
   function requestSession(mode) {
     return fetch("/api/create-checkout", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: cart, mode: mode, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, intake: currentDetails.intake || {}, giftCode: giftState ? giftState.code : undefined, promoCode: promoState ? promoState.code : undefined })
+      body: sessionPayload({ mode: mode })
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
         if (!r.ok) {
@@ -704,6 +711,98 @@
     closeDrawer(); render();
     checkoutBtn.textContent = "Checkout";
     askQuestions(d.bookingId, hadClass, "Your code covered it. Your confirmation (ref " + esc(d.ref || "") + ") is on its way to your email.");
+  }
+
+  /* ---------- PayPal (shown only when the server says it's set up; ?paypal=preview for testing) ---------- */
+  var ppWrap = shell.querySelector(".cart-paypal"), ppBtns = shell.querySelector(".cart-paypal-btns"), ppNote = shell.querySelector(".cart-paypal-note");
+  var ppConfig = null, ppSdk = null, ppRendered = false, fineEl = shell.querySelector(".cart-fine");
+  (function () {
+    var preview = false;
+    try {
+      if (/[?&]paypal=preview\b/.test(location.search)) sessionStorage.setItem("sscPaypalPreview", "1");
+      if (/[?&]paypal=off\b/.test(location.search)) sessionStorage.removeItem("sscPaypalPreview");
+      preview = sessionStorage.getItem("sscPaypalPreview") === "1";
+    } catch (e) {}
+    fetch("/api/paypal-config" + (preview ? "?preview=1" : "")).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (c) { if (c && c.enabled && c.clientId) { ppConfig = c; render(); } }).catch(function () {});
+  })();
+  function ppSay(text, bad) { ppNote.textContent = text || ""; ppNote.className = "cart-paypal-note" + (bad ? " is-bad" : ""); }
+  function loadPaypalSdk() {
+    if (ppSdk) return ppSdk;
+    ppSdk = new Promise(function (resolve, reject) {
+      var sc = document.createElement("script");
+      sc.src = "https://www.paypal.com/sdk/js?client-id=" + encodeURIComponent(ppConfig.clientId) + "&currency=USD&intent=capture&components=buttons&enable-funding=venmo&disable-funding=card";
+      sc.setAttribute("data-page-type", "checkout");
+      sc.onload = function () { window.paypal ? resolve(window.paypal) : reject(new Error("no_paypal")); };
+      sc.onerror = function () { ppSdk = null; reject(new Error("paypal_sdk")); };
+      document.head.appendChild(sc);
+    });
+    return ppSdk;
+  }
+  function renderPaypal(due) {
+    if (!ppWrap) return;
+    var show = !!ppConfig && step === "details" && cart.length > 0 && due > 0 && !promoState;
+    ppWrap.hidden = !show;
+    fineEl.textContent = ppConfig && step === "details" ? "Secure payment by Stripe or PayPal. A receipt is emailed to you after checkout." : "Secure payment by Stripe. A receipt is emailed to you after checkout.";
+    if (ppConfig && step === "details" && promoState && due > 0) { ppWrap.hidden = false; ppBtns.hidden = true; ppSay("Promo codes work with card payment, so PayPal isn't available with a promo code."); return; }
+    ppBtns.hidden = false;
+    if (!show || ppRendered) return;
+    ppRendered = true;
+    loadPaypalSdk().then(function (paypal) {
+      return paypal.Buttons({
+        style: { layout: "vertical", color: "gold", shape: "pill", label: "paypal", height: 46, tagline: false },
+        onClick: function (data, actions) {
+          ppSay("");
+          var d = readDetails(), problem = validateDetails(d);
+          if (problem) {
+            detailsErr.textContent = problem[1];
+            var el = typeof problem[0] === "string" ? F[problem[0]] : problem[0];
+            if (el && el.focus) el.focus();
+            return actions.reject();
+          }
+          currentDetails = d; saveDetails(d);
+          track("begin_checkout", { currency: "USD", value: total() / 100, payment_type: "paypal", items: gaItems(cart) });
+          return actions.resolve();
+        },
+        createOrder: function () {
+          return fetch("/api/create-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: sessionPayload({ provider: "paypal" }) })
+            .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (x) {
+              if (!x.ok || !x.d.paypalOrderId) {
+                ppSay(x.d.error || "PayPal couldn't start. Please try again or pay by card.", true);
+                if (x.d.code === "gift_invalid") { giftState = null; render(); }
+                throw new Error(x.d.code || "paypal_create_failed");
+              }
+              return x.d.paypalOrderId;
+            });
+        },
+        onApprove: function (data, actions) {
+          ppSay("Confirming your payment…");
+          return fetch("/api/paypal-capture", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderID: data.orderID }) })
+            .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (x) {
+              if (!x.ok && x.d.restart) { ppSay(x.d.error || "Please choose another payment method in PayPal.", true); return actions.restart(); }
+              if (!x.ok) { ppSay(x.d.error || "PayPal couldn't complete the payment. You haven't been charged.", true); return; }
+              paidWithPaypal(x.d, data.orderID);
+            })
+            .catch(function () { ppSay("We couldn't confirm the payment. If PayPal shows it as paid, your confirmation email will arrive shortly.", true); });
+        },
+        onCancel: function (data) {
+          ppSay("PayPal payment cancelled. You haven't been charged, and your cart is still here.");
+          if (data && data.orderID) fetch("/api/paypal-cancel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderID: data.orderID }) }).catch(function () {});
+        },
+        onError: function () { if (!ppNote.textContent) ppSay("PayPal had a problem. Please try again or pay by card.", true); }
+      }).render(ppBtns);
+    }).catch(function () { ppRendered = false; ppWrap.hidden = true; });
+  }
+  function paidWithPaypal(d, orderID) {
+    var hadClass = hasClass(), value = total();
+    track("purchase", { transaction_id: d.ref || orderID, currency: "USD", value: value / 100, payment_type: "paypal", items: gaItems(cart) });
+    cart = []; save(cart); giftState = null; promoState = null; codeInput.value = ""; codeMsg.textContent = ""; ppSay("");
+    try { sessionStorage.removeItem(DETAILS_KEY); } catch (e) {}
+    closeDrawer(); render(); checkoutBtn.textContent = "Checkout";
+    if (d.pendingReview) { showThanks("PayPal is reviewing your payment. We'll email your confirmation as soon as it clears (ref " + esc(d.ref || "") + ")."); return; }
+    askQuestions("pp_" + orderID, hadClass, "Paid with PayPal. Your confirmation (ref " + esc(d.ref || "") + ") is on its way to your email.");
   }
 
   /* ---------- direct links: any page with ?book=<item> adds it to the cart and opens checkout ---------- */
