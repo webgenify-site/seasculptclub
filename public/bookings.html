@@ -63,6 +63,24 @@
   .roster-count strong{display:block;font-size:2rem;line-height:1;color:#12314F}
   .roster.is-past{opacity:.6}
   #memberSearch{padding:8px 12px;border:1px solid rgba(18,49,79,.3);border-radius:8px;font:inherit;min-width:240px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0 0 18px;}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .kpi .k{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);}
+  .kpi .v{font:500 2rem/1.15 'Cormorant Garamond',serif;margin-top:4px;}
+  .kpi .d{font-size:.8rem;color:var(--soft);margin-top:2px;}
+  .kpi .d.up{color:#1E6B3A;} .kpi .d.down{color:var(--warn);}
+  .sales-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px;}
+  @media(max-width:900px){.sales-grid{grid-template-columns:1fr;}}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
+  .panel h2{font-size:1.35rem;margin:0 0 2px;} .panel .sub{color:var(--soft);font-size:.85rem;margin:0 0 12px;}
+  .chart{position:relative;} .chart svg{display:block;width:100%;height:220px;overflow:visible;}
+  .chart .tip{position:absolute;pointer-events:none;background:var(--navy);color:#fff;border-radius:6px;padding:6px 9px;font-size:.78rem;line-height:1.35;white-space:nowrap;transform:translate(-50%,-100%);opacity:0;transition:opacity .1s;}
+  .hbar{display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:.88rem;}
+  .hbar:first-of-type{border-top:0;}
+  .hbar .track{display:block;height:10px;background:#EEF3F8;border-radius:5px;overflow:hidden;} .hbar .fill{display:block;height:100%;background:var(--navy);border-radius:0 5px 5px 0;}
+  .hbar .amt{text-align:right;white-space:nowrap;} .hbar .amt small{display:block;color:var(--soft);font-size:.75rem;}
+  .num{text-align:right;white-space:nowrap;}
+  .vm-tag{display:inline-block;background:#008CFF;color:#fff;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
   .pp-tag{display:inline-block;background:#FFC439;color:#003087;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
 </style>
 <meta property="og:type" content="website">
@@ -96,6 +114,7 @@
 <main id="app" hidden>
   <div class="tabs" role="tablist">
     <button role="tab" data-view="rosters" aria-selected="true">Class rosters</button>
+    <button role="tab" data-view="sales" aria-selected="false">Sales</button>
     <button role="tab" data-view="bookings" aria-selected="false">Bookings</button>
     <button role="tab" data-view="members" aria-selected="false">Members</button>
     <button role="tab" data-view="recovered" aria-selected="false">Past payments (before booking records)</button>
@@ -107,6 +126,11 @@
     <label><input type="checkbox" id="showTest"> Show test-mode bookings</label>
     <label id="checkOnlyWrap" hidden><input type="checkbox" id="checkOnly"> Only ones that need checking</label>
     <label id="showPastRosterWrap" hidden><input type="checkbox" id="showPastRoster"> Show past classes</label>
+    <span id="salesCtl" hidden style="display:contents">
+      <select id="salesRange" aria-label="Sales period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="month">This month</option><option value="lastmonth">Last month</option><option value="year">This year</option><option value="all">All time</option></select>
+      <label><input type="checkbox" id="salesPast" checked> Include earlier Stripe payments</label>
+      <label><input type="checkbox" id="salesHideOwn" checked> Hide my own test purchases</label>
+    </span>
     <input type="search" id="memberSearch" placeholder="Search name, email or phone" aria-label="Search members" hidden>
     <span class="spacer"></span>
     <button class="btn" id="refresh">Refresh</button>
@@ -131,7 +155,7 @@
     return fetch(API + "?" + new URLSearchParams(params), { headers: { "x-admin-password": pw() }, cache: "no-store" });
   }
   function load(v, force) {
-    if (v === "rosters") return load("bookings", force);
+    if (v === "rosters" || v === "sales") return load("bookings", force);
     if (data[v] && !force) return Promise.resolve(data[v]);
     $("appErr").textContent = ""; $("list").innerHTML = '<p class="note">Loading…</p>';
     return call({ view: v }).then(function (r) {
@@ -162,6 +186,173 @@
     if (q.waiver) bits.push('<div class="notes">Waiver agreed ' + esc(new Date(q.waiver.at).toLocaleString()) + '</div>');
     if (q.cancelPolicy) bits.push('<div class="notes">Cancellation policy agreed ' + esc(new Date(q.cancelPolicy.at).toLocaleString()) + '</div>');
     return bits.join("");
+  }
+  function payTag(r) {
+    if (r.provider === "paypal") return r.paymentMethod === "venmo" ? '<span class="vm-tag">Venmo</span>' : '<span class="pp-tag">PayPal</span>';
+    return "";
+  }
+  function methodOf(r) {
+    if (r.provider === "paypal") return r.paymentMethod === "venmo" ? "Venmo" : "PayPal";
+    if (!r.amountTotal) return r.giftRedemption ? "Code only" : "Free";
+    return "Card (Stripe)";
+  }
+  // ---------- Sales dashboard ----------
+  var salesPastLoading = false;
+  function etDay(iso) { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(iso)); } catch (e) { return String(iso).slice(0, 10); } }
+  function addDays(day, n) { var d = new Date(day + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  function salesWindow(sel, today) {
+    var y = today.slice(0, 4), m = today.slice(5, 7);
+    if (sel === "all") return { from: "0000-01-01", to: today, label: "all time" };
+    if (sel === "month") return { from: y + "-" + m + "-01", to: today, label: "this month" };
+    if (sel === "year") return { from: y + "-01-01", to: today, label: "this year" };
+    if (sel === "lastmonth") { var first = y + "-" + m + "-01", end = addDays(first, -1); return { from: end.slice(0, 8) + "01", to: end, label: "last month" }; }
+    var n = +sel; return { from: addDays(today, -(n - 1)), to: today, label: "last " + n + " days" };
+  }
+  function prevWindow(w) {
+    if (w.from === "0000-01-01") return null;
+    var days = Math.round((new Date(w.to + "T12:00:00Z") - new Date(w.from + "T12:00:00Z")) / 864e5) + 1;
+    return { from: addDays(w.from, -days), to: addDays(w.from, -1) };
+  }
+  // One row per paid order, with what it paid, what was refunded, and how it split across items.
+  function salesRows() {
+    var hideOwn = $("salesHideOwn").checked, rows = [];
+    var src = (data.bookings || []).concat($("salesPast").checked && data.recovered ? data.recovered : []);
+    src.forEach(function (r) {
+      if (r.livemode === false || r.status !== "paid") return;
+      var email = String(r.purchaser && r.purchaser.email || "").toLowerCase();
+      if (hideOwn && email === "seasculptclub@gmail.com") return;
+      var items = r.items || [], paid = r.amountTotal || 0;
+      var weights = items.map(function (it) { return Math.max(0, (it.unitAmount || 0) * (+it.spots || 1)); });
+      var wsum = weights.reduce(function (a, b) { return a + b; }, 0);
+      var parts = items.map(function (it, i) {
+        var share = wsum ? Math.round(paid * weights[i] / wsum) : (i === 0 ? paid : 0);
+        var ref = it.cancelled && it.cancelled.refund && it.cancelled.refund.status !== "failed" ? it.cancelled.refund.amount || 0 : 0;
+        return { it: it, gross: share, refund: ref };
+      });
+      var refund = r.refundedAmount != null ? r.refundedAmount : parts.reduce(function (a, p) { return a + p.refund; }, 0);
+      rows.push({ r: r, day: etDay(r.paidAt || r.createdAt), gross: paid, refund: refund, method: methodOf(r), parts: parts });
+    });
+    return rows;
+  }
+  function sumWin(rows, w) {
+    var o = { gross: 0, refund: 0, orders: 0, spots: 0 };
+    rows.forEach(function (x) {
+      if (x.day < w.from || x.day > w.to) return;
+      o.gross += x.gross; o.refund += x.refund; if (x.gross > 0) o.orders++;
+      x.parts.forEach(function (p) { if (!p.it.cancelled && (p.it.kind === "class" || (p.it.date && p.it.kind !== "gift" && p.it.kind !== "pack"))) o.spots += +p.it.spots || 0; });
+    });
+    o.net = o.gross - o.refund; o.avg = o.orders ? Math.round(o.gross / o.orders) : 0;
+    return o;
+  }
+  function delta(cur, prev, isMoney) {
+    if (prev == null) return "";
+    if (!prev) return cur ? '<div class="d up">new this period</div>' : '<div class="d">same as before</div>';
+    var pct = Math.round((cur - prev) / prev * 100);
+    return '<div class="d ' + (pct > 0 ? "up" : pct < 0 ? "down" : "") + '">' + (pct > 0 ? "&#9650; " : pct < 0 ? "&#9660; " : "") + Math.abs(pct) + '% vs previous (' + (isMoney ? money(prev) : prev) + ')</div>';
+  }
+  function kindLabel(it) {
+    if (it.kind === "gift") return "eGift cards"; if (it.kind === "pack") return "Class packs";
+    if (it.kind === "class" || it.date) return "Classes & events"; return "Other";
+  }
+  function renderSales() {
+    if ($("salesPast").checked && !data.recovered && !salesPastLoading) {
+      salesPastLoading = true;
+      load("recovered").then(function () { salesPastLoading = false; if (view === "sales") renderSales(); })
+        .catch(function (e) { salesPastLoading = false; data.recovered = []; if (e.message !== "auth") $("appErr").textContent = "Earlier Stripe payments couldn't load: " + e.message; if (view === "sales") renderSales(); });
+    }
+    var today = todayET(), w = salesWindow($("salesRange").value, today), pw0 = prevWindow(w);
+    var rows = salesRows(), cur = sumWin(rows, w), prev = pw0 ? sumWin(rows, pw0) : null;
+    var inWin = rows.filter(function (x) { return x.day >= w.from && x.day <= w.to; });
+    var html = salesPastLoading ? '<p class="note">Loading earlier Stripe payments… the numbers below will update.</p>' : "";
+    html += '<div class="kpis">' +
+      '<div class="kpi"><div class="k">Net sales</div><div class="v">' + money(cur.net) + '</div>' + delta(cur.net, prev && prev.net, true) + '</div>' +
+      '<div class="kpi"><div class="k">Orders</div><div class="v">' + cur.orders + '</div>' + delta(cur.orders, prev && prev.orders) + '</div>' +
+      '<div class="kpi"><div class="k">Class spots sold</div><div class="v">' + cur.spots + '</div>' + delta(cur.spots, prev && prev.spots) + '</div>' +
+      '<div class="kpi"><div class="k">Average order</div><div class="v">' + money(cur.avg) + '</div>' + delta(cur.avg, prev && prev.avg, true) + '</div>' +
+      '<div class="kpi"><div class="k">Refunds</div><div class="v">' + money(cur.refund) + '</div><div class="d">gross sales ' + money(cur.gross) + '</div></div>' +
+      '</div>';
+    // Daily chart: last 30 days of the window (or the whole window if shorter).
+    var start = w.from === "0000-01-01" ? (inWin.length ? inWin.map(function (x) { return x.day; }).sort()[0] : addDays(today, -29)) : w.from;
+    var days = [], byDay = {};
+    inWin.forEach(function (x) { byDay[x.day] = byDay[x.day] || { net: 0, orders: 0 }; byDay[x.day].net += x.gross - x.refund; if (x.gross > 0) byDay[x.day].orders++; });
+    var monthly = (new Date(w.to + "T12:00:00Z") - new Date(start + "T12:00:00Z")) / 864e5 > 92, buckets = [];
+    if (monthly) {
+      var bm = {}; inWin.forEach(function (x) { var k = x.day.slice(0, 7); bm[k] = bm[k] || { net: 0, orders: 0 }; bm[k].net += x.gross - x.refund; if (x.gross > 0) bm[k].orders++; });
+      for (var mk = start.slice(0, 7); mk <= w.to.slice(0, 7); ) { buckets.push({ key: mk, label: new Date(mk + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "short", year: "2-digit" }), v: bm[mk] || { net: 0, orders: 0 } }); var nx = new Date(mk + "-15T12:00:00Z"); nx.setUTCMonth(nx.getUTCMonth() + 1); mk = nx.toISOString().slice(0, 7); }
+    } else {
+      for (var d = start; d <= w.to; d = addDays(d, 1)) buckets.push({ key: d, label: new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric" }), v: byDay[d] || { net: 0, orders: 0 } });
+    }
+    var max = Math.max.apply(null, buckets.map(function (b) { return b.v.net; }).concat([100]));
+    var W = 640, H = 220, padL = 46, padB = 24, n = buckets.length, slot = (W - padL) / Math.max(n, 1), bw = Math.max(2, Math.min(28, slot - 2));
+    var step = Math.pow(10, Math.floor(Math.log10(max / 100))) * 100, ticks = [];
+    var nice = [1, 2, 2.5, 5, 10].map(function (f) { return f * step; }).filter(function (t) { return max / t <= 4; })[0] || step * 10;
+    for (var t = 0; ; t += nice) { ticks.push(t); if (t >= max) break; }
+    var top = ticks[ticks.length - 1] || max, y = function (v) { return (H - padB) - (v / top) * (H - padB - 8); };
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="Net sales by ' + (monthly ? "month" : "day") + '">' +
+      ticks.map(function (t) { return '<line x1="' + padL + '" x2="' + W + '" y1="' + y(t) + '" y2="' + y(t) + '" stroke="rgba(18,49,79,.08)"/><text x="' + (padL - 6) + '" y="' + (y(t) + 4) + '" text-anchor="end" font-size="10" fill="#4A6683">$' + (t / 100).toLocaleString() + '</text>'; }).join("") +
+      buckets.map(function (b, i) {
+        var x = padL + i * slot + (slot - bw) / 2, h = Math.max(0, (H - padB) - y(Math.max(0, b.v.net))), yy = (H - padB) - h, r = Math.min(4, bw / 2, h);
+        var bar = h > 0 ? '<path d="M' + x + ',' + (H - padB) + 'V' + (yy + r) + 'Q' + x + ',' + yy + ' ' + (x + r) + ',' + yy + 'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + yy + ' ' + (x + bw) + ',' + (yy + r) + 'V' + (H - padB) + 'Z" fill="#12314F"/>' : "";
+        var lab = (n <= 12 || i % Math.ceil(n / 8) === 0) ? '<text x="' + (padL + i * slot + slot / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" fill="#4A6683">' + esc(b.label) + '</text>' : "";
+        return bar + lab + '<rect class="hit" data-i="' + i + '" x="' + (padL + i * slot) + '" y="0" width="' + slot + '" height="' + (H - padB) + '" fill="transparent"/>';
+      }).join("") + '<line x1="' + padL + '" x2="' + W + '" y1="' + (H - padB) + '" y2="' + (H - padB) + '" stroke="rgba(18,49,79,.25)"/></svg>';
+    // Payment method
+    var meth = {}; inWin.forEach(function (x) { var m = meth[x.method] = meth[x.method] || { net: 0, orders: 0 }; m.net += x.gross - x.refund; m.orders++; });
+    var methList = ["Card (Stripe)", "PayPal", "Venmo", "Code only", "Free"].filter(function (k) { return meth[k]; });
+    var mMax = Math.max.apply(null, methList.map(function (k) { return meth[k].net; }).concat([1]));
+    html += '<div class="sales-grid"><section class="panel"><h2>Net sales by ' + (monthly ? "month" : "day") + '</h2><p class="sub">' + esc(w.label) + ' · after refunds · hover a bar for details</p><div class="chart" id="salesChart">' + svg + '<div class="tip"></div></div></section>' +
+      '<section class="panel"><h2>How people paid</h2><p class="sub">' + esc(w.label) + '</p>' +
+      (methList.length ? methList.map(function (k) { return '<div class="hbar"><span>' + esc(k) + '</span><span class="track"><span class="fill" style="width:' + Math.round(Math.max(0, meth[k].net) / mMax * 100) + '%"></span></span><span class="amt">' + money(meth[k].net) + '<small>' + meth[k].orders + (meth[k].orders === 1 ? " order" : " orders") + '</small></span></div>'; }).join("") : '<p class="note">No sales in this period.</p>') +
+      '</section></div>';
+    // By event / product
+    var ev = {}, kinds = {};
+    inWin.forEach(function (x) {
+      x.parts.forEach(function (p) {
+        var it = p.it, kl = kindLabel(it);
+        var kk = kinds[kl] = kinds[kl] || { net: 0, n: 0 }; kk.net += p.gross - p.refund; kk.n += +it.spots || 1;
+        if (kl !== "Classes & events") return;
+        var key = (it.className || "Class") + "||" + (it.date || "");
+        var e = ev[key] = ev[key] || { name: it.className || "Class", date: it.date, label: it.dateLabel, spots: 0, cancelled: 0, gross: 0, refund: 0, methods: {} };
+        if (it.cancelled) e.cancelled += +it.spots || 1; else e.spots += +it.spots || 1;
+        e.gross += p.gross; e.refund += p.refund; e.methods[x.method] = (e.methods[x.method] || 0) + (+it.spots || 1);
+      });
+    });
+    var evList = Object.keys(ev).map(function (k) { return ev[k]; }).sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
+    html += '<section class="group"><div class="group-head"><h2>Sales by class &amp; event</h2><span class="meta">orders placed ' + esc(w.label) + '</span></div>' +
+      (evList.length ? '<div class="scroll"><table><thead><tr><th>Class</th><th>Date</th><th class="num">Spots</th><th>Paid with</th><th class="num">Sales</th><th class="num">Refunds</th><th class="num">Net</th></tr></thead><tbody>' +
+        evList.map(function (e) {
+          var when = e.date ? new Date(e.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : (e.label || "");
+          return '<tr' + (e.date && e.date < today ? ' style="color:#4A6683"' : "") + '><td><strong>' + esc(e.name) + '</strong></td><td>' + esc(when) + (e.date && e.date >= today ? ' <span class="pill">upcoming</span>' : "") + '</td>' +
+            '<td class="num">' + e.spots + (e.cancelled ? '<br><small>' + e.cancelled + ' cancelled</small>' : "") + '</td>' +
+            '<td><small>' + Object.keys(e.methods).map(function (m) { return esc(m) + ": " + e.methods[m]; }).join("<br>") + '</small></td>' +
+            '<td class="num">' + money(e.gross) + '</td><td class="num">' + (e.refund ? money(e.refund) : "") + '</td><td class="num"><strong>' + money(e.gross - e.refund) + '</strong></td></tr>';
+        }).join("") + '</tbody></table></div>' : '<p class="note" style="margin:16px">No class sales in this period.</p>') + '</section>';
+    var kl2 = Object.keys(kinds);
+    if (kl2.length) html += '<section class="group"><div class="group-head"><h2>By product</h2></div><div class="scroll"><table><thead><tr><th>Product</th><th class="num">Quantity</th><th class="num">Net sales</th></tr></thead><tbody>' +
+      kl2.map(function (k) { return '<tr><td>' + esc(k) + '</td><td class="num">' + kinds[k].n + '</td><td class="num">' + money(kinds[k].net) + '</td></tr>'; }).join("") + '</tbody></table></div></section>';
+    // Recent orders
+    var recent = inWin.slice().sort(function (a, b) { return String(b.r.paidAt || b.r.createdAt).localeCompare(String(a.r.paidAt || a.r.createdAt)); }).slice(0, 15);
+    html += '<section class="group"><div class="group-head"><h2>Latest orders</h2><span class="meta">newest first</span></div>' +
+      (recent.length ? '<div class="scroll"><table><thead><tr><th>When</th><th>Customer</th><th>What they bought</th><th>Paid with</th><th class="num">Amount</th></tr></thead><tbody>' +
+        recent.map(function (x) {
+          var r = x.r;
+          return '<tr><td>' + esc(new Date(r.paidAt || r.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })) + '</td><td><strong>' + esc(r.purchaser.name) + '</strong><br><small>' + esc(r.purchaser.email) + '</small></td>' +
+            '<td>' + (r.items || []).map(function (it) { return esc((it.spots > 1 ? it.spots + " × " : "") + it.className + (it.dateLabel ? " · " + it.dateLabel : "")) + (it.cancelled ? ' <small>(cancelled)</small>' : ""); }).join("<br>") + '</td>' +
+            '<td>' + (payTag(r) || esc(x.method)) + '</td><td class="num">' + money(x.gross) + (x.refund ? '<br><small>−' + money(x.refund) + ' refunded</small>' : "") + '</td></tr>';
+        }).join("") + '</tbody></table></div>' : '<p class="note" style="margin:16px">No orders in this period.</p>') + '</section>';
+    $("list").innerHTML = html;
+    // Hover tooltips on the chart
+    var box = document.getElementById("salesChart");
+    if (box) {
+      var tip = box.querySelector(".tip"), svgEl = box.querySelector("svg");
+      svgEl.addEventListener("mousemove", function (e) {
+        var hit = e.target.closest && e.target.closest(".hit"); if (!hit) { tip.style.opacity = 0; return; }
+        var b = buckets[+hit.getAttribute("data-i")], rb = box.getBoundingClientRect(), hb = hit.getBoundingClientRect();
+        tip.innerHTML = '<strong>' + esc(b.label) + '</strong><br>' + money(b.v.net) + ' · ' + b.v.orders + (b.v.orders === 1 ? " order" : " orders");
+        tip.style.left = (hb.left - rb.left + hb.width / 2) + "px"; tip.style.top = Math.max(0, hb.top - rb.top + y(Math.max(0, b.v.net)) * (hb.height / (H - padB)) - 6) + "px"; tip.style.opacity = 1;
+      });
+      svgEl.addEventListener("mouseleave", function () { tip.style.opacity = 0; });
+    }
   }
   function groupKey(r, it) { return (it.className || "Unknown") + "||" + (it.date || it.dateLabel || ""); }
   var FORM_NAMES = { contact: "Contact", newsletter: "Newsletter signup", "private-inquiry": "Private session question" };
@@ -205,7 +396,7 @@
         var names = (it.attendees && it.attendees.length ? it.attendees : [r.purchaser.name]).slice(0, it.spots || 1);
         while (names.length < (it.spots || 1)) names.push("(guest of " + r.purchaser.name + ")");
         names.forEach(function (n, i) {
-          var person = { name: n || r.purchaser.name, by: r.purchaser.name, email: r.purchaser.email, phone: r.purchaser.phone, ref: r.ref, isBuyer: i === 0, intake: r.intake || {}, emergency: r.emergency, code: i < (it.giftCovered || 0) };
+          var person = { name: n || r.purchaser.name, by: r.purchaser.name, email: r.purchaser.email, phone: r.purchaser.phone, ref: r.ref, isBuyer: i === 0, intake: r.intake || {}, emergency: r.emergency, code: i < (it.giftCovered || 0), pay: payTag(r) };
           (it.cancelled ? c.cancelled : c.people).push(person);
         });
       });
@@ -226,6 +417,7 @@
             if (p.isBuyer && q.photoConsent === "no") notes.push('<strong>No photos</strong>');
             if (p.isBuyer && p.emergency) notes.push('Emergency: ' + esc(p.emergency.name + ", " + p.emergency.phone));
             if (p.code) notes.push('Paid with code');
+            if (p.isBuyer && p.pay) notes.push(p.pay);
             return '<tr><td>' + (i + 1) + '</td><td><strong>' + esc(p.name) + '</strong></td><td>' + esc(p.isBuyer ? "Self" : p.by) + '<br><small><a class="ref" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a> · ' + esc(p.ref || "") + '</small></td>' +
               '<td>' + (p.phone ? '<a class="ref" href="tel:' + esc(p.phone) + '">' + esc(p.phone) + '</a>' : "") + '</td><td>' + notes.join("<br>") + '</td></tr>';
           }).join("") + '</tbody></table></div>' : '<p class="note">No one signed up yet.</p>') +
@@ -254,6 +446,7 @@
   }
   function render() {
     if (view === "rosters") return renderRosters();
+    if (view === "sales") return renderSales();
     if (view === "members") return renderMembers();
     if (view === "forms") return renderForms();
     if (view === "giftcards") return renderGiftCards();
@@ -291,7 +484,7 @@
       return '<section class="group"><div class="group-head"><h2>' + esc(it.className) + '</h2>' +
         '<span class="meta">' + esc([it.dateLabel, it.time, it.location].filter(Boolean).join(" · ")) + '</span>' +
         '<span class="count">' + spots + (spots === 1 ? " spot" : " spots") + '</span></div>' +
-        '<div class="scroll"><table><thead><tr><th>Purchaser</th><th>Attendees</th><th>Email</th><th>Phone</th><th>Spots</th><th>Payment</th><th>Stripe reference</th><th>Booked</th></tr></thead><tbody>' +
+        '<div class="scroll"><table><thead><tr><th>Purchaser</th><th>Attendees</th><th>Email</th><th>Phone</th><th>Spots</th><th>Payment</th><th>Payment reference</th><th>Booked</th></tr></thead><tbody>' +
         g.rows.map(function (x) {
           var r = x.r, flags = r.flags || [], notes = r.notes || [];
           var status = '<span class="pill">' + esc(r.status) + '</span>' + (r.livemode === false ? ' <span class="pill test">test</span>' : "") +
@@ -305,7 +498,7 @@
             '<td>' + (x.it.gifts && x.it.gifts.length ? giftCell(x.it.gifts) : x.it.attendees && x.it.attendees.length ? esc(x.it.attendees.join(", ")) : '<span class="notes">Not collected</span>') + '</td>' +
             '<td>' + esc(r.purchaser.email) + '</td><td>' + esc(r.purchaser.phone || "") + '</td><td>' + esc(x.it.spots) + '</td>' +
             '<td>' + status + '</td>' +
-            '<td class="mono">' + (r.provider === "paypal" ? '<span class="pp-tag">PayPal</span> ' + esc(r.transactionId || r.paypalCaptureId || "") + (r.livemode === false ? ' <small>(sandbox)</small>' : "") : refUrl ? '<a class="ref" href="' + refUrl + '" target="_blank" rel="noopener">' + esc(r.paymentIntent) + '</a>' : esc(r.sessionId)) + '</td>' +
+            '<td class="mono">' + (r.provider === "paypal" ? payTag(r) + ' ' + esc(r.transactionId || r.paypalCaptureId || "") + (r.livemode === false ? ' <small>(sandbox)</small>' : "") : refUrl ? '<a class="ref" href="' + refUrl + '" target="_blank" rel="noopener">' + esc(r.paymentIntent) + '</a>' : esc(r.sessionId)) + '</td>' +
             '<td>' + esc(new Date(r.paidAt || r.createdAt).toLocaleString()) + '</td></tr>';
         }).join("") + '</tbody></table></div></section>';
     }).join("");
@@ -315,10 +508,13 @@
     view = v;
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-view") === v)); });
     $("checkOnlyWrap").hidden = v !== "recovered";
-    var simple = v === "forms" || v === "giftcards" || v === "rosters" || v === "members";
+    var simple = v === "forms" || v === "giftcards" || v === "rosters" || v === "members" || v === "sales";
+    $("salesCtl").hidden = v !== "sales"; $("csv").hidden = v === "sales";
     $("classFilter").hidden = simple; $("showTest").parentNode.hidden = simple;
     $("showPastRosterWrap").hidden = v !== "rosters"; $("memberSearch").hidden = v !== "members";
-    $("viewNote").textContent = v === "rosters"
+    $("viewNote").textContent = v === "sales"
+      ? "Live sales from your website: card (Stripe), PayPal and Venmo, updated the moment each payment goes through. Refunds made from customers' account cancellations are subtracted. Refunds you issue by hand in Stripe or PayPal aren't included."
+      : v === "rosters"
       ? "Who's coming to each class, soonest first. Names come from checkout (Me / Friend). Injury notes, photo preferences and emergency contacts come from the person who booked."
       : v === "members"
       ? "Everyone with a Sea Sculpt Club account, plus customers who booked as guests. Passwords are never shown or stored in readable form."
@@ -327,7 +523,7 @@
       : v === "forms"
       ? "Newsletter signups and messages sent through the website, newest first. Each one is also emailed to you once email is set up."
       : v === "bookings"
-      ? "Confirmed bookings, saved automatically when Stripe confirms a payment."
+      ? "Confirmed bookings from card (Stripe), PayPal and Venmo, saved automatically when each payment is confirmed."
       : "Paid Stripe payments from before booking records existed, matched to classes by their Stripe price. Ones marked “check” couldn’t be matched with confidence. This list is read live from Stripe and isn’t stored.";
     load(v).then(render).catch(function (e) { if (e.message !== "auth") { $("list").innerHTML = ""; $("appErr").textContent = e.message; } });
   }
@@ -372,6 +568,7 @@
   $("showTest").addEventListener("change", render);
   $("checkOnly").addEventListener("change", render);
   $("showPastRoster").addEventListener("change", render);
+  ["salesRange", "salesPast", "salesHideOwn"].forEach(function (id) { $(id).addEventListener("change", render); });
   $("memberSearch").addEventListener("input", render);
   document.querySelectorAll(".tabs button").forEach(function (b) { b.addEventListener("click", function () { switchView(b.getAttribute("data-view")); }); });
 

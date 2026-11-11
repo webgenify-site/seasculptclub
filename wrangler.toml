@@ -25,6 +25,8 @@ PAYPAL_ENV = "live"
 PAYPAL_ENABLED = "on"
 PAYPAL_CLIENT_ID = "BAAbOmzO0EY767S_JjHulnzkyJbcj_7qVgVhcPgEiGQtGsIqCdVqa2lMLPsnCjoiSca5d1SYcnohES0-Fc"
 PAYPAL_WEBHOOK_ID = "9GX95843ED9006203"
+# Hash of the read-only key the Command Center daily sync uses for sales totals (the key itself is not stored here).
+SALES_SUMMARY_KEY_HASH = "4e2426c71cbf66e1de051beb167ee27bb763b31cdd12b63f4ed8e512a2bcd579"
 
 # ---- Preview deployments (e.g. the "sandbox" branch → sandbox.seasculptclub-website.pages.dev) ----
 # Used for Stripe test-mode (sandbox) testing: its own database, so tests never mix with real bookings.

@@ -1038,17 +1038,17 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cart-paypal-note:empty{display:none;}
 .cart-paypal-note.is-bad{color:#A2401B;}
 /* Join the Club popup, phones: zoom the artwork out so the words have breathing room,
-   then the email form sits on the sand below it. */
+   then the email form sits on the sand below it. --pw = card width. */
 @media (max-width:640px){
-  .club-pop .club-pop-card.club-pop-beach{aspect-ratio:auto;width:min(380px,calc(100vw - 48px));
-    background:#B09B88 url("../assets/join-club-beach.jpg?v=3") 50% 0/160% auto no-repeat;}
-  .club-pop-card.club-pop-beach::before{content:"";position:absolute;left:0;right:0;top:calc(min(380px,100vw - 48px) * .66);height:calc(min(380px,100vw - 48px) * .25);
+  .club-pop .club-pop-card.club-pop-beach{--pw:min(360px,calc(100vw - 48px));aspect-ratio:auto;width:var(--pw);
+    background:#B09B88 url("../assets/join-club-beach.jpg?v=3") 50% calc(var(--pw) * -0.1)/160% auto no-repeat;}
+  .club-pop-card.club-pop-beach::before{content:"";position:absolute;left:0;right:0;top:calc(var(--pw) * .56);height:calc(var(--pw) * .26);
     background:linear-gradient(180deg,rgba(176,155,136,0) 0%,#B09B88 100%);pointer-events:none;}
-  .club-pop-beach .club-pop-inner{display:flex;flex-direction:column;align-items:center;padding:calc(min(380px,100vw - 48px) * .80) 26px 26px;}
+  .club-pop-beach .club-pop-inner{display:flex;flex-direction:column;align-items:center;padding:calc(var(--pw) * .64) 20px 18px;}
   .club-pop-beach .club-pop-box{position:relative;left:auto;top:auto;transform:none;width:100%;}
-  .club-pop-beach .club-pop-form{flex-direction:column;gap:10px;}
-  .club-pop-beach .club-pop-form input{padding:13px 18px;text-align:center;font-size:1.05rem;background:rgba(18,49,79,.22);}
-  .club-pop-beach .club-pop-form button{flex:none;padding:13px 0 13px .32em;}
-  .club-pop-beach .club-pop-msg{position:static;transform:none;white-space:normal;margin-top:10px !important;}
-  .club-pop-beach .club-pop-find{position:static;transform:none;margin-top:22px;max-width:100%;box-sizing:border-box;white-space:normal;text-align:center;letter-spacing:.1em;font-size:.66rem;line-height:1.4;}
+  .club-pop-beach .club-pop-form{flex-direction:row;gap:8px;}
+  .club-pop-beach .club-pop-form input{flex:1 1 auto;padding:11px 16px;text-align:left;font-size:1rem;background:rgba(18,49,79,.22);}
+  .club-pop-beach .club-pop-form button{flex:0 0 auto;padding:0 18px 0 calc(18px + .32em);}
+  .club-pop-beach .club-pop-msg{position:static;transform:none;white-space:normal;margin-top:8px !important;}
+  .club-pop-beach .club-pop-find{position:static;transform:none;margin-top:14px;max-width:100%;box-sizing:border-box;white-space:normal;text-align:center;letter-spacing:.1em;font-size:.64rem;line-height:1.4;padding:7px 14px;}
 }

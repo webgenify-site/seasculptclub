@@ -739,6 +739,7 @@
     });
     return ppSdk;
   }
+  var ppFunding = "paypal";
   function renderPaypal(due) {
     if (!ppWrap) return;
     var show = !!ppConfig && step === "details" && cart.length > 0 && due > 0 && !promoState;
@@ -753,6 +754,7 @@
         style: { layout: "vertical", color: "gold", shape: "pill", label: "paypal", height: 46, tagline: false },
         onClick: function (data, actions) {
           ppSay("");
+          ppFunding = data && data.fundingSource === "venmo" ? "venmo" : "paypal";
           var d = readDetails(), problem = validateDetails(d);
           if (problem) {
             detailsErr.textContent = problem[1];
@@ -764,8 +766,9 @@
           track("begin_checkout", { currency: "USD", value: total() / 100, payment_type: "paypal", items: gaItems(cart) });
           return actions.resolve();
         },
-        createOrder: function () {
-          return fetch("/api/create-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: sessionPayload({ provider: "paypal" }) })
+        createOrder: function (data) {
+          var funding = data && data.paymentSource === "venmo" ? "venmo" : (ppFunding || "paypal");
+          return fetch("/api/create-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: sessionPayload({ provider: "paypal", funding: funding }) })
             .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
             .then(function (x) {
               if (!x.ok || !x.d.paypalOrderId) {

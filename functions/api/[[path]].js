@@ -942,7 +942,7 @@ var require_create_checkout = __commonJS({
       }
       if (gift && !chargeLines.length && !gift.topUpTotal) return freeBooking(event, { ref, mode, purchaser, lines, gift, intake });
       // ---- PayPal: same cart, same server-side prices and codes; only the payment step differs ----
-      if (body.provider === "paypal") return paypalOrder(event, { ref, purchaser, lines, chargeLines, gift, intake, promoCode: String(body.promoCode || "").trim() });
+      if (body.provider === "paypal") return paypalOrder(event, { ref, purchaser, lines, chargeLines, gift, intake, promoCode: String(body.promoCode || "").trim(), funding: body.funding === "venmo" ? "venmo" : "paypal" });
       const byPrice = /* @__PURE__ */ new Map();
       const missing = [];
       for (const line of chargeLines) {
@@ -1135,7 +1135,7 @@ var require_create_checkout = __commonJS({
       } catch (e) {
       }
     }
-    async function paypalOrder(event, { ref, purchaser, lines, chargeLines, gift, intake, promoCode }) {
+    async function paypalOrder(event, { ref, purchaser, lines, chargeLines, gift, intake, promoCode, funding }) {
       const env = process.env;
       if (!paypalConfigured(env) || paypalVisibility(env) === "off") return json(400, { error: "PayPal isn't available right now. Please pay by card.", code: "paypal_off" });
       if (promoCode) return json(400, { error: "Promo codes work with card payment. Remove the code to pay with PayPal, or pay by card.", code: "promo_paypal" });
@@ -1166,7 +1166,9 @@ var require_create_checkout = __commonJS({
               amount: { currency_code: "USD", value: ppMoney(total), breakdown: { item_total: { currency_code: "USD", value: ppMoney(total) } } },
               items
             }],
-            payment_source: { paypal: { experience_context: { brand_name: "Sea Sculpt Club", shipping_preference: "NO_SHIPPING", user_action: "PAY_NOW", locale: "en-US" } } }
+            payment_source: funding === "venmo"
+              ? { venmo: { experience_context: { brand_name: "Sea Sculpt Club", shipping_preference: "NO_SHIPPING" } } }
+              : { paypal: { experience_context: { brand_name: "Sea Sculpt Club", shipping_preference: "NO_SHIPPING", user_action: "PAY_NOW", locale: "en-US" } } }
           }
         });
       } catch (err) {
@@ -1881,7 +1883,8 @@ var require_paypal = __commonJS({
       const payer = order.payer || {};
       const booking = {
         id, ref: pending.ref, status: "paid", livemode: !!pending.livemode,
-        provider: "paypal", paypalOrderId: orderId, paypalCaptureId: capture.id, transactionId: capture.id,
+        provider: "paypal", paymentMethod: order.payment_source && order.payment_source.venmo ? "venmo" : "paypal",
+        paypalOrderId: orderId, paypalCaptureId: capture.id, transactionId: capture.id,
         payerEmail: payer.email_address || null,
         purchaser: pending.purchaser,
         items: pending.lines.map((l) => ({
@@ -2251,6 +2254,7 @@ var require_admin_bookings = __commonJS({
       const isImport = event.httpMethod === "POST" && q.action === "import-netlify";
       if (event.httpMethod !== "GET" && !isImport) return json(405, { error: "Method not allowed" });
       const db = store(event);
+      if (q.view === "summary") return salesSummary(event, db);
       const denied = await checkAuth(event, db);
       if (denied) return denied;
       if (isImport) return importFromNetlify(event, db);
@@ -2294,6 +2298,51 @@ var require_admin_bookings = __commonJS({
       }
       return json(200, { view, count: records.length, records });
     };
+    // Read-only sales totals for the Command Center's daily sync. No names, emails or phones:
+    // only counts and amounts per day, payment method and class. Unlocked by a key whose
+    // SHA-256 hash is SALES_SUMMARY_KEY_HASH (the key itself is kept out of the code).
+    async function salesSummary(event, db) {
+      const q = event.queryStringParameters || {};
+      const want = String(process.env.SALES_SUMMARY_KEY_HASH || "").trim().toLowerCase();
+      const k = String(q.k || "");
+      if (!want || !k) return json(401, { error: "Not authorized." });
+      const got = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(k)))).map((b) => b.toString(16).padStart(2, "0")).join("");
+      let diff = got.length ^ want.length;
+      for (let i = 0; i < Math.min(got.length, want.length); i++) diff |= got.charCodeAt(i) ^ want.charCodeAt(i);
+      if (diff) return json(401, { error: "Not authorized." });
+      const days = Math.min(400, Math.max(1, parseInt(q.days, 10) || 31));
+      const etDay = (iso) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(iso));
+      const since = etDay(new Date(Date.now() - (days - 1) * 864e5).toISOString());
+      const methodOf = (r) => r.provider === "paypal" ? (r.paymentMethod === "venmo" ? "venmo" : "paypal") : !r.amountTotal ? (r.giftRedemption ? "code" : "free") : "card";
+      const byDay = {}, byEvent = {}, totals = {};
+      const { blobs } = await db.list({ prefix: "bookings/" });
+      for (const b of blobs) {
+        const r = await db.get(b.key, { type: "json" });
+        if (!r || r.livemode === false || r.status !== "paid") continue;
+        if (String(r.purchaser && r.purchaser.email || "").toLowerCase() === "seasculptclub@gmail.com") continue;
+        const day = etDay(r.paidAt || r.createdAt);
+        if (day < since) continue;
+        const m = methodOf(r), paid = r.amountTotal || 0, refund = r.refundedAmount || 0;
+        const d = byDay[day + "|" + m] = byDay[day + "|" + m] || { day, method: m, orders: 0, gross: 0, refunds: 0 };
+        d.orders++; d.gross += paid; d.refunds += refund;
+        const t = totals[m] = totals[m] || { orders: 0, gross: 0, refunds: 0 };
+        t.orders++; t.gross += paid; t.refunds += refund;
+        const items = r.items || [], w = items.map((it) => Math.max(0, (it.unitAmount || 0) * (+it.spots || 1))), ws = w.reduce((a, x) => a + x, 0);
+        items.forEach((it, i) => {
+          const key = it.catalogId || (it.className || "item");
+          const e = byEvent[key] = byEvent[key] || { key, name: it.className || null, date: it.date || null, kind: it.kind || null, spots: {}, cancelled: 0, gross: 0, refunds: 0 };
+          const n = +it.spots || 1;
+          if (it.cancelled) e.cancelled += n; else e.spots[m] = (e.spots[m] || 0) + n;
+          e.gross += ws ? Math.round(paid * w[i] / ws) : (i === 0 ? paid : 0);
+          if (it.cancelled && it.cancelled.refund && it.cancelled.refund.status !== "failed") e.refunds += it.cancelled.refund.amount || 0;
+        });
+      }
+      return json(200, {
+        generatedAt: new Date().toISOString(), since, currency: "usd", amountsIn: "cents",
+        note: "Website bookings only (card via Stripe, PayPal, Venmo, codes). Owner test purchases and sandbox payments excluded. Refunds made by hand in Stripe or PayPal are not included.",
+        totals, byDay: Object.values(byDay).sort((a, b) => a.day.localeCompare(b.day)), byEvent: Object.values(byEvent).sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
+      });
+    }
     // Members: every account, plus customers who booked without one. Passwords are never included.
     async function listMembers(db) {
       const byEmail = {};
