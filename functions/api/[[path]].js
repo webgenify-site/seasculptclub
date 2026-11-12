@@ -2252,14 +2252,21 @@ var require_admin_bookings = __commonJS({
     exports.handler = async (event) => {
       const q = event.queryStringParameters || {};
       const isImport = event.httpMethod === "POST" && q.action === "import-netlify";
-      if (event.httpMethod !== "GET" && !isImport) return json(405, { error: "Method not allowed" });
+      const isOutside = event.httpMethod === "POST" && (q.action === "add-booking" || q.action === "remove-booking");
+      if (event.httpMethod !== "GET" && !isImport && !isOutside) return json(405, { error: "Method not allowed" });
       const db = store(event);
       if (q.view === "summary") return salesSummary(event, db);
       const denied = await checkAuth(event, db);
       if (denied) return denied;
       if (isImport) return importFromNetlify(event, db);
+      if (isOutside) return q.action === "add-booking" ? addOutsideBooking(event, db) : removeOutsideBooking(event, db);
       const view = q.view || "bookings";
       let records;
+      if (view === "classes") {
+        const { CATALOG } = require_catalog();
+        const list = Object.keys(CATALOG).filter((k) => CATALOG[k].kind === "class").map((k) => ({ id: k, className: CATALOG[k].className, date: CATALOG[k].date || null, dateLabel: CATALOG[k].dateLabel || null, amount: CATALOG[k].amount || 0 }));
+        return json(200, { view, records: list.sort((x, y) => String(x.date || "").localeCompare(String(y.date || ""))) });
+      }
       if (view === "forms") {
         const forms = await listForms(db);
         if (q.format === "csv") {
@@ -2298,6 +2305,43 @@ var require_admin_bookings = __commonJS({
       }
       return json(200, { view, count: records.length, records });
     };
+    // Bookings taken somewhere else (Towns Of, cash, Venmo sent directly...). The owner adds them from
+    // the admin so they show on rosters and in sales. No email is sent and no account is created.
+    async function addOutsideBooking(event, db) {
+      let b;
+      try { b = JSON.parse(event.body || "{}"); } catch (e) { return json(400, { error: "Bad request." }); }
+      const { CATALOG } = require_catalog();
+      const cat = CATALOG[String(b.catalogId || "")];
+      if (!cat || cat.kind !== "class") return json(400, { error: "Pick a class." });
+      const spots = Math.min(50, Math.max(1, parseInt(b.spots, 10) || 1));
+      const name = String(b.name || "").trim().slice(0, 120);
+      if (!name) return json(400, { error: "Enter the guest's name." });
+      const email = String(b.email || "").trim().toLowerCase().slice(0, 200);
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json(400, { error: "That email doesn't look right." });
+      const amount = Math.max(0, Math.round(parseFloat(String(b.amount || "0").replace(/[$,]/g, "")) * 100) || 0);
+      const source = String(b.source || "Outside booking").trim().slice(0, 60) || "Outside booking";
+      const day = /^\d{4}-\d{2}-\d{2}$/.test(String(b.paidOn || "")) ? b.paidOn : new Date().toISOString().slice(0, 10);
+      const names = (Array.isArray(b.attendees) ? b.attendees : []).map((x) => String(x || "").trim().slice(0, 120)).filter(Boolean).slice(0, spots);
+      if (!names.length) names.push(name);
+      const id = "ext_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const rec = {
+        id, ref: "EXT-" + id.slice(-6).toUpperCase(), status: "paid", livemode: true,
+        provider: "outside", paymentMethod: source, outsideNote: String(b.note || "").trim().slice(0, 300) || null,
+        purchaser: { name, email: email || null, phone: String(b.phone || "").trim().slice(0, 30) || null },
+        items: [{ catalogId: b.catalogId, kind: "class", className: cat.className, date: cat.date || null, dateLabel: cat.dateLabel || null, time: cat.time || null, location: cat.location || null, spots, attendees: names, unitAmount: spots ? Math.round(amount / spots) : 0 }],
+        amountTotal: amount, currency: "usd", paidAt: new Date(day + "T17:00:00Z").toISOString(), createdAt: new Date().toISOString(), addedByAdmin: true
+      };
+      await db.setJSON("bookings/" + id, rec);
+      return json(200, { ok: true, booking: rec });
+    }
+    async function removeOutsideBooking(event, db) {
+      let b;
+      try { b = JSON.parse(event.body || "{}"); } catch (e) { return json(400, { error: "Bad request." }); }
+      const id = String(b.id || "");
+      if (!/^ext_[a-z0-9]{6,30}$/.test(id)) return json(400, { error: "Only bookings you added by hand can be removed here." });
+      await db.delete("bookings/" + id);
+      return json(200, { ok: true });
+    }
     // Read-only sales totals for the Command Center's daily sync. No names, emails or phones:
     // only counts and amounts per day, payment method and class. Unlocked by a key whose
     // SHA-256 hash is SALES_SUMMARY_KEY_HASH (the key itself is kept out of the code).
@@ -2313,7 +2357,7 @@ var require_admin_bookings = __commonJS({
       const days = Math.min(400, Math.max(1, parseInt(q.days, 10) || 31));
       const etDay = (iso) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(iso));
       const since = etDay(new Date(Date.now() - (days - 1) * 864e5).toISOString());
-      const methodOf = (r) => r.provider === "paypal" ? (r.paymentMethod === "venmo" ? "venmo" : "paypal") : !r.amountTotal ? (r.giftRedemption ? "code" : "free") : "card";
+      const methodOf = (r) => r.provider === "outside" ? "outside" : r.provider === "paypal" ? (r.paymentMethod === "venmo" ? "venmo" : "paypal") : !r.amountTotal ? (r.giftRedemption ? "code" : "free") : "card";
       const byDay = {}, byEvent = {}, totals = {};
       const { blobs } = await db.list({ prefix: "bookings/" });
       for (const b of blobs) {

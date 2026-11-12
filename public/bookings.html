@@ -80,6 +80,15 @@
   .hbar .track{display:block;height:10px;background:#EEF3F8;border-radius:5px;overflow:hidden;} .hbar .fill{display:block;height:100%;background:var(--navy);border-radius:0 5px 5px 0;}
   .hbar .amt{text-align:right;white-space:nowrap;} .hbar .amt small{display:block;color:var(--soft);font-size:.75rem;}
   .num{text-align:right;white-space:nowrap;}
+  .ext-tag{display:inline-block;background:#E9E2D4;color:#12314F;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
+  .add-dlg{border:0;border-radius:14px;padding:22px 24px;max-width:560px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(10,30,50,.3);}
+  .add-dlg::backdrop{background:rgba(10,30,50,.45);}
+  .add-dlg h2{margin:0 0 4px;font-size:1.6rem;} .add-dlg label{display:block;font-size:.8rem;color:var(--soft);margin:10px 0 0;}
+  .add-dlg input,.add-dlg select,.add-dlg textarea{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.95rem;color:var(--ink,#12314F);}
+  .add-row{display:flex;gap:10px;} .add-row label{flex:1;min-width:0;}
+  @media(max-width:520px){.add-row{flex-direction:column;gap:0;}}
+  .add-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;}
+  .linkbtn{background:none;border:0;color:var(--warn);text-decoration:underline;cursor:pointer;font:inherit;font-size:.78rem;padding:0;}
   .vm-tag{display:inline-block;background:#008CFF;color:#fff;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
   .pp-tag{display:inline-block;background:#FFC439;color:#003087;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
 </style>
@@ -126,6 +135,7 @@
     <label><input type="checkbox" id="showTest"> Show test-mode bookings</label>
     <label id="checkOnlyWrap" hidden><input type="checkbox" id="checkOnly"> Only ones that need checking</label>
     <label id="showPastRosterWrap" hidden><input type="checkbox" id="showPastRoster"> Show past classes</label>
+    <button type="button" class="btn" id="addBookingBtn" hidden>+ Add booking</button>
     <span id="salesCtl" hidden style="display:contents">
       <select id="salesRange" aria-label="Sales period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="month">This month</option><option value="lastmonth">Last month</option><option value="year">This year</option><option value="all">All time</option></select>
       <label><input type="checkbox" id="salesPast" checked> Include earlier Stripe payments</label>
@@ -141,6 +151,20 @@
   <div id="list"></div>
 </main>
 
+<dialog id="addDlg" class="add-dlg" aria-labelledby="addDlgTitle">
+  <form id="addForm" method="dialog">
+    <h2 id="addDlgTitle">Add an outside booking</h2>
+    <p class="note">For spots sold somewhere else (Towns Of, cash, Venmo sent to you directly). It shows on the roster and in Sales. No email is sent to the guest.</p>
+    <label>Class<select name="catalogId" id="addClass" required></select></label>
+    <div class="add-row"><label>Guest name<input name="name" required autocomplete="off"></label><label>Spots<input name="spots" type="number" min="1" max="50" value="1"></label></div>
+    <div class="add-row"><label>Email (optional)<input name="email" type="email" autocomplete="off"></label><label>Phone (optional)<input name="phone" autocomplete="off"></label></div>
+    <label>Other guest names, one per line (if more than 1 spot)<textarea name="others" rows="2"></textarea></label>
+    <div class="add-row"><label>Where they booked<input name="source" list="addSources" value="Towns Of"><datalist id="addSources"><option value="Towns Of"><option value="Cash"><option value="Venmo (direct)"><option value="Comp"></datalist></label><label>Amount paid ($)<input name="amount" inputmode="decimal" placeholder="35.00"></label><label>Booked on<input name="paidOn" type="date"></label></div>
+    <label>Note (optional)<input name="note" autocomplete="off"></label>
+    <p class="err" id="addErr" role="alert"></p>
+    <div class="add-actions"><button type="button" class="btn" id="addCancel">Cancel</button><button type="submit" class="btn btn-primary" id="addSave">Add to roster</button></div>
+  </form>
+</dialog>
 <script>
 (function () {
   var API = "/api/admin-bookings";
@@ -189,10 +213,12 @@
   }
   function payTag(r) {
     if (r.provider === "paypal") return r.paymentMethod === "venmo" ? '<span class="vm-tag">Venmo</span>' : '<span class="pp-tag">PayPal</span>';
+    if (r.provider === "outside") return '<span class="ext-tag">' + esc(r.paymentMethod || "Outside") + '</span>';
     return "";
   }
   function methodOf(r) {
     if (r.provider === "paypal") return r.paymentMethod === "venmo" ? "Venmo" : "PayPal";
+    if (r.provider === "outside") return r.paymentMethod || "Outside booking";
     if (!r.amountTotal) return r.giftRedemption ? "Code only" : "Free";
     return "Card (Stripe)";
   }
@@ -298,7 +324,7 @@
       }).join("") + '<line x1="' + padL + '" x2="' + W + '" y1="' + (H - padB) + '" y2="' + (H - padB) + '" stroke="rgba(18,49,79,.25)"/></svg>';
     // Payment method
     var meth = {}; inWin.forEach(function (x) { var m = meth[x.method] = meth[x.method] || { net: 0, orders: 0 }; m.net += x.gross - x.refund; m.orders++; });
-    var methList = ["Card (Stripe)", "PayPal", "Venmo", "Code only", "Free"].filter(function (k) { return meth[k]; });
+    var methList = ["Card (Stripe)", "PayPal", "Venmo"].concat(Object.keys(meth).filter(function (k) { return ["Card (Stripe)", "PayPal", "Venmo", "Code only", "Free"].indexOf(k) < 0; })).concat(["Code only", "Free"]).filter(function (k) { return meth[k]; });
     var mMax = Math.max.apply(null, methList.map(function (k) { return meth[k].net; }).concat([1]));
     html += '<div class="sales-grid"><section class="panel"><h2>Net sales by ' + (monthly ? "month" : "day") + '</h2><p class="sub">' + esc(w.label) + ' · after refunds · hover a bar for details</p><div class="chart" id="salesChart">' + svg + '<div class="tip"></div></div></section>' +
       '<section class="panel"><h2>How people paid</h2><p class="sub">' + esc(w.label) + '</p>' +
@@ -396,7 +422,7 @@
         var names = (it.attendees && it.attendees.length ? it.attendees : [r.purchaser.name]).slice(0, it.spots || 1);
         while (names.length < (it.spots || 1)) names.push("(guest of " + r.purchaser.name + ")");
         names.forEach(function (n, i) {
-          var person = { name: n || r.purchaser.name, by: r.purchaser.name, email: r.purchaser.email, phone: r.purchaser.phone, ref: r.ref, isBuyer: i === 0, intake: r.intake || {}, emergency: r.emergency, code: i < (it.giftCovered || 0), pay: payTag(r) };
+          var person = { name: n || r.purchaser.name, by: r.purchaser.name, email: r.purchaser.email, phone: r.purchaser.phone, ref: r.ref, isBuyer: i === 0, intake: r.intake || {}, emergency: r.emergency, code: i < (it.giftCovered || 0), pay: payTag(r), extId: r.provider === "outside" && i === 0 ? r.id : null, note: i === 0 ? r.outsideNote : null };
           (it.cancelled ? c.cancelled : c.people).push(person);
         });
       });
@@ -418,6 +444,8 @@
             if (p.isBuyer && p.emergency) notes.push('Emergency: ' + esc(p.emergency.name + ", " + p.emergency.phone));
             if (p.code) notes.push('Paid with code');
             if (p.isBuyer && p.pay) notes.push(p.pay);
+            if (p.note) notes.push(esc(p.note));
+            if (p.extId) notes.push('<button type="button" class="linkbtn" data-remove="' + esc(p.extId) + '">Remove this booking</button>');
             return '<tr><td>' + (i + 1) + '</td><td><strong>' + esc(p.name) + '</strong></td><td>' + esc(p.isBuyer ? "Self" : p.by) + '<br><small><a class="ref" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a> · ' + esc(p.ref || "") + '</small></td>' +
               '<td>' + (p.phone ? '<a class="ref" href="tel:' + esc(p.phone) + '">' + esc(p.phone) + '</a>' : "") + '</td><td>' + notes.join("<br>") + '</td></tr>';
           }).join("") + '</tbody></table></div>' : '<p class="note">No one signed up yet.</p>') +
@@ -511,7 +539,7 @@
     var simple = v === "forms" || v === "giftcards" || v === "rosters" || v === "members" || v === "sales";
     $("salesCtl").hidden = v !== "sales"; $("csv").hidden = v === "sales";
     $("classFilter").hidden = simple; $("showTest").parentNode.hidden = simple;
-    $("showPastRosterWrap").hidden = v !== "rosters"; $("memberSearch").hidden = v !== "members";
+    $("showPastRosterWrap").hidden = v !== "rosters"; $("addBookingBtn").hidden = v !== "rosters"; $("memberSearch").hidden = v !== "members";
     $("viewNote").textContent = v === "sales"
       ? "Live sales from your website: card (Stripe), PayPal and Venmo, updated the moment each payment goes through. Refunds made from customers' account cancellations are subtracted. Refunds you issue by hand in Stripe or PayPal aren't included."
       : v === "rosters"
@@ -568,6 +596,54 @@
   $("showTest").addEventListener("change", render);
   $("checkOnly").addEventListener("change", render);
   $("showPastRoster").addEventListener("change", render);
+  // ---------- Add / remove outside bookings ----------
+  function postAdmin(action, body) {
+    return fetch(API + "?action=" + action, { method: "POST", headers: { "x-admin-password": pw(), "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (r.status === 401) { logout("Wrong password."); throw new Error("auth"); } if (!r.ok) throw new Error(d.error || "Something went wrong."); return d; }); });
+  }
+  var classList = null;
+  $("addBookingBtn").addEventListener("click", function () {
+    var f = $("addForm"); f.reset(); $("addErr").textContent = "";
+    f.paidOn.value = todayET();
+    var fill = function () {
+      var today = todayET();
+      $("addClass").innerHTML = classList.map(function (c) {
+        var past = c.date && c.date < today;
+        return '<option value="' + esc(c.id) + '" data-amt="' + (c.amount || 0) + '"' + (past ? ' data-past="1"' : "") + '>' + esc(c.className + (c.dateLabel ? " · " + c.dateLabel : "")) + (past ? " (past)" : "") + '</option>';
+      }).join("");
+      var firstUpcoming = classList.filter(function (c) { return !c.date || c.date >= today; })[0];
+      if (firstUpcoming) $("addClass").value = firstUpcoming.id;
+      setAmt();
+      $("addDlg").showModal();
+    };
+    if (classList) return fill();
+    call({ view: "classes" }).then(function (r) { return r.json(); }).then(function (d) { classList = d.records || []; fill(); })
+      .catch(function () { $("appErr").textContent = "Couldn't load the class list."; });
+  });
+  function setAmt() {
+    var o = $("addClass").selectedOptions[0], f = $("addForm"), n = Math.max(1, +f.spots.value || 1);
+    if (o && f.source.value !== "Comp") f.amount.value = ((+o.getAttribute("data-amt") || 0) * n / 100).toFixed(2);
+  }
+  $("addClass").addEventListener("change", setAmt);
+  $("addForm").spots.addEventListener("input", setAmt);
+  $("addForm").source.addEventListener("change", function () { if (this.value === "Comp") $("addForm").amount.value = "0.00"; else setAmt(); });
+  $("addCancel").addEventListener("click", function () { $("addDlg").close(); });
+  $("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = $("addForm"), names = [f.name.value.trim()].concat(f.others.value.split(/\n/).map(function (x) { return x.trim(); }).filter(Boolean));
+    $("addSave").disabled = true; $("addErr").textContent = "";
+    postAdmin("add-booking", { catalogId: f.catalogId.value, name: f.name.value, email: f.email.value, phone: f.phone.value, spots: f.spots.value, attendees: names, source: f.source.value, amount: f.amount.value, paidOn: f.paidOn.value, note: f.note.value })
+      .then(function () { $("addDlg").close(); return load("bookings", true); })
+      .then(render)
+      .catch(function (err) { if (err.message !== "auth") $("addErr").textContent = err.message; })
+      .then(function () { $("addSave").disabled = false; });
+  });
+  $("list").addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-remove]"); if (!b) return;
+    if (!window.confirm("Remove this hand-added booking? This can't be undone.")) return;
+    postAdmin("remove-booking", { id: b.getAttribute("data-remove") }).then(function () { return load("bookings", true); }).then(render)
+      .catch(function (err) { if (err.message !== "auth") $("appErr").textContent = err.message; });
+  });
   ["salesRange", "salesPast", "salesHideOwn"].forEach(function (id) { $(id).addEventListener("change", render); });
   $("memberSearch").addEventListener("input", render);
   document.querySelectorAll(".tabs button").forEach(function (b) { b.addEventListener("click", function () { switchView(b.getAttribute("data-view")); }); });
