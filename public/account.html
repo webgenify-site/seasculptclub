@@ -179,11 +179,13 @@
         <form id="settingsForm" novalidate>
           <h3>Communication</h3>
           <label class="acct-switch"><input type="checkbox" id="cmEmail"> <span><strong>Email</strong> me about new classes, events and offers</span></label>
-          <label class="acct-switch"><input type="checkbox" id="cmSms"> <span><strong>Text</strong> me class updates, reminders and offers</span></label>
+          <h3 class="acct-smshead">Text messages <span class="acct-opt">(optional)</span></h3>
+          <label class="acct-switch"><input type="checkbox" id="cmSmsRem"> <span><strong>Text</strong> me class reminders and booking updates</span></label>
+          <label class="acct-switch"><input type="checkbox" id="cmSmsOff"> <span><strong>Text</strong> me offers, new classes and events</span></label>
           <div class="acct-sms" id="smsWrap" hidden>
             <label for="cmPhone">Mobile number</label>
             <input id="cmPhone" type="tel" autocomplete="tel" maxlength="20" placeholder="(732) 555-0100">
-            <p class="acct-fine">By providing your mobile phone number, you agree to receive text messages from Sea Sculpt Club at the number provided, sent using an automated system. Consent is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply STOP to cancel or HELP for help. For additional assistance, contact <a href="mailto:seasculptclub@gmail.com">seasculptclub@gmail.com</a> or <a href="tel:7327357589">732-735-7589</a>. Carriers are not liable for any delayed or undelivered messages. See our <a href="/terms#sms">Terms</a> and <a href="/privacy">Privacy Policy</a> for how we handle your personal information.</p>
+            <p class="acct-fine">By providing your mobile phone number, you agree to receive text messages from Sea Sculpt Club at the number provided, sent using an automated system. Consent is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply STOP to cancel or HELP for help. Your mobile information will not be sold or shared with third parties. For additional assistance, contact <a href="mailto:seasculptclub@gmail.com">seasculptclub@gmail.com</a> or <a href="tel:7327357589">732-735-7589</a>. Carriers are not liable for any delayed or undelivered messages. See our <a href="/terms#sms">Terms</a> and <a href="/privacy">Privacy Policy</a> for how we handle your personal information.</p>
           </div>
           <p class="acct-fine">Booking confirmations, receipts and important updates about your classes are always sent by email.</p>
 
@@ -391,16 +393,17 @@
   // Settings: communication + emergency contact
   function renderSettings(u) {
     var c = u.comms || { email: true, sms: false }, e = u.emergency || {};
-    $("cmEmail").checked = c.email !== false; $("cmSms").checked = !!c.sms;
-    $("cmPhone").value = u.phone || ""; $("smsWrap").hidden = !c.sms;
+    var rem = c.smsReminders != null ? !!c.smsReminders : !!c.sms, off = c.smsOffers != null ? !!c.smsOffers : !!c.sms;
+    $("cmEmail").checked = c.email !== false; $("cmSmsRem").checked = rem; $("cmSmsOff").checked = off;
+    $("cmPhone").value = u.phone || ""; $("smsWrap").hidden = !(rem || off);
     $("emName").value = e.name || ""; $("emPhone").value = e.phone || ""; $("emRel").value = e.relationship || "";
     $("settingsMsg").textContent = "";
   }
-  $("cmSms").addEventListener("change", function () { $("smsWrap").hidden = !this.checked; if (this.checked && !$("cmPhone").value) $("cmPhone").focus(); });
+  ["cmSmsRem", "cmSmsOff"].forEach(function (id) { $(id).addEventListener("change", function () { var on = $("cmSmsRem").checked || $("cmSmsOff").checked; $("smsWrap").hidden = !on; if (this.checked && !$("cmPhone").value) $("cmPhone").focus(); }); });
   $("settingsForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var msg = $("settingsMsg"), btn = this.querySelector(".acct-save");
-    var body = { comms: { email: $("cmEmail").checked, sms: $("cmSms").checked }, phone: $("cmPhone").value.trim(),
+    var body = { comms: { email: $("cmEmail").checked, smsReminders: $("cmSmsRem").checked, smsOffers: $("cmSmsOff").checked, sms: $("cmSmsRem").checked || $("cmSmsOff").checked }, phone: $("cmPhone").value.trim(),
       emergency: { name: $("emName").value.trim(), phone: $("emPhone").value.trim(), relationship: $("emRel").value.trim() } };
     if (body.comms.sms && body.phone.replace(/\D/g, "").length < 10) { setMsg(msg, "Add your mobile number to get text messages.", true); $("cmPhone").focus(); return; }
     if ((body.emergency.name || body.emergency.phone) && (body.emergency.name.length < 2 || body.emergency.phone.replace(/\D/g, "").length < 10)) { setMsg(msg, "Please enter your emergency contact's name and full phone number.", true); (body.emergency.name.length < 2 ? $("emName") : $("emPhone")).focus(); return; }

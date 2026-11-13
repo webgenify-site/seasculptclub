@@ -1078,3 +1078,4 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
   .club-banner-form button{padding:0 18px 0 calc(18px + .32em);}
 }
 .club-banner-form[hidden],.club-banner-done[hidden]{display:none !important;}
+.acct-smshead{font-size:1.05rem;margin:18px 0 10px;}

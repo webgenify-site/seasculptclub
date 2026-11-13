@@ -305,14 +305,20 @@ async function profile(request, env, db) {
   }
   if (body.comms && typeof body.comms === "object") {
     const now = new Date().toISOString(), prev = user.comms || {};
-    const next = { email: body.comms.email !== false, sms: body.comms.sms === true };
+    // Reminders (transactional) and offers (marketing) texts are separate opt-ins.
+    const hasSplit = "smsReminders" in body.comms || "smsOffers" in body.comms;
+    const smsReminders = hasSplit ? body.comms.smsReminders === true : body.comms.sms === true;
+    const smsOffers = hasSplit ? body.comms.smsOffers === true : body.comms.sms === true;
+    const next = { email: body.comms.email !== false, sms: smsReminders || smsOffers, smsReminders, smsOffers };
     if (next.sms && !(user.phone || "").replace(/\D/g, "")) return json(400, { error: "Add your mobile number to get text messages." });
     // Keep a record of when consent was given or withdrawn (needed for text messaging rules).
     user.comms = { ...next,
       emailUpdatedAt: prev.email === next.email && prev.emailUpdatedAt ? prev.emailUpdatedAt : now,
       smsUpdatedAt: prev.sms === next.sms && prev.smsUpdatedAt ? prev.smsUpdatedAt : now,
+      smsRemindersUpdatedAt: prev.smsReminders === next.smsReminders && prev.smsRemindersUpdatedAt ? prev.smsRemindersUpdatedAt : now,
+      smsOffersUpdatedAt: prev.smsOffers === next.smsOffers && prev.smsOffersUpdatedAt ? prev.smsOffersUpdatedAt : now,
       smsConsentText: next.sms ? SMS_CONSENT : prev.smsConsentText || "" };
-    if (prev.email !== next.email || prev.sms !== next.sms) commsChanged = true;
+    if (prev.email !== next.email || prev.sms !== next.sms || prev.smsReminders !== next.smsReminders || prev.smsOffers !== next.smsOffers) commsChanged = true;
   }
   if (body.emergency && typeof body.emergency === "object") {
     const e = body.emergency;
@@ -325,7 +331,7 @@ async function profile(request, env, db) {
   if (commsChanged) await syncComms(env, user).catch(() => {});
   return json(200, { ok: true, birthday: user.birthday || "", name: user.name || "", phone: user.phone || "", comms: user.comms || { email: true, sms: false }, emergency: user.emergency || null });
 }
-const SMS_CONSENT = "By providing your mobile phone number, you agree to receive text messages from Sea Sculpt Club at the number provided, sent using an automated system. Consent is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply STOP to cancel or HELP for help.";
+const SMS_CONSENT = "By providing your mobile phone number, you agree to receive text messages from Sea Sculpt Club at the number provided, sent using an automated system. Consent is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply STOP to cancel or HELP for help. Your mobile information will not be sold or shared with third parties.";
 function e164(ph) { const d = String(ph || "").replace(/\D/g, ""); return d.length === 10 ? "+1" + d : d.length === 11 && d[0] === "1" ? "+" + d : ph && ph[0] === "+" ? "+" + d : ""; }
 async function syncComms(env, user) {
   const c = user.comms || { email: true, sms: false };
@@ -400,7 +406,7 @@ async function me(request, env, db) {
   const name = user.name || (latest && latest.purchaser && latest.purchaser.name) || "";
   return json(200, {
     user: { email, name, phone, birthday: user.birthday || "", hasPassword: !!user.password, since: user.createdAt || null,
-      comms: user.comms ? { email: user.comms.email !== false, sms: !!user.comms.sms } : { email: true, sms: false }, emergency: user.emergency || null },
+      comms: user.comms ? { email: user.comms.email !== false, sms: !!user.comms.sms, smsReminders: user.comms.smsReminders != null ? !!user.comms.smsReminders : !!user.comms.sms, smsOffers: user.comms.smsOffers != null ? !!user.comms.smsOffers : !!user.comms.sms } : { email: true, sms: false, smsReminders: false, smsOffers: false }, emergency: user.emergency || null },
     reservations, codes, giftsSent, purchases, creditValue: CREDIT_VALUE
   });
 }
