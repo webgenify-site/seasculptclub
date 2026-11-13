@@ -2255,7 +2255,7 @@ var require_admin_bookings = __commonJS({
       const isOutside = event.httpMethod === "POST" && (q.action === "add-booking" || q.action === "remove-booking");
       if (event.httpMethod !== "GET" && !isImport && !isOutside) return json(405, { error: "Method not allowed" });
       const db = store(event);
-      if (q.view === "summary") return salesSummary(event, db);
+      if (q.view === "summary" || q.view === "catalog") return salesSummary(event, db);
       const denied = await checkAuth(event, db);
       if (denied) return denied;
       if (isImport) return importFromNetlify(event, db);
@@ -2354,6 +2354,10 @@ var require_admin_bookings = __commonJS({
       let diff = got.length ^ want.length;
       for (let i = 0; i < Math.min(got.length, want.length); i++) diff |= got.charCodeAt(i) ^ want.charCodeAt(i);
       if (diff) return json(401, { error: "Not authorized." });
+      if (q.view === "catalog") {
+        const { CATALOG } = require_catalog();
+        return json(200, { classes: Object.keys(CATALOG).filter((id) => CATALOG[id].kind === "class").map((id) => ({ id, className: CATALOG[id].className, date: CATALOG[id].date || null, time: CATALOG[id].time || null, location: CATALOG[id].location || null })) });
+      }
       const days = Math.min(400, Math.max(1, parseInt(q.days, 10) || 31));
       const etDay = (iso) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(iso));
       const since = etDay(new Date(Date.now() - (days - 1) * 864e5).toISOString());
