@@ -1094,7 +1094,8 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 @media (max-width:520px){.acct-count{gap:16px;padding:18px 20px;}}
 
 /* ===== My Account: butter-yellow background, clean cards ===== */
-.acct-hero + .acct{background:#FBEFB0;}
+.acct-hero + .acct{background:#C3DDF4 url("../assets/shell-pattern-tile.jpg?v=3") 0 0/1200px auto repeat;}
+@media (max-width:700px){.acct-hero + .acct{background-size:560px auto;}}
 .acct-count{border-radius:14px;padding:22px 28px;margin-bottom:20px;}
 .acct-goal{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:.85rem;color:rgba(251,246,236,.85);flex-wrap:wrap;}
 .acct-goal-bar{flex:0 0 160px;height:6px;border-radius:6px;background:rgba(251,246,236,.2);overflow:hidden;}
