@@ -1,5 +1,5 @@
 // Sculpt Studio (seasculptclub.com/studio) is for the owner only.
-// Sign-in is a 4-digit code kept in the STUDIO_CODE secret (Cloudflare → Settings → Variables and Secrets).
+// Sign-in is a 4-digit code: the STUDIO_CODE secret if set, otherwise studio_settings.code in the DB (D1).
 // Until STUDIO_CODE is set, the page asks for ADMIN_PASSWORD instead.
 // Wrong codes are rate-limited in the DB (D1): 5 tries per device per 15 minutes,
 // and 30 wrong tries in total per hour locks the page for everyone until the hour is up.
@@ -109,7 +109,14 @@ function page({ mode, message = "", status = 200, locked = false }) {
 export async function onRequest(context) {
   const { request, env } = context;
   const admin = (env && env.ADMIN_PASSWORD) || "";
-  const rawCode = String((env && env.STUDIO_CODE) || "").trim();
+  let rawCode = String((env && env.STUDIO_CODE) || "").trim();
+  if (!rawCode && env && env.DB) {
+    // The code can also live in the private database (table studio_settings, k = 'code').
+    try {
+      const row = await env.DB.prepare("SELECT v FROM studio_settings WHERE k = 'code'").first();
+      rawCode = String((row && row.v) || "").trim();
+    } catch {}
+  }
   const code = /^\d{4}$/.test(rawCode) ? rawCode : "";
   const mode = code ? "code" : "password";
   const expected = code || admin;
