@@ -2253,15 +2253,23 @@ var require_admin_bookings = __commonJS({
       const q = event.queryStringParameters || {};
       const isImport = event.httpMethod === "POST" && q.action === "import-netlify";
       const isOutside = event.httpMethod === "POST" && (q.action === "add-booking" || q.action === "remove-booking");
-      if (event.httpMethod !== "GET" && !isImport && !isOutside) return json(405, { error: "Method not allowed" });
+      const isCheckin = event.httpMethod === "POST" && q.action === "checkin";
+      if (event.httpMethod !== "GET" && !isImport && !isOutside && !isCheckin) return json(405, { error: "Method not allowed" });
       const db = store(event);
       if (q.view === "summary" || q.view === "catalog") return salesSummary(event, db);
       const denied = await checkAuth(event, db);
       if (denied) return denied;
       if (isImport) return importFromNetlify(event, db);
       if (isOutside) return q.action === "add-booking" ? addOutsideBooking(event, db) : removeOutsideBooking(event, db);
+      if (isCheckin) return saveCheckin(event, db);
       const view = q.view || "bookings";
       let records;
+      if (view === "checkins") {
+        const { blobs } = await db.list({ prefix: "checkins/" });
+        const out = {};
+        for (const b of blobs) { const r = await db.get(b.key, { type: "json" }); if (r) out[b.key.slice(9)] = r.people || {}; }
+        return json(200, { view, records: out });
+      }
       if (view === "classes") {
         const { CATALOG } = require_catalog();
         const list = Object.keys(CATALOG).filter((k) => CATALOG[k].kind === "class").map((k) => ({ id: k, className: CATALOG[k].className, date: CATALOG[k].date || null, dateLabel: CATALOG[k].dateLabel || null, amount: CATALOG[k].amount || 0 }));
@@ -2307,6 +2315,22 @@ var require_admin_bookings = __commonJS({
     };
     // Bookings taken somewhere else (Towns Of, cash, Venmo sent directly...). The owner adds them from
     // the admin so they show on rosters and in sales. No email is sent and no account is created.
+    // Door check-in: one record per class ("checkins/<class key>") listing who came and when.
+    async function saveCheckin(event, db) {
+      let b;
+      try { b = JSON.parse(event.body || "{}"); } catch (e) { return json(400, { error: "Bad request." }); }
+      const cls = String(b.classKey || "").slice(0, 160), person = String(b.personKey || "").slice(0, 160);
+      if (!cls || !person || /[\/]/.test(cls)) return json(400, { error: "Missing class or person." });
+      const key = "checkins/" + cls;
+      await db.setJSON(key, { people: {} }, { onlyIfNew: true });
+      const next = await db.update(key, (cur) => {
+        cur.people = cur.people || {};
+        if (b.on) cur.people[person] = { at: new Date().toISOString(), name: String(b.name || "").slice(0, 120) };
+        else delete cur.people[person];
+        return cur;
+      });
+      return json(200, { ok: true, people: next.people });
+    }
     async function addOutsideBooking(event, db) {
       let b;
       try { b = JSON.parse(event.body || "{}"); } catch (e) { return json(400, { error: "Bad request." }); }

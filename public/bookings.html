@@ -80,6 +80,13 @@
   .hbar .track{display:block;height:10px;background:#EEF3F8;border-radius:5px;overflow:hidden;} .hbar .fill{display:block;height:100%;background:var(--navy);border-radius:0 5px 5px 0;}
   .hbar .amt{text-align:right;white-space:nowrap;} .hbar .amt small{display:block;color:var(--soft);font-size:.75rem;}
   .num{text-align:right;white-space:nowrap;}
+  .ck-btn{min-width:110px;min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid var(--navy);background:#fff;color:var(--navy);font:600 .85rem system-ui,sans-serif;cursor:pointer;white-space:nowrap;}
+  .ck-btn.on{background:var(--navy);color:#fff;}
+  .ck-btn.small{min-width:86px;min-height:32px;font-size:.75rem;border-color:rgba(18,49,79,.35);color:var(--soft);}
+  .ck-btn.small.on{background:#E3EEF7;color:var(--navy);border-color:var(--navy);}
+  tr.ck-here td{background:#F2F8FC;}
+  .roster.is-today{border:2px solid var(--navy);}
+  .today-ribbon{background:var(--navy);color:#fff;font:600 .72rem system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:7px 16px;}
   .ext-tag{display:inline-block;background:#E9E2D4;color:#12314F;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
   .add-dlg{border:0;border-radius:14px;padding:22px 24px;max-width:560px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(10,30,50,.3);}
   .add-dlg::backdrop{background:rgba(10,30,50,.45);}
@@ -179,7 +186,8 @@
     return fetch(API + "?" + new URLSearchParams(params), { headers: { "x-admin-password": pw() }, cache: "no-store" });
   }
   function load(v, force) {
-    if (v === "rosters" || v === "sales") return load("bookings", force);
+    if (v === "rosters") return load("bookings", force).then(function () { return load("checkins", force).catch(function (e) { if (e.message === "auth") throw e; data.checkins = {}; }); });
+    if (v === "sales") return load("bookings", force);
     if (data[v] && !force) return Promise.resolve(data[v]);
     $("appErr").textContent = ""; $("list").innerHTML = '<p class="note">Loading…</p>';
     return call({ view: v }).then(function (r) {
@@ -412,31 +420,36 @@
   // Class rosters: who's coming to each class (upcoming first), from saved bookings.
   function todayET() { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } }
   function renderRosters() {
-    var recs = data.bookings || [], today = todayET(), showPast = $("showPastRoster").checked, classes = {};
+    var recs = data.bookings || [], today = todayET(), showPast = $("showPastRoster").checked, classes = {}, ckAll = data.checkins || {};
     recs.forEach(function (r) {
       if (r.livemode === false || r.source === "test") return;
-      (r.items || []).forEach(function (it) {
+      (r.items || []).forEach(function (it, itIdx) {
         if (it.kind !== "class") return;
         var k = (it.className || "Class") + "||" + (it.date || "");
-        var c = classes[k] = classes[k] || { name: it.className, date: it.date, dateLabel: it.dateLabel, time: it.time, location: it.location, people: [], cancelled: [] };
+        var ckKey = String(it.catalogId || k).replace(/[\/]/g, "-");
+        var c = classes[k] = classes[k] || { name: it.className, date: it.date, dateLabel: it.dateLabel, time: it.time, location: it.location, people: [], cancelled: [], ck: ckKey };
         var names = (it.attendees && it.attendees.length ? it.attendees : [r.purchaser.name]).slice(0, it.spots || 1);
         while (names.length < (it.spots || 1)) names.push("(guest of " + r.purchaser.name + ")");
         names.forEach(function (n, i) {
-          var person = { name: n || r.purchaser.name, by: r.purchaser.name, email: r.purchaser.email, phone: r.purchaser.phone, ref: r.ref, isBuyer: i === 0, intake: r.intake || {}, emergency: r.emergency, code: i < (it.giftCovered || 0), pay: payTag(r), extId: r.provider === "outside" && i === 0 ? r.id : null, note: i === 0 ? r.outsideNote : null };
+          var person = { pk: r.id + ":" + itIdx + ":" + i, name: n || r.purchaser.name, by: r.purchaser.name, email: r.purchaser.email, phone: r.purchaser.phone, ref: r.ref, isBuyer: i === 0, intake: r.intake || {}, emergency: r.emergency, code: i < (it.giftCovered || 0), pay: payTag(r), extId: r.provider === "outside" && i === 0 ? r.id : null, note: i === 0 ? r.outsideNote : null };
           (it.cancelled ? c.cancelled : c.people).push(person);
         });
       });
     });
     var list = Object.keys(classes).map(function (k) { return classes[k]; })
       .filter(function (c) { return showPast || !c.date || c.date >= today; })
-      .sort(function (a, b) { return String(a.date || "9999").localeCompare(String(b.date || "9999")); });
+      .sort(function (a, b) { return (a.date === today ? 0 : 1) - (b.date === today ? 0 : 1) || String(a.date || "9999").localeCompare(String(b.date || "9999")); });
     if (!list.length) { $("list").innerHTML = '<div class="empty">No upcoming class sign-ups yet.</div>'; return; }
     $("list").innerHTML = list.map(function (c) {
       var when = c.date ? new Date(c.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : (c.dateLabel || "");
-      var past = c.date && c.date < today;
-      return '<section class="group roster' + (past ? " is-past" : "") + '"><div class="roster-head"><div><h2>' + esc(c.name) + '</h2><p>' + esc([when, c.time, c.location].filter(Boolean).join(" · ")) + '</p></div>' +
-        '<div class="roster-count"><strong>' + c.people.length + '</strong> signed up' + (c.cancelled.length ? '<br><small>' + c.cancelled.length + ' cancelled</small>' : "") + '</div></div>' +
-        (c.people.length ? '<div class="scroll"><table><thead><tr><th>#</th><th>Name</th><th>Booked by</th><th>Phone</th><th>Notes</th></tr></thead><tbody>' +
+      var past = c.date && c.date < today, isToday = c.date === today, doorMode = past || isToday;
+      var ck = ckAll[c.ck] || {}, came = c.people.filter(function (p) { return ck[p.pk]; }).length;
+      var countHtml = isToday ? '<strong>' + came + '</strong> of ' + c.people.length + ' checked in'
+        : past ? (came ? '<strong>' + came + '</strong> of ' + c.people.length + ' came' : '<strong>' + c.people.length + '</strong> signed up<br><small>no check-ins recorded</small>')
+        : '<strong>' + c.people.length + '</strong> signed up';
+      return '<section class="group roster' + (past ? " is-past" : "") + (isToday ? " is-today" : "") + '">' + (isToday ? '<div class="today-ribbon">Today &middot; check-in</div>' : "") + '<div class="roster-head"><div><h2>' + esc(c.name) + '</h2><p>' + esc([when, c.time, c.location].filter(Boolean).join(" · ")) + '</p></div>' +
+        '<div class="roster-count">' + countHtml + (c.cancelled.length ? '<br><small>' + c.cancelled.length + ' cancelled</small>' : "") + '</div></div>' +
+        (c.people.length ? '<div class="scroll"><table><thead><tr>' + (doorMode ? '<th>' + (isToday ? "Here?" : "Came?") + '</th>' : "") + '<th>#</th><th>Name</th><th>Booked by</th><th>Phone</th><th>Notes</th></tr></thead><tbody>' +
           c.people.map(function (p, i) {
             var q = p.intake, notes = [];
             if (p.isBuyer && q.injuries) notes.push('<span class="intake-flag">&#9888; ' + esc(q.injuries) + '</span>');
@@ -446,7 +459,9 @@
             if (p.isBuyer && p.pay) notes.push(p.pay);
             if (p.note) notes.push(esc(p.note));
             if (p.extId) notes.push('<button type="button" class="linkbtn" data-remove="' + esc(p.extId) + '">Remove this booking</button>');
-            return '<tr><td>' + (i + 1) + '</td><td><strong>' + esc(p.name) + '</strong></td><td>' + esc(p.isBuyer ? "Self" : p.by) + '<br><small><a class="ref" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a> · ' + esc(p.ref || "") + '</small></td>' +
+            var here = ck[p.pk];
+            var ckCell = doorMode ? '<td><button type="button" class="ck-btn' + (here ? " on" : "") + (past ? " small" : "") + '" data-ck="' + esc(c.ck) + '" data-pk="' + esc(p.pk) + '" data-name="' + esc(p.name) + '" aria-pressed="' + (here ? "true" : "false") + '">' + (here ? "&#10003; " + (isToday ? "Here" : "Came") : (isToday ? "Check in" : "No-show")) + '</button>' + (here && isToday ? '<br><small>' + esc(new Date(here.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })) + '</small>' : "") + '</td>' : "";
+            return '<tr' + (here ? ' class="ck-here"' : "") + '>' + ckCell + '<td>' + (i + 1) + '</td><td><strong>' + esc(p.name) + '</strong></td><td>' + esc(p.isBuyer ? "Self" : p.by) + '<br><small><a class="ref" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a> · ' + esc(p.ref || "") + '</small></td>' +
               '<td>' + (p.phone ? '<a class="ref" href="tel:' + esc(p.phone) + '">' + esc(p.phone) + '</a>' : "") + '</td><td>' + notes.join("<br>") + '</td></tr>';
           }).join("") + '</tbody></table></div>' : '<p class="note">No one signed up yet.</p>') +
         (c.cancelled.length ? '<p class="note">Cancelled: ' + esc(c.cancelled.map(function (p) { return p.name; }).join(", ")) + '</p>' : "") +
@@ -639,6 +654,18 @@
       .then(function () { $("addSave").disabled = false; });
   });
   $("list").addEventListener("click", function (e) {
+    var cb = e.target.closest && e.target.closest(".ck-btn");
+    if (cb) {
+      var cls = cb.getAttribute("data-ck"), pk = cb.getAttribute("data-pk"), on = !cb.classList.contains("on");
+      data.checkins = data.checkins || {}; var prev = data.checkins[cls] ? JSON.parse(JSON.stringify(data.checkins[cls])) : {};
+      data.checkins[cls] = data.checkins[cls] || {};
+      if (on) data.checkins[cls][pk] = { at: new Date().toISOString() }; else delete data.checkins[cls][pk];
+      var y = window.scrollY; render(); window.scrollTo(0, y);
+      postAdmin("checkin", { classKey: cls, personKey: pk, name: cb.getAttribute("data-name"), on: on })
+        .then(function (d) { data.checkins[cls] = d.people || {}; var y2 = window.scrollY; render(); window.scrollTo(0, y2); })
+        .catch(function (err) { data.checkins[cls] = prev; render(); if (err.message !== "auth") $("appErr").textContent = "Check-in didn't save: " + err.message; });
+      return;
+    }
     var b = e.target.closest && e.target.closest("[data-remove]"); if (!b) return;
     if (!window.confirm("Remove this hand-added booking? This can't be undone.")) return;
     postAdmin("remove-booking", { id: b.getAttribute("data-remove") }).then(function () { return load("bookings", true); }).then(render)
