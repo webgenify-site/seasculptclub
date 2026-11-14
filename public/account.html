@@ -153,37 +153,45 @@
 
       <div class="acct-count" id="acctCount" aria-live="polite">
         <span class="acct-count-num" id="acctCountNum">0</span>
-        <span class="acct-count-label"><strong id="acctCountWord">classes</strong> with Sea Sculpt Club<span id="acctCountNext"></span></span>
+        <span class="acct-count-label"><strong id="acctCountWord">classes</strong> with Sea Sculpt Club<span id="acctCountNext"></span>
+          <span class="acct-goal"><span class="acct-goal-bar"><i id="acctGoalFill"></i></span><span id="acctGoalText"></span></span>
+        </span>
       </div>
 
+      <nav class="acct-quick" aria-label="Quick actions">
+        <a href="classes.html#events" class="acct-tile t-navy"><span class="acct-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><strong>Book a class</strong><small>See the schedule</small></a>
+        <a href="buy.html#packs" class="acct-tile t-sea"><span class="acct-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg></span><strong>Class packs</strong><small>Save on every class</small></a>
+        <a href="buy.html#gift-cards" class="acct-tile t-coral"><span class="acct-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="9" width="17" height="11" rx="2"/><path d="M3.5 13h17M12 9v11M12 9c-1.5-3.5-5-4-5-1.5S10 9 12 9c2 0 5-.5 5-1.5S13.5 5.5 12 9z"/></svg></span><strong>Send a gift</strong><small>eGift cards</small></a>
+      </nav>
+
       <div class="acct-section">
-        <h2>Class packs &amp; eGift cards</h2>
+        <h2><span class="acct-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg></span>Class packs &amp; eGift cards</h2>
         <div id="acctCodes"></div>
       </div>
 
       <div class="acct-section">
-        <h2>Upcoming reservations</h2>
+        <h2><span class="acct-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Upcoming reservations</h2>
         <div id="acctUpcoming"></div>
       </div>
 
       <div class="acct-section" id="acctPastWrap" hidden>
-        <h2>Past classes</h2>
+        <h2><span class="acct-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 14c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 3-2"/><path d="M2.5 18.5c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 3-2"/><circle cx="16.5" cy="6.5" r="2.5"/></svg></span>Past classes</h2>
         <div id="acctPast"></div>
       </div>
 
       <div class="acct-section" id="acctGiftsWrap" hidden>
-        <h2>eGifts you&rsquo;ve sent</h2>
+        <h2><span class="acct-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="9" width="17" height="11" rx="2"/><path d="M3.5 13h17M12 9v11M12 9c-1.5-3.5-5-4-5-1.5S10 9 12 9c2 0 5-.5 5-1.5S13.5 5.5 12 9z"/></svg></span>eGifts you&rsquo;ve sent</h2>
         <div id="acctGifts"></div>
       </div>
 
       <div class="acct-section" id="acctCardsWrap">
-        <h2>Saved cards</h2>
+        <h2><span class="acct-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/></svg></span>Saved cards</h2>
         <div id="acctCards"><p class="acct-empty">Loading…</p></div>
         <p class="acct-fine">Cards are stored securely by Stripe, never on our website. To save a card, tick &ldquo;Save my card&rdquo; when you pay while signed in.</p>
       </div>
 
       <div class="acct-section acct-settings">
-        <h2>Settings</h2>
+        <h2><span class="acct-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg></span>Settings</h2>
         <form id="settingsForm" novalidate>
           <h3>Communication</h3>
           <label class="acct-switch"><input type="checkbox" id="cmEmail"> <span><strong>Email</strong> me about new classes, events and offers</span></label>
@@ -278,7 +286,11 @@
     var nextUp = up.filter(function (r) { return !r.cancelled; }).length;
     $("acctCountNum").textContent = done;
     $("acctCountWord").textContent = done === 1 ? "class" : "classes";
-    $("acctCountNext").textContent = done === 0 ? (nextUp ? " · your first one is coming up!" : " · your first one is waiting") : (nextUp ? " · " + nextUp + " more coming up" : "");
+    var goals = [1, 5, 10, 25, 50, 100, 150, 200], goal = goals.filter(function (g) { return g > done; })[0] || (Math.floor(done / 50) + 1) * 50;
+    var prevGoal = goals.filter(function (g) { return g <= done; }).pop() || 0;
+    $("acctGoalFill").style.width = Math.round((done - prevGoal) / Math.max(1, goal - prevGoal) * 100) + "%";
+    $("acctGoalText").textContent = done === 0 ? "Take your first class to start your streak" : (goal - done) + " more to " + goal + " classes" + (goal >= 10 ? " \uD83C\uDF89" : "");
+    $("acctCountNext").textContent = done === 0 ? (nextUp ? " · your first one is coming up!" : " · your first one is waiting") : (nextUp ? " · " + nextUp + " coming up" : "");
     $("acctUpcoming").innerHTML = up.length ? up.map(resRow).join("") : '<p class="acct-empty">No upcoming classes. <a href="classes.html#events">See the schedule &rarr;</a></p>';
     $("acctPastWrap").hidden = !past.length;
     $("acctPast").innerHTML = past.map(resRow).join("");

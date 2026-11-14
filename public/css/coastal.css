@@ -1092,3 +1092,33 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .acct-count-label{font-size:1.05rem;line-height:1.4;color:rgba(251,246,236,.88);}
 .acct-count-label strong{display:block;font:500 1.5rem/1.15 'Cormorant Garamond',Georgia,serif;color:#fff;letter-spacing:.01em;}
 @media (max-width:520px){.acct-count{gap:16px;padding:18px 20px;}}
+
+/* ===== My Account: butter-yellow app look ===== */
+.acct-hero + .acct{background:#FBEFB0;}
+.acct-hero + .acct .acct-section,.acct-hero + .acct .acct-card{border-radius:24px;border:1.5px solid rgba(18,49,79,.12);box-shadow:0 6px 0 rgba(18,49,79,.10);}
+.acct-section h2{display:flex;align-items:center;gap:12px;}
+.acct-ico{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:14px;background:#FBEFB0;color:#12314F;flex:0 0 auto;}
+.acct-ico svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.acct-count{border-radius:26px;box-shadow:0 6px 0 rgba(18,49,79,.25);padding:24px 28px;margin-bottom:18px;}
+.acct-goal{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.85rem;color:rgba(251,246,236,.85);flex-wrap:wrap;}
+.acct-goal-bar{flex:0 0 160px;height:10px;border-radius:99px;background:rgba(251,246,236,.18);overflow:hidden;}
+.acct-goal-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#F6E2B3,#FFD27A);border-radius:99px;transition:width .8s cubic-bezier(.2,.8,.2,1);}
+.acct-quick{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 22px;}
+.acct-tile{display:flex;flex-direction:column;gap:4px;padding:16px 16px 14px;border-radius:22px;text-decoration:none;color:#12314F;background:#fff;border:1.5px solid rgba(18,49,79,.12);box-shadow:0 6px 0 rgba(18,49,79,.10);transition:transform .15s ease,box-shadow .15s ease;}
+.acct-tile:hover{transform:translateY(-2px);box-shadow:0 8px 0 rgba(18,49,79,.12);}
+.acct-tile:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(18,49,79,.12);}
+.acct-tile .acct-ico{margin-bottom:6px;}
+.acct-tile strong{font:500 1.25rem/1.1 'Cormorant Garamond',Georgia,serif;}
+.acct-tile small{font-size:.8rem;color:#4A6683;}
+.acct-tile.t-navy .acct-ico{background:#12314F;color:#FBEFB0;}
+.acct-tile.t-sea .acct-ico{background:#D6E8F5;}
+.acct-tile.t-coral .acct-ico{background:#FCE0D2;color:#A2401B;}
+.acct-hero + .acct .acct-top h1{font-size:clamp(2.6rem,6vw,3.6rem);}
+.acct-hero + .acct .cl-btn-navy{border-radius:999px;}
+@media (max-width:600px){
+  .acct-quick{gap:8px;}
+  .acct-tile{padding:12px 10px 10px;border-radius:18px;}
+  .acct-tile strong{font-size:1.05rem;}
+  .acct-tile small{display:none;}
+  .acct-goal-bar{flex-basis:120px;}
+}
