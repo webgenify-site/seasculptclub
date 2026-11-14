@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf7">
-<link rel="stylesheet" href="css/coastal.css?v=cf34">
+<link rel="stylesheet" href="css/coastal.css?v=cf35">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/account">
@@ -151,6 +151,7 @@
         </div>
       </div>
 
+      <div class="acct-celebrate" id="acctCelebrate" hidden></div>
       <div class="acct-count" id="acctCount" aria-live="polite">
         <span class="acct-count-num" id="acctCountNum">0</span>
         <span class="acct-count-label"><strong id="acctCountWord">classes</strong> with Sea Sculpt Club<span id="acctCountNext"></span>
@@ -279,6 +280,17 @@
     var done = past.filter(function (r) { return !r.cancelled; }).length;
     var nextUp = up.filter(function (r) { return !r.cancelled; }).length;
     $("acctCountNum").textContent = done;
+    // Birthday (on the day, Eastern time) and class milestones (10, 50, 100: shown until their next class).
+    var tET = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+    var msgs = [], todayMD = tET.slice(5), bd = String(d.user.birthday || "");
+    var yr = +tET.slice(0, 4), leap = (yr % 4 === 0 && yr % 100 !== 0) || yr % 400 === 0;
+    var firstName = esc(String(d.user.name || "").trim().split(/\s+/)[0] || "");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(bd) && (bd.slice(5) === todayMD || (!leap && bd.slice(5) === "02-29" && todayMD === "02-28")))
+      msgs.push('<span class="acct-cel-emoji" aria-hidden="true">\uD83C\uDF82</span><span><strong>Happy birthday' + (firstName ? ", " + firstName : "") + '!</strong> Wishing you a wonderful day from all of us at Sea Sculpt Club.</span>');
+    if ([10, 50, 100].indexOf(done) >= 0)
+      msgs.push('<span class="acct-cel-emoji" aria-hidden="true">\uD83C\uDF89</span><span><strong>Congrats on ' + done + ' classes' + (firstName ? ", " + firstName : "") + '!</strong> Thank you for sculpting with us. We&rsquo;re so proud of you.</span>');
+    $("acctCelebrate").innerHTML = msgs.map(function (m) { return '<div class="acct-cel">' + m + '</div>'; }).join("");
+    $("acctCelebrate").hidden = !msgs.length;
     $("acctCountWord").textContent = done === 1 ? "class" : "classes";
     var goals = [1, 5, 10, 25, 50, 100, 150, 200], goal = goals.filter(function (g) { return g > done; })[0] || (Math.floor(done / 50) + 1) * 50;
     var prevGoal = goals.filter(function (g) { return g <= done; }).pop() || 0;

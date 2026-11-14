@@ -1101,3 +1101,8 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .acct-goal-bar{flex:0 0 160px;height:6px;border-radius:6px;background:rgba(251,246,236,.2);overflow:hidden;}
 .acct-goal-bar i{display:block;height:100%;width:0;background:#F6E2B3;border-radius:6px;}
 @media (max-width:600px){.acct-goal-bar{flex-basis:120px;}}
+
+.acct-celebrate{display:grid;gap:10px;margin:0 0 14px;}
+.acct-cel{display:flex;align-items:center;gap:14px;background:#FBF6EC;border:1px solid rgba(18,49,79,.12);border-radius:14px;padding:16px 20px;color:#12314F;font-size:1rem;line-height:1.45;}
+.acct-cel strong{display:block;font:500 1.45rem/1.2 'Cormorant Garamond',Georgia,serif;}
+.acct-cel-emoji{font-size:2rem;line-height:1;}

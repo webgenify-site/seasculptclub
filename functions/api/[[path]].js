@@ -2697,7 +2697,107 @@ var require_send_gifts = __commonJS({
           sent += booking.items.reduce((n, it) => n + (it.gifts || []).filter((g) => g.status === "sent").length, 0);
         }
       }
-      return { bookingsWithDueGifts: checked };
+      let birthdays = null, milestones = null;
+      try { birthdays = await birthdayDigest(db, now); } catch (e) { console.error("birthday digest failed:", e); birthdays = "error"; }
+      try { milestones = await milestoneDigest(db, now); } catch (e) { console.error("milestone digest failed:", e); milestones = "error"; }
+      return { bookingsWithDueGifts: checked, birthdays, milestones };
+    }
+    // Once a day (from 8 AM Eastern), email the owner whose birthday it is. Runs on the hourly gift timer.
+    async function birthdayDigest(db, now) {
+      const at = now ? new Date(now) : new Date();
+      const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" }).formatToParts(at).map((x) => [x.type, x.value]));
+      const today = parts.year + "-" + parts.month + "-" + parts.day, hour = +parts.hour;
+      if (hour < 8) return "before 8am";
+      const mark = "bdaymail/" + today;
+      if (await db.get(mark, { type: "json" })) return "already sent";
+      const y = +parts.year, leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+      const mmdd = parts.month + "-" + parts.day;
+      const people = [];
+      const { blobs } = await db.list({ prefix: "users/" });
+      for (const b of blobs) {
+        const u = await db.get(b.key, { type: "json" });
+        if (!u || !/^\d{4}-\d{2}-\d{2}$/.test(String(u.birthday || ""))) continue;
+        const bd = u.birthday.slice(5);
+        if (bd === mmdd || (!leap && bd === "02-29" && mmdd === "02-28")) people.push({ name: u.name || u.email, email: u.email, phone: u.phone || "", age: y - +u.birthday.slice(0, 4) });
+      }
+      if (!people.length) { await db.setJSON(mark, { at: at.toISOString(), count: 0 }); return "none today"; }
+      if (!(await db.setJSON(mark, { at: at.toISOString(), count: people.length, sending: true }, { onlyIfNew: true })).modified) return "already sent";
+      const nice = new Date(today + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+      const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      const lines = people.map((p) => `${p.name} (turning ${p.age}) \u00B7 ${p.email}${p.phone ? " \u00B7 " + p.phone : ""}`);
+      const html = `<div style="font-family:Georgia,serif;color:#12314F;max-width:560px"><h2 style="font-weight:400">\uD83C\uDF82 Birthday${people.length > 1 ? "s" : ""} today, ${esc(nice)}</h2>` +
+        people.map((p) => `<p style="margin:0 0 12px"><strong>${esc(p.name)}</strong> is turning ${esc(p.age)}<br><a href="mailto:${esc(p.email)}">${esc(p.email)}</a>${p.phone ? " \u00B7 " + esc(p.phone) : ""}</p>`).join("") +
+        `<p style="color:#4A6683;font-size:14px">They'll see a happy birthday message when they open My Account today. A quick text or a birthday treat goes a long way.</p><p style="color:#6b7f93;font-size:12px">Sent from seasculptclub.com</p></div>`;
+      const payload = {
+        from: process.env.BOOKING_EMAIL_FROM || "Sea Sculpt Club <bookings@seasculptclub.com>",
+        to: [process.env.FORMS_EMAIL_TO || "seasculptclub@gmail.com"],
+        subject: people.length === 1 ? `\uD83C\uDF82 It's ${people[0].name}'s birthday today` : `\uD83C\uDF82 ${people.length} birthdays today`,
+        text: `Birthdays today, ${nice}:\n\n` + lines.join("\n") + "\n\nThey'll see a happy birthday message on My Account today.",
+        html
+      };
+      try {
+        const res = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": "bday-" + today }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        await db.setJSON(mark, { at: at.toISOString(), count: people.length, sent: true });
+        return "sent " + people.length;
+      } catch (e) {
+        await db.delete(mark);
+        return "send failed, will retry next hour";
+      }
+    }
+    // Once a day (from 8 AM Eastern): who just reached 10, 50 or 100 classes? Email the owner once per person per milestone.
+    var MILESTONES = [10, 50, 100];
+    async function milestoneDigest(db, now) {
+      const at = now ? new Date(now) : new Date();
+      const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" }).formatToParts(at).map((x) => [x.type, x.value]));
+      const today = parts.year + "-" + parts.month + "-" + parts.day;
+      if (+parts.hour < 8) return "before 8am";
+      if (await db.get("milestonecheck/" + today, { type: "json" })) return "already checked";
+      // Classes done per customer email: past class bookings they made that weren't cancelled (same rule as My Account).
+      const done = {}, names = {};
+      const { blobs } = await db.list({ prefix: "bookings/" });
+      for (const b of blobs) {
+        const r = await db.get(b.key, { type: "json" });
+        if (!r || r.status !== "paid" || r.livemode === false) continue;
+        const email = String(r.purchaser && r.purchaser.email || "").trim().toLowerCase();
+        if (!email || email === "seasculptclub@gmail.com") continue;
+        for (const it of r.items || []) {
+          if (it.cancelled || !it.date || it.kind === "gift" || it.kind === "pack") continue;
+          if (it.date >= today) continue;
+          done[email] = (done[email] || 0) + 1;
+          names[email] = (r.purchaser && r.purchaser.name) || email;
+        }
+      }
+      const hits = [];
+      for (const email of Object.keys(done)) {
+        for (const m of MILESTONES) {
+          if (done[email] < m) continue;
+          const key = "milestones/" + m + "/" + email;
+          if ((await db.setJSON(key, { email, name: names[email], milestone: m, count: done[email], at: at.toISOString() }, { onlyIfNew: true })).modified) hits.push({ email, name: names[email], m, count: done[email], key });
+        }
+      }
+      await db.setJSON("milestonecheck/" + today, { at: at.toISOString(), hits: hits.length });
+      if (!hits.length) return "none today";
+      const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      const html = `<div style="font-family:Georgia,serif;color:#12314F;max-width:560px"><h2 style="font-weight:400">\uD83C\uDF89 Class milestone${hits.length > 1 ? "s" : ""}</h2>` +
+        hits.map((h) => `<p style="margin:0 0 12px"><strong>${esc(h.name)}</strong> just reached <strong>${h.m} classes</strong><br><a href="mailto:${esc(h.email)}">${esc(h.email)}</a></p>`).join("") +
+        `<p style="color:#4A6683;font-size:14px">They'll see a congrats message on My Account. A shout-out or a little reward would make their day.</p><p style="color:#6b7f93;font-size:12px">Sent from seasculptclub.com</p></div>`;
+      const payload = {
+        from: process.env.BOOKING_EMAIL_FROM || "Sea Sculpt Club <bookings@seasculptclub.com>",
+        to: [process.env.FORMS_EMAIL_TO || "seasculptclub@gmail.com"],
+        subject: hits.length === 1 ? `\uD83C\uDF89 ${hits[0].name} just reached ${hits[0].m} classes` : `\uD83C\uDF89 ${hits.length} class milestones`,
+        text: hits.map((h) => `${h.name} (${h.email}) just reached ${h.m} classes.`).join("\n"),
+        html
+      };
+      try {
+        const res = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": "milestones-" + today }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return "sent " + hits.length;
+      } catch (e) {
+        for (const h of hits) await db.delete(h.key);
+        await db.delete("milestonecheck/" + today);
+        return "send failed, will retry next hour";
+      }
     }
     async function authorized(event) {
       const expected = (process.env.CRON_SECRET || "").trim();
