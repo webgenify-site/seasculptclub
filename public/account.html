@@ -65,6 +65,9 @@
     </div>
   </nav>
 </header>
+<section class="acct-hero" aria-label="Welcome to the Club">
+  <img src="assets/account-welcome-club.jpg" alt="Sea Sculpt Club. Welcome to the Club: be the first to hear about new classes, events and exclusive discounts." width="1920" height="1080" fetchpriority="high">
+</section>
 <main class="acct">
   <div class="acct-wrap">
 
@@ -146,6 +149,11 @@
           <a href="classes.html#events" class="cl-btn cl-btn-navy">Book Class</a>
           <button type="button" class="cl-link" id="acctLogout">Sign out</button>
         </div>
+      </div>
+
+      <div class="acct-count" id="acctCount" aria-live="polite">
+        <span class="acct-count-num" id="acctCountNum">0</span>
+        <span class="acct-count-label"><strong id="acctCountWord">classes</strong> with Sea Sculpt Club<span id="acctCountNext"></span></span>
       </div>
 
       <div class="acct-section">
@@ -265,6 +273,12 @@
     lastData = d;
     var up = (d.reservations || []).filter(function (r) { return r.upcoming; });
     var past = (d.reservations || []).filter(function (r) { return !r.upcoming; });
+    // Classes done: past classes they booked that weren't cancelled (friends they brought don't count).
+    var done = past.filter(function (r) { return !r.cancelled; }).length;
+    var nextUp = up.filter(function (r) { return !r.cancelled; }).length;
+    $("acctCountNum").textContent = done;
+    $("acctCountWord").textContent = done === 1 ? "class" : "classes";
+    $("acctCountNext").textContent = done === 0 ? (nextUp ? " · your first one is coming up!" : " · your first one is waiting") : (nextUp ? " · " + nextUp + " more coming up" : "");
     $("acctUpcoming").innerHTML = up.length ? up.map(resRow).join("") : '<p class="acct-empty">No upcoming classes. <a href="classes.html#events">See the schedule &rarr;</a></p>';
     $("acctPastWrap").hidden = !past.length;
     $("acctPast").innerHTML = past.map(resRow).join("");
@@ -481,18 +495,6 @@
 })();
 </script>
 
-<section class="club-banner club-banner-beach" id="join" aria-label="Join the Club">
-  <img loading="lazy" src="assets/banner-join-the-club-beach.jpg" alt="Sea Sculpt Club. Join the Club: be the first to hear about new classes, events and exclusive discounts." width="1920" height="1080">
-  <div class="club-banner-signup">
-    <form class="club-banner-form" novalidate>
-      <label class="club-pop-sr" for="bannerEmail">Email address</label>
-      <input id="bannerEmail" type="email" name="email" placeholder="Your email" autocomplete="email" required>
-      <button type="submit">Join</button>
-    </form>
-    <p class="club-banner-msg" role="alert"></p>
-    <p class="club-banner-done" hidden>You&rsquo;re in. Welcome to the club!</p>
-  </div>
-</section>
 <footer>
   <div class="wrap">
     <div class="footer-grid">

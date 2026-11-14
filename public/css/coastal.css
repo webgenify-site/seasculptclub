@@ -1079,3 +1079,16 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 }
 .club-banner-form[hidden],.club-banner-done[hidden]{display:none !important;}
 .acct-smshead{font-size:1.05rem;margin:18px 0 10px;}
+
+/* My Account header image */
+.acct-hero{line-height:0;background:#2E6A9E;}
+.acct-hero img{display:block;width:100%;height:auto;max-height:560px;object-fit:cover;object-position:50% 45%;}
+@media (max-width:700px){.acct-hero img{aspect-ratio:4/3;height:auto;max-height:none;object-position:50% 40%;}}
+
+.acct-hero + .acct{padding-top:48px;}
+@media (max-width:700px){.acct-hero + .acct{padding-top:28px;}}
+.acct-count{display:flex;align-items:center;gap:22px;background:#12314F;color:#FBF6EC;border-radius:18px;padding:22px 28px;margin:0 0 28px;}
+.acct-count-num{font:400 clamp(4.2rem,9vw,6.2rem)/.9 'Cormorant Garamond',Georgia,serif;letter-spacing:-.02em;color:#F6E2B3;min-width:1ch;text-align:center;}
+.acct-count-label{font-size:1.05rem;line-height:1.4;color:rgba(251,246,236,.88);}
+.acct-count-label strong{display:block;font:500 1.5rem/1.15 'Cormorant Garamond',Georgia,serif;color:#fff;letter-spacing:.01em;}
+@media (max-width:520px){.acct-count{gap:16px;padding:18px 20px;}}
