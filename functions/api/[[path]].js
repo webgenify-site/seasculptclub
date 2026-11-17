@@ -2621,6 +2621,7 @@ var require_form = __commonJS({
     var FORMS = {
       contact: "Contact form",
       newsletter: "Newsletter signup",
+      "sms-optin": "Text message signup",
       "private-inquiry": "Private session question"
     };
     var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -2700,12 +2701,35 @@ Sent ${rec.createdAt}`;
       for (const [k, v] of Object.entries(body)) {
         if (k === "form-name" || k === "bot-field" || typeof v !== "string") continue;
         if (!/^[a-z_-]{1,40}$/i.test(k) || Object.keys(fields).length >= 12) continue;
-        const val = clean(v, k === "message" ? 4e3 : 300);
+        const val = clean(v, k === "message" || k === "consentText" ? 4e3 : 300);
         if (val) fields[k] = val;
       }
       if (fields.email) fields.email = fields.email.toLowerCase();
-      if (!EMAIL_RE.test(fields.email || "")) return reply(event, 400, { error: "Please enter a valid email address." });
-      if (form2 !== "newsletter" && !fields.message) return reply(event, 400, { error: "Please include a message." });
+      if (form2 === "sms-optin") {
+        let d = String(fields.phone || "").replace(/\D/g, "");
+        if (d.length === 11 && d[0] === "1") d = d.slice(1);
+        if (d.length !== 10) return reply(event, 400, { error: "Please enter a 10-digit US mobile number." });
+        if (fields.smsReminders !== "yes" && fields.smsOffers !== "yes") return reply(event, 400, { error: "Check at least one box to choose which texts you'd like." });
+        if (fields.email && !EMAIL_RE.test(fields.email)) return reply(event, 400, { error: "That email doesn't look right." });
+        fields.phone = "+1" + d;
+        const at = new Date().toISOString(), ip = clean(event.headers && (event.headers["cf-connecting-ip"] || event.headers["x-forwarded-for"] || ""), 60);
+        const consent = { phone: fields.phone, name: fields.name || null, email: fields.email || null, smsReminders: fields.smsReminders === "yes", smsOffers: fields.smsOffers === "yes", consentText: fields.consentText || null, source: "seasculptclub.com/texts", ip, userAgent: clean(event.headers && (event.headers["user-agent"] || ""), 300), at };
+        try { await store(event).setJSON("smsoptin/" + fields.phone, consent); } catch (e) { console.error("Could not save SMS consent:", e && e.message); }
+        if (process.env.BREVO_API_KEY) {
+          try {
+            const attributes = { SMS: fields.phone };
+            if (fields.name) attributes.FIRSTNAME = fields.name;
+            const bb = { attributes, updateEnabled: true, smsBlacklisted: false };
+            if (fields.email) bb.email = fields.email;
+            await fetch("https://api.brevo.com/v3/contacts", { method: "POST", headers: { "api-key": process.env.BREVO_API_KEY, "Content-Type": "application/json", accept: "application/json" }, body: JSON.stringify(bb) });
+          } catch (e) {}
+        }
+        delete fields.consentText;
+        fields.message = "Text sign-up: " + [fields.smsReminders === "yes" ? "class reminders & booking updates" : "", fields.smsOffers === "yes" ? "offers, new classes & events" : ""].filter(Boolean).join(" + ");
+      } else {
+        if (!EMAIL_RE.test(fields.email || "")) return reply(event, 400, { error: "Please enter a valid email address." });
+        if (form2 !== "newsletter" && !fields.message) return reply(event, 400, { error: "Please include a message." });
+      }
       const now = (/* @__PURE__ */ new Date()).toISOString();
       const rec = { id: randomHex(6), form: form2, fields, createdAt: now, page: clean(event.headers && (event.headers.referer || ""), 300) };
       const key = `forms/${now}-${rec.id}`;

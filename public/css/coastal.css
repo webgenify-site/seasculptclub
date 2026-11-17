@@ -1107,3 +1107,14 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .acct-cel strong{display:block;font:500 1.45rem/1.2 'Cormorant Garamond',Georgia,serif;}
 .acct-cel-emoji{font-size:2rem;line-height:1;}
 .cl-dates li span a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:rgba(18,49,79,.35);}.cl-dates li span a:hover{text-decoration-color:currentColor;}
+
+.sms-form{display:grid;gap:6px;max-width:520px;margin:22px 0 0;}
+.sms-form label{font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;color:#4A6683;margin-top:10px;}
+.sms-form .sms-opt{text-transform:none;letter-spacing:0;}
+.sms-form input[type=text],.sms-form input:not([type]),.sms-form input[type=email],.sms-form input[type=tel]{padding:12px 14px;border:1px solid rgba(18,49,79,.25);border-radius:8px;font:inherit;font-size:1rem;background:#fff;}
+.sms-fine{font-size:.85rem;line-height:1.5;color:#4A6683;margin:8px 0 4px;}
+.sms-form .sms-check{display:flex;gap:10px;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:1rem;color:#12314F;margin-top:8px;}
+.sms-check input{width:20px;height:20px;margin-top:2px;flex:0 0 auto;}
+.sms-err{color:#A2401B;min-height:1.2em;margin:6px 0;}
+.sms-err:empty{min-height:0;margin:0;}
+.sms-form .btn{justify-self:start;margin-top:8px;}

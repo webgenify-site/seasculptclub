@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JNNNZ9YKTS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-JNNNZ9YKTS');
+</script>
+<!-- Start of HubSpot Embed Code -->
+<script type="text/javascript" id="hs-script-loader" async defer src="//js.hs-scripts.com/246935165.js"></script>
+<!-- End of HubSpot Embed Code -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Messages | Sea Sculpt Club</title>
+<meta name="description" content="Sign up for Sea Sculpt Club text messages: class reminders, booking updates, offers and new classes.">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=cf7">
+<link rel="stylesheet" href="css/coastal.css?v=cf37">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sea Sculpt Club">
+<meta property="og:url" content="https://seasculptclub.com/privacy">
+<meta property="og:title" content="Privacy Policy | Sea Sculpt Club">
+<meta property="og:description" content="How Sea Sculpt Club collects, uses and protects your personal information, including email and text messages.">
+<meta property="og:image" content="https://seasculptclub.com/assets/og-home.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sea Sculpt Club — Themed experiences, beach at sunset">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<header>
+  <nav class="wrap">
+    <a href="index.html" class="brand">
+      <img src="assets/logo.png" alt="Sea Sculpt Club" class="brand-stack">
+    </a>
+        <div class="navlinks" id="navlinks">
+      <a href="index.html" class="nav-mobile-only">Home</a>
+      <div class="nav-dropdown"><a href="about.html">About</a>
+      <div class="nav-dropdown-menu">
+      <a href="contact.html">Contact</a>
+      <a href="collaborate.html">Collaborate</a>
+      <a href="wellness.html">Wellness</a>
+      <a href="blog.html">Blog</a>
+      </div></div>
+      <div class="nav-dropdown"><a href="/parties">Private Events</a>
+      <div class="nav-dropdown-menu">
+      <a href="/parties">Parties</a>
+      <a href="/privates">Private Sessions</a>
+      </div></div>
+      <a href="account.html">My Account</a>
+      <a href="buy.html" class="nav-buy-link">Buy</a>
+      <a href="classes.html" class="nav-mobile-only">Book Class</a>
+    </div>
+    <div class="nav-cta-wrap">
+      <a href="classes.html" class="btn btn-fill">Book Class</a>
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+</header>
+<main class="waiver sms-page">
+  <div class="waiver-wrap">
+    <span class="eyebrow">Sea Sculpt Club</span>
+    <h1>Get texts from Sea Sculpt Club</h1>
+    <p>Sign up for text messages from Sea Sculpt Club. Choose class reminders and booking updates, offers and new classes, or both. Texts are optional and you can stop any time.</p>
+    <form class="sms-form" id="smsForm" novalidate>
+      <input type="text" name="bot-field" tabindex="-1" autocomplete="off" class="club-pop-sr" aria-hidden="true">
+      <label for="smsName">First name <span class="sms-opt">(optional)</span></label>
+      <input id="smsName" name="name" autocomplete="given-name">
+      <label for="smsEmail">Email <span class="sms-opt">(optional)</span></label>
+      <input id="smsEmail" name="email" type="email" autocomplete="email">
+      <label for="smsPhone">Mobile phone number</label>
+      <input id="smsPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(732) 555-0123" required>
+      <p class="sms-fine" id="smsDisclosure">By providing your mobile phone number and checking a box below, you agree to receive text messages from Sea Sculpt Club at the number provided, sent using an automated system. Consent is not a condition of purchase. Message frequency varies. Message and data rates may apply. Reply STOP to cancel or HELP for help. Your mobile information will not be sold or shared with third parties. For additional assistance, contact <a href="mailto:seasculptclub@gmail.com">seasculptclub@gmail.com</a> or <a href="tel:+17327357589">732-735-7589</a>. Carriers are not liable for any delayed or undelivered messages. See our <a href="/terms#sms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+      <label class="sms-check"><input type="checkbox" name="smsReminders" value="yes"> <span>Yes, text me <strong>class reminders and booking updates</strong> from Sea Sculpt Club.</span></label>
+      <label class="sms-check"><input type="checkbox" name="smsOffers" value="yes"> <span>Yes, text me <strong>offers, new classes and events</strong> from Sea Sculpt Club.</span></label>
+      <p class="sms-err" id="smsErr" role="alert"></p>
+      <button type="submit" class="btn btn-fill" id="smsBtn">Sign up for texts</button>
+    </form>
+    <div class="sms-done" id="smsDone" hidden>
+      <h2>You&rsquo;re signed up!</h2>
+      <p>Thanks for joining Sea Sculpt Club texts. Reply STOP at any time to cancel or HELP for help.</p>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  var f = document.getElementById("smsForm"), err = document.getElementById("smsErr"), btn = document.getElementById("smsBtn");
+  f.addEventListener("submit", function (e) {
+    e.preventDefault(); err.textContent = "";
+    var digits = f.phone.value.replace(/\D/g, "");
+    if (digits.length === 11 && digits[0] === "1") digits = digits.slice(1);
+    if (digits.length !== 10) { err.textContent = "Please enter a 10-digit US mobile number."; f.phone.focus(); return; }
+    if (!f.smsReminders.checked && !f.smsOffers.checked) { err.textContent = "Check at least one box to choose which texts you'd like."; return; }
+    if (f.email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.value.trim())) { err.textContent = "That email doesn't look right."; f.email.focus(); return; }
+    btn.disabled = true; btn.textContent = "Signing up…";
+    var data = new URLSearchParams();
+    data.append("form-name", "sms-optin");
+    ["bot-field", "name", "email", "phone"].forEach(function (k) { data.append(k, f[k].value.trim()); });
+    data.append("smsReminders", f.smsReminders.checked ? "yes" : "no");
+    data.append("smsOffers", f.smsOffers.checked ? "yes" : "no");
+    data.append("consentText", document.getElementById("smsDisclosure").innerText);
+    fetch("/api/form", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: data.toString() })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || "Something went wrong."); }); })
+      .then(function () { f.hidden = true; document.getElementById("smsDone").hidden = false; })
+      .catch(function (x) { err.textContent = x.message || "Something went wrong. Please try again."; })
+      .then(function () { btn.disabled = false; btn.textContent = "Sign up for texts"; });
+  });
+})();
+</script>
+<section class="club-banner club-banner-beach" id="join" aria-label="Join the Club">
+  <img loading="lazy" src="assets/banner-join-the-club-beach.jpg" alt="Sea Sculpt Club. Join the Club: be the first to hear about new classes, events and exclusive discounts." width="1920" height="1080">
+  <div class="club-banner-signup">
+    <form class="club-banner-form" novalidate>
+      <label class="club-pop-sr" for="bannerEmail">Email address</label>
+      <input id="bannerEmail" type="email" name="email" placeholder="Your email" autocomplete="email" required>
+      <button type="submit">Join</button>
+    </form>
+    <p class="club-banner-msg" role="alert"></p>
+    <p class="club-banner-done" hidden>You&rsquo;re in. Welcome to the club!</p>
+  </div>
+</section>
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <img src="assets/logo.png" alt="Sea Sculpt Club" class="brand-stack">
+        </div>
+        <p>Sculpt your body. Flow with the sea. Beach Pilates, wellness events, and bachelorette experiences in Monmouth County, NJ.</p>
+      </div>
+      <div>
+        <h4>Quick Links</h4>
+        <div class="flist">
+          <a href="index.html">Home</a><a href="about.html">About</a><a href="classes.html">Classes</a><a href="buy.html">Buy</a><a href="account.html">My Account</a><a href="/privates">Privates</a><a href="/parties">Parties</a>
+        </div>
+      </div>
+      <div>
+        <h4>More</h4>
+        <div class="flist">
+          <a href="wellness.html">Wellness</a><a href="collaborate.html">Collaborate</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div>
+        <h4>Connect</h4>
+        <div class="flist">
+          <a href="https://instagram.com/seasculptclub" target="_blank" rel="noopener">Instagram &middot; @seasculptclub</a>
+          <a href="https://tiktok.com/@seasculptclub" target="_blank" rel="noopener">TikTok &middot; @seasculptclub</a>
+          <a href="https://facebook.com/seasculptclub" target="_blank" rel="noopener">Facebook &middot; @seasculptclub</a>
+          <a href="mailto:seasculptclub@gmail.com">seasculptclub@gmail.com</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>&copy; 2026 Sea Sculpt Club. All rights reserved.</span>
+      <span class="foot-legal"><a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="/texts">Text sign-up</a> &middot; <a href="/waiver">Waiver</a></span>
+      <span>Designed by the shore.</span>
+    </div>
+  </div>
+</footer>
+<script src="js/script.js?v=cf10"></script>
+<script src="js/cart.js?v=cf21" defer></script>
+</body>
+</html>
