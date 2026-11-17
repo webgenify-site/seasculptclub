@@ -158,16 +158,17 @@
   var promoState = null; // { code } for a Stripe promotion code such as SANTA5 (applied on the payment step)
   var F = { name: details.querySelector('input[name="name"]'), email: details.querySelector('input[name="email"]'), phone: details.querySelector('input[name="phone"]') };
 
-  // Same rule as the server: each class on a code covers one class spot, worth up to $35.
-  // Premium events cost more, so the customer pays the difference.
-  var CREDIT_VALUE = 3900;
+  // Same rule as the server: each class on a code covers one class spot. 3- and 4-class packs cover up to $39;
+  // drop-ins, eGift cards and other codes cover up to $35. Pricier events: the customer pays the difference.
+  var CREDIT_VALUE = 3500;
   function coverage() {
     if (!giftState) return { n: 0, value: 0, topUp: 0 };
     var spots = [];
     cart.forEach(function (l) { var it = CATALOG[l.id]; if (it.kind === "class" && (!giftState.onlyFor || giftState.onlyFor.indexOf(l.id) >= 0)) for (var i = 0; i < l.qty; i++) spots.push(it.amount); });
     spots.sort(function (a, b) { return b - a; });
     var n = Math.min(giftState.creditsLeft, spots.length), v = 0, t = 0;
-    for (var i = 0; i < n; i++) { v += Math.min(spots[i], CREDIT_VALUE); t += Math.max(0, spots[i] - CREDIT_VALUE); }
+    var cv = giftState.creditValue || CREDIT_VALUE;
+    for (var i = 0; i < n; i++) { v += Math.min(spots[i], cv); t += Math.max(0, spots[i] - cv); }
     return { n: n, value: v, topUp: t };
   }
   function hasClass() { return cart.some(function (l) { return CATALOG[l.id].kind === "class"; }); }
@@ -449,7 +450,7 @@
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (x) {
         if (!x.ok) { giftState = null; codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = x.d.error || "That code didn't work."; render(); return; }
-        giftState = { code: x.d.code, creditsLeft: x.d.usableNow != null ? x.d.usableNow : x.d.creditsLeft, total: x.d.creditsLeft, kind: x.d.kind, expiring: x.d.expiring, onlyFor: x.d.onlyFor || null };
+        giftState = { code: x.d.code, creditsLeft: x.d.usableNow != null ? x.d.usableNow : x.d.creditsLeft, total: x.d.creditsLeft, kind: x.d.kind, expiring: x.d.expiring, onlyFor: x.d.onlyFor || null, creditValue: x.d.creditValue || CREDIT_VALUE };
         if (giftState.onlyFor && !coverage().n) { var only = (x.d.onlyForNames || []).join(" or "); giftState = null; codeMsg.className = "cart-code-msg is-bad"; codeMsg.textContent = "This code is for " + only + ". Add it to your cart to use your code."; render(); return; }
         codeInput.value = x.d.code;
         render();
@@ -457,7 +458,7 @@
         codeMsg.className = "cart-code-msg is-good";
         codeMsg.innerHTML = "&#10003; " + esc(x.d.code) + " covers " + cov.n + (cov.n === 1 ? " class spot" : " class spots") +
           (x.d.creditsLeft > cov.n ? " (" + (x.d.creditsLeft - cov.n) + " left for next time" + (x.d.perBooking ? ", " + x.d.perBooking + " per booking" : "") + ")" : "") +
-          (cov.topUp ? ". Each class on a code covers up to $39, so you'll pay the " + money(cov.topUp) + " premium event difference" : "") +
+          (cov.topUp ? ". Each class on this code covers up to " + money(giftState.creditValue || CREDIT_VALUE) + ", so you'll pay the " + money(cov.topUp) + " premium event difference" : "") +
           (x.d.expiring ? ". Book your extra class by " + new Date(x.d.expiring.expiresAt).toLocaleDateString("en-US", { month: "long", day: "numeric" }) + "." : "") +
           ' <button type="button" class="cart-code-remove">Remove</button>';
         track("redeem_egift", { credits: cov.n });

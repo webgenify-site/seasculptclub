@@ -299,6 +299,7 @@ var require_catalog = __commonJS({
         priceId: "price_1UOH6o1UP4OSvubV1M6Khi0W",
         // Stripe product: 3-Class Pack ($90)
         className: "3-Class Pack",
+        creditValue: 3900,
         amount: 9e3,
         credits: 3,
         // buyer gets a class code worth 3 class spots; shareable, no expiration
@@ -309,6 +310,7 @@ var require_catalog = __commonJS({
         priceId: "price_1UOH7O1UP4OSvubVllgPl1Qm",
         // Stripe product: 4-Class Pack ($110)
         className: "4-Class Pack",
+        creditValue: 3900,
         amount: 11e3,
         credits: 4,
         // buyer gets a class code worth 4 class spots; shareable, no expiration
@@ -496,6 +498,7 @@ var require_giftcodes = __commonJS({
             code: it.packCode,
             kind: "pack",
             credits: cat.credits * (it.spots || 1),
+            creditValue: cat.creditValue || 3500,
             uses: [],
             holds: {},
             maxPerBooking: rules.maxPerBooking || null,
@@ -543,8 +546,15 @@ var require_giftcodes = __commonJS({
       }
       return { code: c, rec, available: available(rec), usable: usableNow(rec) };
     }
-    const CREDIT_VALUE = 3900; // one class credit covers any spot up to $39; pricier events pay the difference
-    function planCoverage(lines, credits, onlyFor) {
+    // What one class credit covers. 3- and 4-class packs: up to $39. Drop-ins, eGift cards, BOGO and comp codes: up to $35.
+    const CREDIT_VALUE = 3500;
+    function creditValueOf(rec) {
+      if (rec && rec.creditValue) return rec.creditValue;
+      if (rec && /\b[34]-Class Pack\b/.test(String(rec.giftName || ""))) return 3900;
+      return CREDIT_VALUE;
+    }
+    function planCoverage(lines, credits, onlyFor, creditValue) {
+      const CV = creditValue || CREDIT_VALUE;
       const spots = [];
       const allowed = Array.isArray(onlyFor) && onlyFor.length ? new Set(onlyFor) : null;
       for (const l of lines) {
@@ -560,8 +570,8 @@ var require_giftcodes = __commonJS({
       let value = 0, topUpTotal = 0;
       for (const s of spots.slice(0, n)) {
         cover[s.id] = (cover[s.id] || 0) + 1;
-        value += Math.min(s.amount, CREDIT_VALUE);
-        const diff = Math.max(0, s.amount - CREDIT_VALUE);
+        value += Math.min(s.amount, CV);
+        const diff = Math.max(0, s.amount - CV);
         if (diff) { topUp[s.id] = { unit: diff, qty: ((topUp[s.id] && topUp[s.id].qty) || 0) + 1 }; topUpTotal += diff; }
       }
       return { n, cover, value, topUp, topUpTotal, classSpots: spots.length };
@@ -606,7 +616,7 @@ var require_giftcodes = __commonJS({
       }
       return rec.kind === "pack" ? "This class code has already been fully used." : "This eGift code has already been fully used.";
     }
-    module.exports = { emptyReason, normalizeCode, keyOf, available, usableNow, expiringLeft, expiredLost, used, createCodesForBooking, lookup, planCoverage, spend, hold, confirmHold, releaseHold };
+    module.exports = { emptyReason, normalizeCode, keyOf, available, usableNow, expiringLeft, expiredLost, used, createCodesForBooking, lookup, planCoverage, creditValueOf, spend, hold, confirmHold, releaseHold };
   }
 });
 
@@ -778,7 +788,7 @@ var require_create_checkout = __commonJS({
     var { randomHex } = require_webcrypto();
     var { CATALOG, priceIdFor, describe } = require_catalog();
     var { store } = require_store();
-    var { lookup, planCoverage, spend, hold, emptyReason } = require_giftcodes();
+    var { lookup, planCoverage, creditValueOf, spend, hold, emptyReason } = require_giftcodes();
     var { sendConfirmation } = require_email();
     var WAIVER_VERSION = "2026-10-27";
     var CANCEL_POLICY_VERSION = "2026-11-03";
@@ -955,7 +965,7 @@ var require_create_checkout = __commonJS({
       if (body.giftCode) {
         const g = await lookup(store(event), body.giftCode, purchaser.email);
         if (g.error) return json(400, { error: g.error, code: "gift_invalid" });
-        const plan = planCoverage(lines, g.usable, g.rec.onlyFor);
+        const plan = planCoverage(lines, g.usable, g.rec.onlyFor, creditValueOf(g.rec));
         if (!plan.classSpots && g.rec.onlyFor && g.rec.onlyFor.length) return json(400, { error: `This code is for ${g.rec.onlyFor.map((id) => CATALOG[id] ? CATALOG[id].className : id).join(" or ")}. Add it to your cart to use your code.`, code: "gift_invalid" });
         if (!plan.classSpots) return json(400, { error: "Codes cover class spots. Add a class to your cart to use yours.", code: "gift_invalid" });
         if (plan.n < 1) return json(400, { error: emptyReason(g.rec), code: "gift_invalid" });
@@ -2902,7 +2912,7 @@ var require_send_gifts = __commonJS({
 var require_gift_code = __commonJS({
   "cf/src/functions/gift-code.js"(exports) {
     var { store } = require_store();
-    var { lookup, emptyReason, expiringLeft } = require_giftcodes();
+    var { lookup, emptyReason, expiringLeft, creditValueOf } = require_giftcodes();
     var { sha256, toHex } = require_webcrypto();
     var { CATALOG } = require_catalog();
     var MAX_FAILS = 20;
@@ -2946,6 +2956,7 @@ var require_gift_code = __commonJS({
         credits: r.rec.credits,
         perBooking: r.rec.maxPerBooking || null,
         onlyFor: r.rec.onlyFor || null,
+        creditValue: creditValueOf(r.rec),
         onlyForNames: r.rec.onlyFor ? r.rec.onlyFor.map((id) => CATALOG[id] ? CATALOG[id].className : id) : null,
         expiring: expiringLeft(r.rec)
       });
