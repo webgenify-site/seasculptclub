@@ -705,7 +705,7 @@ Sea Sculpt Club`;
       try {
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
-          headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": `booking-${booking.sessionId}` },
+          headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": `booking-${booking.sessionId || booking.id}` },
           body: JSON.stringify(payload)
         });
         const data = await res.json().catch(() => ({}));
@@ -1583,7 +1583,7 @@ var require_gifts = __commonJS({
         for (let n = 0; n < it.gifts.length; n++) {
           const g = it.gifts[n];
           if (!isDue(g, now)) continue;
-          const r = await sendGiftEmail(booking, it, g, `${booking.sessionId}-${i}-${n}`, env);
+          const r = await sendGiftEmail(booking, it, g, `${booking.sessionId || booking.id}-${i}-${n}`, env);
           g.tries = (g.tries || 0) + (r.status === "failed" ? 1 : 0);
           g.status = r.status;
           if (r.status === "sent") {
