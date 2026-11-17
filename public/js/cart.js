@@ -160,7 +160,7 @@
 
   // Same rule as the server: each class on a code covers one class spot, worth up to $35.
   // Premium events cost more, so the customer pays the difference.
-  var CREDIT_VALUE = 3500;
+  var CREDIT_VALUE = 3900;
   function coverage() {
     if (!giftState) return { n: 0, value: 0, topUp: 0 };
     var spots = [];
@@ -457,7 +457,7 @@
         codeMsg.className = "cart-code-msg is-good";
         codeMsg.innerHTML = "&#10003; " + esc(x.d.code) + " covers " + cov.n + (cov.n === 1 ? " class spot" : " class spots") +
           (x.d.creditsLeft > cov.n ? " (" + (x.d.creditsLeft - cov.n) + " left for next time" + (x.d.perBooking ? ", " + x.d.perBooking + " per booking" : "") + ")" : "") +
-          (cov.topUp ? ". Each class on a code is a $35 value, so you'll pay the " + money(cov.topUp) + " premium event difference" : "") +
+          (cov.topUp ? ". Each class on a code covers up to $39, so you'll pay the " + money(cov.topUp) + " premium event difference" : "") +
           (x.d.expiring ? ". Book your extra class by " + new Date(x.d.expiring.expiresAt).toLocaleDateString("en-US", { month: "long", day: "numeric" }) + "." : "") +
           ' <button type="button" class="cart-code-remove">Remove</button>';
         track("redeem_egift", { credits: cov.n });

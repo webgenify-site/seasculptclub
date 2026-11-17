@@ -257,7 +257,7 @@
         '<span class="acct-bar"><i style="width:' + pct + '%"></i></span></div>' +
         '<p class="acct-code-note">' +
           (c.expiring ? "Book " + c.expiring.n + (c.expiring.n === 1 ? " class" : " classes") + " by " + esc(fmtDate(c.expiring.expiresAt)) + ". " : "") +
-          (c.left ? (c.shareable ? "Never expires. Share it with friends. " : "For you only, one class per booking. ") + "Each class is a $35 value; premium events just need the difference paid." : "All classes on this code have been used.") +
+          (c.left ? (c.shareable ? "Never expires. Share it with friends. " : "For you only, one class per booking. ") + "Each class covers any class or event up to $39; pricier events just need the difference paid." : "All classes on this code have been used.") +
         '</p></div>';
     }).join("") : '<p class="acct-empty">No class packs or eGift cards yet. <a href="buy.html">See packs, eGift cards &amp; the new member deal &rarr;</a></p>';
     if (codes.some(function (c) { return c.left; })) $("acctCodes").insertAdjacentHTML("beforeend", '<p class="acct-hint">To book with a code: add a class to your cart, then enter the code at checkout.</p>');
@@ -552,6 +552,6 @@
   </div>
 </footer>
 <script src="js/script.js?v=cf10"></script>
-<script src="js/cart.js?v=cf21" defer></script>
+<script src="js/cart.js?v=cf22" defer></script>
 </body>
 </html>

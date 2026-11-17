@@ -543,7 +543,7 @@ var require_giftcodes = __commonJS({
       }
       return { code: c, rec, available: available(rec), usable: usableNow(rec) };
     }
-    const CREDIT_VALUE = 3500;
+    const CREDIT_VALUE = 3900; // one class credit covers any spot up to $39; pricier events pay the difference
     function planCoverage(lines, credits, onlyFor) {
       const spots = [];
       const allowed = Array.isArray(onlyFor) && onlyFor.length ? new Set(onlyFor) : null;
