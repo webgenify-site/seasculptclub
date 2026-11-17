@@ -613,7 +613,7 @@
           var stripe = window.Stripe(d.publishableKey, { betas: ["custom_checkout_payment_form_1"] });
           if (typeof stripe.initCheckoutFormSdk !== "function") throw new Error("checkout_form_unavailable");
           var checkout = stripe.initCheckoutFormSdk({ clientSecret: Promise.resolve(d.clientSecret), appearance: APPEARANCE });
-          var form = checkout.createForm({ layout: "expanded" });
+          var form = checkout.createForm({ layout: "expanded", expressCheckout: { paymentMethods: { applePay: "always", googlePay: "always" }, buttonTheme: { applePay: "black" } } });
           rememberPending();
           closeDrawer(); pay.showModal();
           embedded = form; form.mount("#cartCheckout");
