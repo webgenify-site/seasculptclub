@@ -1106,3 +1106,4 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .acct-cel{display:flex;align-items:center;gap:14px;background:#FBF6EC;border:1px solid rgba(18,49,79,.12);border-radius:14px;padding:16px 20px;color:#12314F;font-size:1rem;line-height:1.45;}
 .acct-cel strong{display:block;font:500 1.45rem/1.2 'Cormorant Garamond',Georgia,serif;}
 .acct-cel-emoji{font-size:2rem;line-height:1;}
+.cl-dates li span a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:rgba(18,49,79,.35);}.cl-dates li span a:hover{text-decoration-color:currentColor;}

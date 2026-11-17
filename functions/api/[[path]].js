@@ -259,6 +259,28 @@ var require_catalog = __commonJS({
         amount: 4500,
         maxQty: 10
       },
+      "ponies-dec12": {
+        kind: "class",
+        // No Stripe price: charged its amount directly at checkout. Portion donated to the farm.
+        className: "Ponies & Pilates at Acres at Magnolia",
+        date: "2026-12-12",
+        dateLabel: "Saturday, December 12, 2026",
+        time: "9:00 AM",
+        location: "Acres at Magnolia, 160 W Farms Rd, Farmingdale, NJ",
+        amount: 3900,
+        maxQty: 10
+      },
+      "porta-dec16": {
+        kind: "class",
+        // No Stripe price: charged its amount directly at checkout.
+        className: "Holiday Spritz & Sculpt at Porta",
+        date: "2026-12-16",
+        dateLabel: "Wednesday, December 16, 2026",
+        time: "6:00 PM",
+        location: "Porta, 911 Kingsley St, Asbury Park, NJ",
+        amount: 3900,
+        maxQty: 10
+      },
       "seaview-nov18": {
         kind: "class",
         priceId: "price_1ULtsA1UP4OSvubVgRljGfr6",
@@ -946,7 +968,8 @@ var require_create_checkout = __commonJS({
       const byPrice = /* @__PURE__ */ new Map();
       const missing = [];
       for (const line of chargeLines) {
-        const priceId = priceIdFor(line.id, mode, process.env);
+        // Events with no Stripe price are charged their catalog price directly (inline price_data).
+        const priceId = priceIdFor(line.id, mode, process.env) || (CATALOG[line.id].amount ? "inline:" + line.id : null);
         if (!priceId) {
           missing.push(CATALOG[line.id].className);
           continue;
@@ -1006,7 +1029,15 @@ var require_create_checkout = __commonJS({
       params.append("client_reference_id", ref);
       let i = 0;
       for (const [priceId, group] of byPrice) {
-        params.append(`line_items[${i}][price]`, priceId);
+        if (priceId.startsWith("inline:")) {
+          const c = CATALOG[priceId.slice(7)];
+          params.append(`line_items[${i}][price_data][currency]`, "usd");
+          params.append(`line_items[${i}][price_data][unit_amount]`, String(c.amount));
+          params.append(`line_items[${i}][price_data][product_data][name]`, c.className);
+          params.append(`line_items[${i}][price_data][product_data][description]`, [c.dateLabel, c.time, c.location].filter(Boolean).join(" \xB7 "));
+        } else {
+          params.append(`line_items[${i}][price]`, priceId);
+        }
         params.append(`line_items[${i}][quantity]`, String(group.reduce((n, l) => n + l.chargeQty, 0)));
         params.append(`line_items[${i}][metadata][items]`, group.map((l) => `${l.id}:${l.chargeQty}`).join(","));
         i++;
