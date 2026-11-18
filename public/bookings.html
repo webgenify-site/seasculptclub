@@ -85,6 +85,14 @@
   .ck-btn.small{min-width:86px;min-height:32px;font-size:.75rem;border-color:rgba(18,49,79,.35);color:var(--soft);}
   .ck-btn.small.on{background:#E3EEF7;color:var(--navy);border-color:var(--navy);}
   tr.ck-here td{background:#F2F8FC;}
+  tr.ck-noshow td{background:#FBF1EF;}
+  tr.ck-noshow td strong{text-decoration:line-through;text-decoration-color:rgba(160,60,40,.5);}
+  .ck-pair{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .ns-btn{min-width:86px;min-height:44px;padding:0 12px;border-radius:999px;border:1.5px solid rgba(160,60,40,.45);background:#fff;color:#8A3A28;font:600 .8rem system-ui,sans-serif;cursor:pointer;white-space:nowrap;}
+  .ns-btn.small{min-height:32px;font-size:.75rem;}
+  .ns-btn.on{background:#A6462F;border-color:#A6462F;color:#fff;}
+  .repeat-star{color:#C9962B;font-size:1.05em;margin-left:4px;cursor:help;}
+  .ns-flag{color:#8A3A28;font-weight:600;}
   .roster.is-today{border:2px solid var(--navy);}
   .today-ribbon{background:var(--navy);color:#fff;font:600 .72rem system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:7px 16px;}
   .ext-tag{display:inline-block;background:#E9E2D4;color:#12314F;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
@@ -188,6 +196,7 @@
   function load(v, force) {
     if (v === "rosters") return load("bookings", force).then(function () { return load("checkins", force).catch(function (e) { if (e.message === "auth") throw e; data.checkins = {}; }); });
     if (v === "sales") return load("bookings", force);
+    if (v === "members" && !arguments[2]) return load("members", force, true).then(function () { return load("bookings").then(function () { return load("checkins").catch(function (e) { if (e.message === "auth") throw e; data.checkins = {}; }); }); });
     if (data[v] && !force) return Promise.resolve(data[v]);
     $("appErr").textContent = ""; $("list").innerHTML = '<p class="note">Loading…</p>';
     return call({ view: v }).then(function (r) {
@@ -419,7 +428,43 @@
   }
   // Class rosters: who's coming to each class (upcoming first), from saved bookings.
   function todayET() { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } }
+  // Customer history across all bookings: who has been before (repeat ★) and who no-showed.
+  function normName(n) { return String(n || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim(); }
+  function personKeys(name, email, isBuyer) {
+    var k = [], n = normName(name);
+    if (n && n.indexOf("guest of") < 0 && n.split(" ").length >= 2) k.push("n:" + n);
+    if (isBuyer && email) k.push("e:" + String(email).toLowerCase().trim());
+    return k;
+  }
+  function buildHistory() {
+    var visits = {}, noshows = {}, ckAll = data.checkins || {};
+    (data.bookings || []).forEach(function (r) {
+      if (r.livemode === false || r.source === "test" || r.status === "refunded") return;
+      (r.items || []).forEach(function (it, itIdx) {
+        if (it.kind !== "class" || it.cancelled || !it.date) return;
+        var ckKey = String(it.catalogId || ((it.className || "Class") + "||" + it.date)).replace(/[\/]/g, "-");
+        var names = (it.attendees && it.attendees.length ? it.attendees : [r.purchaser.name]).slice(0, it.spots || 1);
+        names.forEach(function (n, i) {
+          var keys = personKeys(n || r.purchaser.name, r.purchaser.email, i === 0);
+          var st = (ckAll[ckKey] || {})[r.id + ":" + itIdx + ":" + i];
+          var isNs = st && st.status === "noshow";
+          keys.forEach(function (key) {
+            var v = visits[key] = visits[key] || {};
+            if (!isNs) v[it.date + "|" + ckKey] = 1;
+            if (isNs) noshows[key] = (noshows[key] || 0) + 1;
+          });
+        });
+      });
+    });
+    return {
+      before: function (keys, date) { var seen = {}; keys.forEach(function (k) { Object.keys(visits[k] || {}).forEach(function (d) { if (d.slice(0, 10) < date) seen[d] = 1; }); }); return Object.keys(seen).length; },
+      total: function (keys) { var seen = {}; keys.forEach(function (k) { Object.keys(visits[k] || {}).forEach(function (d) { seen[d] = 1; }); }); return Object.keys(seen).length; },
+      noshows: function (keys) { var m = 0; keys.forEach(function (k) { m = Math.max(m, noshows[k] || 0); }); return m; }
+    };
+  }
+  function ordinal(n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
   function renderRosters() {
+    var hist = buildHistory();
     var recs = data.bookings || [], today = todayET(), showPast = $("showPastRoster").checked, classes = {}, ckAll = data.checkins || {};
     recs.forEach(function (r) {
       if (r.livemode === false || r.source === "test") return;
@@ -443,9 +488,12 @@
     $("list").innerHTML = list.map(function (c) {
       var when = c.date ? new Date(c.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : (c.dateLabel || "");
       var past = c.date && c.date < today, isToday = c.date === today, doorMode = past || isToday;
-      var ck = ckAll[c.ck] || {}, came = c.people.filter(function (p) { return ck[p.pk]; }).length;
-      var countHtml = isToday ? '<strong>' + came + '</strong> of ' + c.people.length + ' checked in'
-        : past ? (came ? '<strong>' + came + '</strong> of ' + c.people.length + ' came' : '<strong>' + c.people.length + '</strong> signed up<br><small>no check-ins recorded</small>')
+      var ck = ckAll[c.ck] || {};
+      var came = c.people.filter(function (p) { return ck[p.pk] && ck[p.pk].status !== "noshow"; }).length;
+      var ns = c.people.filter(function (p) { return ck[p.pk] && ck[p.pk].status === "noshow"; }).length;
+      var nsHtml = ns ? '<br><small class="ns-flag">' + ns + ' no-show' + (ns === 1 ? "" : "s") + '</small>' : "";
+      var countHtml = isToday ? '<strong>' + came + '</strong> of ' + c.people.length + ' checked in' + nsHtml
+        : past ? (came || ns ? '<strong>' + came + '</strong> of ' + c.people.length + ' came' + nsHtml : '<strong>' + c.people.length + '</strong> signed up<br><small>no check-ins recorded</small>')
         : '<strong>' + c.people.length + '</strong> signed up';
       return '<section class="group roster' + (past ? " is-past" : "") + (isToday ? " is-today" : "") + '">' + (isToday ? '<div class="today-ribbon">Today &middot; check-in</div>' : "") + '<div class="roster-head"><div><h2>' + esc(c.name) + '</h2><p>' + esc([when, c.time, c.location].filter(Boolean).join(" · ")) + '</p></div>' +
         '<div class="roster-count">' + countHtml + (c.cancelled.length ? '<br><small>' + c.cancelled.length + ' cancelled</small>' : "") + '</div></div>' +
@@ -459,9 +507,15 @@
             if (p.isBuyer && p.pay) notes.push(p.pay);
             if (p.note) notes.push(esc(p.note));
             if (p.extId) notes.push('<button type="button" class="linkbtn" data-remove="' + esc(p.extId) + '">Remove this booking</button>');
-            var here = ck[p.pk];
-            var ckCell = doorMode ? '<td><button type="button" class="ck-btn' + (here ? " on" : "") + (past ? " small" : "") + '" data-ck="' + esc(c.ck) + '" data-pk="' + esc(p.pk) + '" data-name="' + esc(p.name) + '" aria-pressed="' + (here ? "true" : "false") + '">' + (here ? "&#10003; " + (isToday ? "Here" : "Came") : (isToday ? "Check in" : "No-show")) + '</button>' + (here && isToday ? '<br><small>' + esc(new Date(here.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })) + '</small>' : "") + '</td>' : "";
-            return '<tr' + (here ? ' class="ck-here"' : "") + '>' + ckCell + '<td>' + (i + 1) + '</td><td><strong>' + esc(p.name) + '</strong></td><td>' + esc(p.isBuyer ? "Self" : p.by) + '<br><small><a class="ref" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a> · ' + esc(p.ref || "") + '</small></td>' +
+            var mark = ck[p.pk], here = mark && mark.status !== "noshow", noshow = mark && mark.status === "noshow";
+            var keys = personKeys(p.name, p.email, p.isBuyer), prior = c.date ? hist.before(keys, c.date) : 0, nsCount = hist.noshows(keys);
+            var star = prior ? '<span class="repeat-star" title="Repeat customer: ' + ordinal(prior + 1) + ' class (' + prior + ' before this)" aria-label="Repeat customer">&#9733;</span>' : "";
+            if (nsCount && !(noshow && nsCount === 1)) notes.unshift('<span class="ns-flag">' + nsCount + ' past no-show' + (nsCount === 1 ? "" : "s") + '</span>');
+            var attrs = ' data-ck="' + esc(c.ck) + '" data-pk="' + esc(p.pk) + '" data-name="' + esc(p.name) + '"';
+            var ckCell = doorMode ? '<td><div class="ck-pair"><button type="button" class="ck-btn' + (here ? " on" : "") + (past ? " small" : "") + '" data-st="here"' + attrs + ' aria-pressed="' + (here ? "true" : "false") + '">' + (here ? "&#10003; " + (isToday ? "Here" : "Came") : (isToday ? "Check in" : "Came")) + '</button>' +
+              '<button type="button" class="ns-btn' + (noshow ? " on" : "") + (past ? " small" : "") + '" data-st="noshow"' + attrs + ' aria-pressed="' + (noshow ? "true" : "false") + '">No-show</button></div>' +
+              (here && isToday && mark.at ? '<small>' + esc(new Date(mark.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })) + '</small>' : "") + '</td>' : "";
+            return '<tr' + (here ? ' class="ck-here"' : noshow ? ' class="ck-noshow"' : "") + '>' + ckCell + '<td>' + (i + 1) + '</td><td><strong>' + esc(p.name) + '</strong>' + star + '</td><td>' + esc(p.isBuyer ? "Self" : p.by) + '<br><small><a class="ref" href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a> · ' + esc(p.ref || "") + '</small></td>' +
               '<td>' + (p.phone ? '<a class="ref" href="tel:' + esc(p.phone) + '">' + esc(p.phone) + '</a>' : "") + '</td><td>' + notes.join("<br>") + '</td></tr>';
           }).join("") + '</tbody></table></div>' : '<p class="note">No one signed up yet.</p>') +
         (c.cancelled.length ? '<p class="note">Cancelled: ' + esc(c.cancelled.map(function (p) { return p.name; }).join(", ")) + '</p>' : "") +
@@ -472,19 +526,21 @@
   function renderMembers() {
     var rows = data.members || [], q = ($("memberSearch").value || "").trim().toLowerCase();
     if (q) rows = rows.filter(function (m) { return (m.name + " " + m.email + " " + m.phone).toLowerCase().indexOf(q) >= 0; });
-    var acct = { active: "Active", no_password: "Password not set", none: "Guest (no account)" };
+    var acct = { active: "Active", no_password: "Password not set", none: "Guest (no account)" }, hist = buildHistory();
     var total = (data.members || []).filter(function (m) { return m.account !== "none"; }).length;
     if (!rows.length) { $("list").innerHTML = '<div class="empty">' + (q ? "No members match that search." : "No members yet. Accounts appear here as people sign up or book.") + '</div>'; return; }
     $("list").innerHTML = '<p class="note"><strong>' + total + '</strong> accounts' + (q ? " · " + rows.length + " shown" : "") + '</p><section class="group"><div class="scroll"><table><thead><tr><th>Name</th><th>Contact</th><th>Birthday</th><th>Account</th><th>Emails / texts</th><th>Emergency contact</th><th>Classes</th></tr></thead><tbody>' +
       rows.map(function (m) {
         var bday = m.birthday ? new Date(m.birthday + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
-        return '<tr><td><strong>' + esc(m.name || "") + '</strong></td>' +
+        var mk = personKeys(m.name, m.email, true), visits = Math.max(hist.total(mk), 0), mns = hist.noshows(mk);
+        var mstar = (visits >= 2 || m.bookings >= 2) ? '<span class="repeat-star" title="Repeat customer" aria-label="Repeat customer">&#9733;</span>' : "";
+        return '<tr><td><strong>' + esc(m.name || "") + '</strong>' + mstar + '</td>' +
           '<td><a class="ref" href="mailto:' + esc(m.email) + '">' + esc(m.email) + '</a>' + (m.phone ? '<br><small><a class="ref" href="tel:' + esc(m.phone) + '">' + esc(m.phone) + '</a></small>' : "") + '</td>' +
           '<td>' + esc(bday) + '</td>' +
           '<td>' + esc(acct[m.account] || "") + (m.createdAt ? '<br><small>joined ' + esc(new Date(m.createdAt).toLocaleDateString()) + (m.createdFrom === "checkout" ? " at checkout" : "") + '</small>' : "") + '</td>' +
           '<td>' + (m.comms ? "Email: " + (m.comms.email ? "yes" : "<strong>no</strong>") + "<br>Texts: " + (m.comms.sms ? "yes" : "no") : '<span class="notes">n/a</span>') + '</td>' +
           '<td>' + (m.emergency ? esc(m.emergency.name) + (m.emergency.relationship ? " <small>(" + esc(m.emergency.relationship) + ")</small>" : "") + '<br><small>' + esc(m.emergency.phone) + '</small>' : "") + '</td>' +
-          '<td>' + m.spots + (m.spots === 1 ? " spot" : " spots") + ' <small>(' + m.bookings + (m.bookings === 1 ? " order" : " orders") + ')</small>' + (m.lastClass ? '<br><small>last: ' + esc(m.lastClass.name) + '</small>' : "") + '</td></tr>';
+          '<td>' + m.spots + (m.spots === 1 ? " spot" : " spots") + ' <small>(' + m.bookings + (m.bookings === 1 ? " order" : " orders") + ')</small>' + (m.lastClass ? '<br><small>last: ' + esc(m.lastClass.name) + '</small>' : "") + (mns ? '<br><small class="ns-flag">' + mns + ' no-show' + (mns === 1 ? "" : "s") + '</small>' : "") + '</td></tr>';
       }).join("") + '</tbody></table></div></section>';
   }
   function render() {
@@ -558,7 +614,7 @@
     $("viewNote").textContent = v === "sales"
       ? "Live sales from your website: card (Stripe), PayPal and Venmo, updated the moment each payment goes through. Refunds made from customers' account cancellations are subtracted. Refunds you issue by hand in Stripe or PayPal aren't included."
       : v === "rosters"
-      ? "Who's coming to each class, soonest first. Names come from checkout (Me / Friend). Injury notes, photo preferences and emergency contacts come from the person who booked."
+      ? "Who's coming to each class, soonest first. Names come from checkout (Me / Friend). Injury notes, photo preferences and emergency contacts come from the person who booked. ★ = repeat customer (hover to see which class this is for them). On class day, tap Check in or No-show."
       : v === "members"
       ? "Everyone with a Sea Sculpt Club account, plus customers who booked as guests. Passwords are never shown or stored in readable form."
       : v === "giftcards"
@@ -654,14 +710,14 @@
       .then(function () { $("addSave").disabled = false; });
   });
   $("list").addEventListener("click", function (e) {
-    var cb = e.target.closest && e.target.closest(".ck-btn");
+    var cb = e.target.closest && e.target.closest(".ck-btn, .ns-btn");
     if (cb) {
-      var cls = cb.getAttribute("data-ck"), pk = cb.getAttribute("data-pk"), on = !cb.classList.contains("on");
+      var cls = cb.getAttribute("data-ck"), pk = cb.getAttribute("data-pk"), status = cb.classList.contains("on") ? "" : cb.getAttribute("data-st");
       data.checkins = data.checkins || {}; var prev = data.checkins[cls] ? JSON.parse(JSON.stringify(data.checkins[cls])) : {};
       data.checkins[cls] = data.checkins[cls] || {};
-      if (on) data.checkins[cls][pk] = { at: new Date().toISOString() }; else delete data.checkins[cls][pk];
+      if (status) data.checkins[cls][pk] = { at: new Date().toISOString(), status: status }; else delete data.checkins[cls][pk];
       var y = window.scrollY; render(); window.scrollTo(0, y);
-      postAdmin("checkin", { classKey: cls, personKey: pk, name: cb.getAttribute("data-name"), on: on })
+      postAdmin("checkin", { classKey: cls, personKey: pk, name: cb.getAttribute("data-name"), status: status, on: !!status })
         .then(function (d) { data.checkins[cls] = d.people || {}; var y2 = window.scrollY; render(); window.scrollTo(0, y2); })
         .catch(function (err) { data.checkins[cls] = prev; render(); if (err.message !== "auth") $("appErr").textContent = "Check-in didn't save: " + err.message; });
       return;

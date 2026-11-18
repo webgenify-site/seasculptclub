@@ -2366,7 +2366,8 @@ var require_admin_bookings = __commonJS({
       await db.setJSON(key, { people: {} }, { onlyIfNew: true });
       const next = await db.update(key, (cur) => {
         cur.people = cur.people || {};
-        if (b.on) cur.people[person] = { at: new Date().toISOString(), name: String(b.name || "").slice(0, 120) };
+        const status = b.status === "noshow" ? "noshow" : (b.status === "here" || (b.status === undefined && b.on)) ? "here" : "";
+        if (status) cur.people[person] = { at: new Date().toISOString(), name: String(b.name || "").slice(0, 120), status };
         else delete cur.people[person];
         return cur;
       });
