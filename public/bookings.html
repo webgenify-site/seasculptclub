@@ -92,6 +92,9 @@
   .ns-btn.small{min-height:32px;font-size:.75rem;}
   .ns-btn.on{background:#A6462F;border-color:#A6462F;color:#fff;}
   .repeat-star{color:#C9962B;font-size:1.05em;margin-left:4px;cursor:help;}
+  .star-btn{background:none;border:0;padding:2px 4px;margin-left:2px;font-size:1.1em;line-height:1;color:rgba(18,49,79,.22);cursor:pointer;}
+  .star-btn:hover{color:#C9962B;}
+  .star-btn.on{color:#C9962B;}
   .ns-flag{color:#8A3A28;font-weight:600;}
   .roster.is-today{border:2px solid var(--navy);}
   .today-ribbon{background:var(--navy);color:#fff;font:600 .72rem system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:7px 16px;}
@@ -193,10 +196,14 @@
   function call(params) {
     return fetch(API + "?" + new URLSearchParams(params), { headers: { "x-admin-password": pw() }, cache: "no-store" });
   }
+  function loadExtras(force) {
+    var soft = function (k) { return function (e) { if (e.message === "auth") throw e; data[k] = {}; }; };
+    return load("checkins", force).catch(soft("checkins")).then(function () { return load("stars", force).catch(soft("stars")); });
+  }
   function load(v, force) {
-    if (v === "rosters") return load("bookings", force).then(function () { return load("checkins", force).catch(function (e) { if (e.message === "auth") throw e; data.checkins = {}; }); });
+    if (v === "rosters") return load("bookings", force).then(function () { return loadExtras(force); });
     if (v === "sales") return load("bookings", force);
-    if (v === "members" && !arguments[2]) return load("members", force, true).then(function () { return load("bookings").then(function () { return load("checkins").catch(function (e) { if (e.message === "auth") throw e; data.checkins = {}; }); }); });
+    if (v === "members" && !arguments[2]) return load("members", force, true).then(function () { return load("bookings").then(function () { return loadExtras(force); }); });
     if (data[v] && !force) return Promise.resolve(data[v]);
     $("appErr").textContent = ""; $("list").innerHTML = '<p class="note">Loading…</p>';
     return call({ view: v }).then(function (r) {
@@ -462,6 +469,14 @@
       noshows: function (keys) { var m = 0; keys.forEach(function (k) { m = Math.max(m, noshows[k] || 0); }); return m; }
     };
   }
+  function starKey(keys) { return keys.filter(function (k) { return k.charAt(0) === "e"; })[0] || keys[0] || ""; }
+  function manualStar(keys) { var st = data.stars || {}; return keys.some(function (k) { return st[k]; }); }
+  function starHtml(keys, name, autoTitle) {
+    var manual = manualStar(keys), k = starKey(keys);
+    if (!k) return autoTitle ? '<span class="repeat-star" title="' + esc(autoTitle) + '">&#9733;</span>' : "";
+    if (autoTitle && !manual) return '<span class="repeat-star" title="' + esc(autoTitle) + '" aria-label="Repeat customer">&#9733;</span>';
+    return '<button type="button" class="star-btn' + (manual ? " on" : "") + '" data-star="' + esc(k) + '" data-name="' + esc(name) + '" title="' + (manual ? "Starred by you (tap to remove)" : "Tap to star as a repeat customer") + '" aria-pressed="' + (manual ? "true" : "false") + '">' + (manual ? "&#9733;" : "&#9734;") + '</button>';
+  }
   function ordinal(n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
   function renderRosters() {
     var hist = buildHistory();
@@ -509,7 +524,7 @@
             if (p.extId) notes.push('<button type="button" class="linkbtn" data-remove="' + esc(p.extId) + '">Remove this booking</button>');
             var mark = ck[p.pk], here = mark && mark.status !== "noshow", noshow = mark && mark.status === "noshow";
             var keys = personKeys(p.name, p.email, p.isBuyer), prior = c.date ? hist.before(keys, c.date) : 0, nsCount = hist.noshows(keys);
-            var star = prior ? '<span class="repeat-star" title="Repeat customer: ' + ordinal(prior + 1) + ' class (' + prior + ' before this)" aria-label="Repeat customer">&#9733;</span>' : "";
+            var star = starHtml(keys, p.name, prior ? "Repeat customer: " + ordinal(prior + 1) + " class (" + prior + " before this)" : "");
             if (nsCount && !(noshow && nsCount === 1)) notes.unshift('<span class="ns-flag">' + nsCount + ' past no-show' + (nsCount === 1 ? "" : "s") + '</span>');
             var attrs = ' data-ck="' + esc(c.ck) + '" data-pk="' + esc(p.pk) + '" data-name="' + esc(p.name) + '"';
             var ckCell = doorMode ? '<td><div class="ck-pair"><button type="button" class="ck-btn' + (here ? " on" : "") + (past ? " small" : "") + '" data-st="here"' + attrs + ' aria-pressed="' + (here ? "true" : "false") + '">' + (here ? "&#10003; " + (isToday ? "Here" : "Came") : (isToday ? "Check in" : "Came")) + '</button>' +
@@ -533,7 +548,7 @@
       rows.map(function (m) {
         var bday = m.birthday ? new Date(m.birthday + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
         var mk = personKeys(m.name, m.email, true), visits = Math.max(hist.total(mk), 0), mns = hist.noshows(mk);
-        var mstar = (visits >= 2 || m.bookings >= 2) ? '<span class="repeat-star" title="Repeat customer" aria-label="Repeat customer">&#9733;</span>' : "";
+        var mstar = starHtml(mk, m.name, (visits >= 2 || m.bookings >= 2) ? "Repeat customer" : "");
         return '<tr><td><strong>' + esc(m.name || "") + '</strong>' + mstar + '</td>' +
           '<td><a class="ref" href="mailto:' + esc(m.email) + '">' + esc(m.email) + '</a>' + (m.phone ? '<br><small><a class="ref" href="tel:' + esc(m.phone) + '">' + esc(m.phone) + '</a></small>' : "") + '</td>' +
           '<td>' + esc(bday) + '</td>' +
@@ -614,7 +629,7 @@
     $("viewNote").textContent = v === "sales"
       ? "Live sales from your website: card (Stripe), PayPal and Venmo, updated the moment each payment goes through. Refunds made from customers' account cancellations are subtracted. Refunds you issue by hand in Stripe or PayPal aren't included."
       : v === "rosters"
-      ? "Who's coming to each class, soonest first. Names come from checkout (Me / Friend). Injury notes, photo preferences and emergency contacts come from the person who booked. ★ = repeat customer (hover to see which class this is for them). On class day, tap Check in or No-show."
+      ? "Who's coming to each class, soonest first. Names come from checkout (Me / Friend). Injury notes, photo preferences and emergency contacts come from the person who booked. ★ = repeat customer (hover to see which class this is for them). Tap the faint ☆ next to anyone to star them yourself. On class day, tap Check in or No-show."
       : v === "members"
       ? "Everyone with a Sea Sculpt Club account, plus customers who booked as guests. Passwords are never shown or stored in readable form."
       : v === "giftcards"
@@ -710,6 +725,17 @@
       .then(function () { $("addSave").disabled = false; });
   });
   $("list").addEventListener("click", function (e) {
+    var sb = e.target.closest && e.target.closest(".star-btn");
+    if (sb) {
+      var sk = sb.getAttribute("data-star"), son = !sb.classList.contains("on");
+      data.stars = data.stars || {}; var sprev = JSON.parse(JSON.stringify(data.stars));
+      if (son) data.stars[sk] = { at: new Date().toISOString() }; else delete data.stars[sk];
+      var sy = window.scrollY; render(); window.scrollTo(0, sy);
+      postAdmin("star", { key: sk, name: sb.getAttribute("data-name"), on: son })
+        .then(function (d) { data.stars = d.people || {}; var y2 = window.scrollY; render(); window.scrollTo(0, y2); })
+        .catch(function (err) { data.stars = sprev; render(); if (err.message !== "auth") $("appErr").textContent = "Star didn't save: " + err.message; });
+      return;
+    }
     var cb = e.target.closest && e.target.closest(".ck-btn, .ns-btn");
     if (cb) {
       var cls = cb.getAttribute("data-ck"), pk = cb.getAttribute("data-pk"), status = cb.classList.contains("on") ? "" : cb.getAttribute("data-st");

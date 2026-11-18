@@ -1327,6 +1327,10 @@ var require_recovery = __commonJS({
     var { CATALOG } = require_catalog();
     var WAVE_FALL_AT = Date.parse("2026-10-01T00:00:00Z");
     var WAVE_NOV_AT = Date.parse("2026-10-24T04:00:00Z");
+    // After the Nov 14 Wave Sculpt, any payment through an old Wave link counts toward Friendsgiving (owner's call).
+    var WAVE_TO_FRIENDSGIVING_AT = Date.parse("2026-11-14T17:00:00Z");
+    var FRIENDSGIVING_OVER_AT = Date.parse("2026-11-21T17:00:00Z");
+    var waveToFriendsgiving = (created) => ({ catalogId: "friendsgiving-nov21", flag: created >= FRIENDSGIVING_OVER_AT ? "Paid through an old Wave link after Friendsgiving: confirm which class with the customer." : "Paid through an old Wave Sculpt link; counted toward Friendsgiving (Nov 21)." });
     var RESCHEDULED_AT = Date.parse("2026-09-26T20:00:00Z");
     var PRICE_RULES = {
       "price_1UNj9B1UP4OSvubVuvnfC50h": () => ({ catalogId: "pumpkins-oct18" }),
@@ -1365,7 +1369,7 @@ var require_recovery = __commonJS({
       // Wave Friendsgiving link
       "price_1UYbtw1UP4OSvubVXXK3O4XJ": () => ({ catalogId: "santa-dec5" }),
       // Santa Sculpt Dec 5
-      "price_1U981k1UP4OSvubVnoRtLkX9": (created, desc) => created >= WAVE_NOV_AT ? { catalogId: "wave-nov14" } : created >= WAVE_FALL_AT ? {
+      "price_1U981k1UP4OSvubVnoRtLkX9": (created, desc) => created >= WAVE_TO_FRIENDSGIVING_AT ? waveToFriendsgiving(created) : created >= WAVE_NOV_AT ? { catalogId: "wave-nov14" } : created >= WAVE_FALL_AT ? {
         className: "Wave Sculpt",
         date: null,
         dateLabel: "Fri Oct 16 or Oct 23 (not recorded)",
@@ -1373,7 +1377,7 @@ var require_recovery = __commonJS({
         location: "Indoors at Wave Resort, Long Branch, NJ",
         flag: "Date not recorded: paid through the Wave Sculpt Payment Link, which doesn't ask for Oct 16 vs Oct 23. Confirm with the customer."
       } : /9\/12/.test(desc || "") ? { className: "Poolside Pilates at Wave Resort", date: "2026-09-12", dateLabel: "Saturday, September 12, 2026", time: "1:00 PM", location: "Wave Resort, Long Branch, NJ" } : { className: "Wave Sculpt / Poolside Pilates", date: null, dateLabel: "Unknown", time: null, location: "Wave Resort, Long Branch, NJ", flag: "Class date unclear from the payment." },
-      "price_1U89771UP4OSvubVLZecB51C": (created) => created >= WAVE_FALL_AT ? {
+      "price_1U89771UP4OSvubVLZecB51C": (created) => created >= WAVE_TO_FRIENDSGIVING_AT ? waveToFriendsgiving(created) : created >= WAVE_FALL_AT ? {
         className: "Wave Sculpt (paid via old Poolside Pilates link)",
         date: null,
         dateLabel: "Probably Fri Oct 16 or Oct 23",
@@ -1464,6 +1468,7 @@ var require_recovery = __commonJS({
             const r = PRICE_RULES[priceId](created, li.description);
             if (r.catalogId) {
               items.push(itemFromCatalog(r.catalogId, qty));
+              if (r.flag) flags.push(r.flag);
               continue;
             }
             items.push({
@@ -2295,7 +2300,8 @@ var require_admin_bookings = __commonJS({
       const isImport = event.httpMethod === "POST" && q.action === "import-netlify";
       const isOutside = event.httpMethod === "POST" && (q.action === "add-booking" || q.action === "remove-booking");
       const isCheckin = event.httpMethod === "POST" && q.action === "checkin";
-      if (event.httpMethod !== "GET" && !isImport && !isOutside && !isCheckin) return json(405, { error: "Method not allowed" });
+      const isStar = event.httpMethod === "POST" && q.action === "star";
+      if (event.httpMethod !== "GET" && !isImport && !isOutside && !isCheckin && !isStar) return json(405, { error: "Method not allowed" });
       const db = store(event);
       if (q.view === "summary" || q.view === "catalog") return salesSummary(event, db);
       const denied = await checkAuth(event, db);
@@ -2303,6 +2309,7 @@ var require_admin_bookings = __commonJS({
       if (isImport) return importFromNetlify(event, db);
       if (isOutside) return q.action === "add-booking" ? addOutsideBooking(event, db) : removeOutsideBooking(event, db);
       if (isCheckin) return saveCheckin(event, db);
+      if (isStar) return saveStar(event, db);
       const view = q.view || "bookings";
       let records;
       if (view === "checkins") {
@@ -2310,6 +2317,10 @@ var require_admin_bookings = __commonJS({
         const out = {};
         for (const b of blobs) { const r = await db.get(b.key, { type: "json" }); if (r) out[b.key.slice(9)] = r.people || {}; }
         return json(200, { view, records: out });
+      }
+      if (view === "stars") {
+        const r = await db.get("admin/stars", { type: "json" });
+        return json(200, { view, records: (r && r.people) || {} });
       }
       if (view === "classes") {
         const { CATALOG } = require_catalog();
@@ -2369,6 +2380,21 @@ var require_admin_bookings = __commonJS({
         const status = b.status === "noshow" ? "noshow" : (b.status === "here" || (b.status === undefined && b.on)) ? "here" : "";
         if (status) cur.people[person] = { at: new Date().toISOString(), name: String(b.name || "").slice(0, 120), status };
         else delete cur.people[person];
+        return cur;
+      });
+      return json(200, { ok: true, people: next.people });
+    }
+    // Owner-set repeat-customer stars ("admin/stars"), keyed by "e:<email>" or "n:<normalized name>".
+    async function saveStar(event, db) {
+      let b;
+      try { b = JSON.parse(event.body || "{}"); } catch (e) { return json(400, { error: "Bad request." }); }
+      const key = String(b.key || "").slice(0, 200);
+      if (!/^(e|n):./.test(key)) return json(400, { error: "Missing person." });
+      await db.setJSON("admin/stars", { people: {} }, { onlyIfNew: true });
+      const next = await db.update("admin/stars", (cur) => {
+        cur.people = cur.people || {};
+        if (b.on) cur.people[key] = { at: new Date().toISOString(), name: String(b.name || "").slice(0, 120) };
+        else delete cur.people[key];
         return cur;
       });
       return json(200, { ok: true, people: next.people });
