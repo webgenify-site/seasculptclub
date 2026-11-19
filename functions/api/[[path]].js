@@ -319,10 +319,10 @@ var require_catalog = __commonJS({
       },
       "pack-6": {
         kind: "pack",
-        // $200, charged inline at the catalog price (no Stripe price yet)
+        // $199, charged inline at the catalog price (no Stripe price yet)
         className: "6-Class Pack",
         creditValue: 3900,
-        amount: 2e4,
+        amount: 19900,
         credits: 6,
         // buyer gets a class code worth 6 class spots; shareable, no expiration
         maxQty: 10
