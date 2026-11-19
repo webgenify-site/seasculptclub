@@ -1118,3 +1118,9 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .sms-err{color:#A2401B;min-height:1.2em;margin:6px 0;}
 .sms-err:empty{min-height:0;margin:0;}
 .sms-form .btn{justify-self:start;margin-top:8px;}
+
+/* Class packs page: how-it-works steps */
+.cp-steps{margin:22px 0 0;padding:0;list-style:none;counter-reset:cp;display:grid;gap:16px;}
+.cp-steps li{counter-increment:cp;position:relative;padding-left:52px;line-height:1.55;color:var(--c-ink);}
+.cp-steps li::before{content:counter(cp);position:absolute;left:0;top:-2px;width:36px;height:36px;border-radius:50%;background:var(--c-ink,#12314F);color:#fff;display:grid;place-items:center;font-family:"Cormorant Garamond",serif;font-size:1.25rem;}
+.cp-steps a{color:inherit;}

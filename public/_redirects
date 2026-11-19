@@ -10,6 +10,9 @@
 /wave           /classes?book=wave-nov14           302
 /seaview        /classes?book=seaview-nov18        302
 /bogo           /buy?book=intro-bogo               302
-/3pack          /buy?book=pack-3                   302
-/4pack          /buy?book=pack-4                   302
+/3pack          /class-packs?book=pack-3           302
+/6pack          /class-packs?book=pack-6           302
+/classpacks     /class-packs                       301
+/packs          /class-packs                       301
+/4pack          /class-packs                       302
 /giftcard       /buy?book=gift-1                   302

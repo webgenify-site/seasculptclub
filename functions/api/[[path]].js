@@ -296,11 +296,10 @@ var require_catalog = __commonJS({
       // ---- Packs and offers (class credits, scheduled later) ----
       "pack-3": {
         kind: "pack",
-        priceId: "price_1UOH6o1UP4OSvubV1M6Khi0W",
-        // Stripe product: 3-Class Pack ($90)
+        // $99 since Nov 19, 2026 (was $90 on Stripe price price_1UOH6o1UP4OSvubV1M6Khi0W); charged inline at the catalog price
         className: "3-Class Pack",
         creditValue: 3900,
-        amount: 9e3,
+        amount: 9900,
         credits: 3,
         // buyer gets a class code worth 3 class spots; shareable, no expiration
         maxQty: 10
@@ -314,6 +313,18 @@ var require_catalog = __commonJS({
         amount: 11e3,
         credits: 4,
         // buyer gets a class code worth 4 class spots; shareable, no expiration
+        // Retired Nov 19, 2026: no longer sold; kept so existing 4-pack codes and records still work.
+        retired: true,
+        maxQty: 10
+      },
+      "pack-6": {
+        kind: "pack",
+        // $200, charged inline at the catalog price (no Stripe price yet)
+        className: "6-Class Pack",
+        creditValue: 3900,
+        amount: 2e4,
+        credits: 6,
+        // buyer gets a class code worth 6 class spots; shareable, no expiration
         maxQty: 10
       },
       "intro-bogo": {
@@ -550,7 +561,7 @@ var require_giftcodes = __commonJS({
     const CREDIT_VALUE = 3500;
     function creditValueOf(rec) {
       if (rec && rec.creditValue) return rec.creditValue;
-      if (rec && /\b[34]-Class Pack\b/.test(String(rec.giftName || ""))) return 3900;
+      if (rec && /\b[346]-Class Pack\b/.test(String(rec.giftName || ""))) return 3900;
       return CREDIT_VALUE;
     }
     function planCoverage(lines, credits, onlyFor, creditValue) {
@@ -839,7 +850,7 @@ var require_create_checkout = __commonJS({
       for (const raw of body.items || []) {
         const id = raw && raw.id;
         const item = CATALOG[id];
-        if (!item) {
+        if (!item || item.retired) {
           errors.push("One of the items in your cart is no longer available. Please refresh the page.");
           continue;
         }
@@ -1423,6 +1434,7 @@ var require_recovery = __commonJS({
       if (d.startsWith("bogo")) return "intro-bogo";
       if (d.startsWith("3-class pack")) return "pack-3";
       if (d.startsWith("4-class pack")) return "pack-4";
+      if (d.startsWith("6-class pack")) return "pack-6";
       if (d.startsWith("single class")) return "single";
       if (d.startsWith("egift") && d.includes("2 class")) return "gift-2";
       if (d.startsWith("egift") && d.includes("1 class")) return "gift-1";

@@ -16,8 +16,8 @@
     "seaview-nov18":  { kind: "class", date: "2026-11-18", name: "Seaview Sculpt", detail: "Wed, Nov 18 · 10:00 AM · McLoone's Pier House, Long Branch, NJ", amount: 3500 },
     // Not bookable online until a Stripe Price ID is added for it in the server catalog.
     "single":         { kind: "pack", name: "Single Class", detail: "One class", amount: 3500 },
-    "pack-3":         { kind: "pack", name: "3-Class Pack", detail: "$30/class · No expiration", amount: 9000 },
-    "pack-4":         { kind: "pack", name: "4-Class Pack", detail: "$27.50/class · No expiration", amount: 11000 },
+    "pack-3":         { kind: "pack", name: "3-Class Pack", detail: "$33/class · No expiration", amount: 9900 },
+    "pack-6":         { kind: "pack", name: "6-Class Pack", detail: "$33.33/class · No expiration", amount: 20000 },
     "intro-bogo":     { kind: "pack", name: "BOGO 50% Off", detail: "New members · 2 classes · extra class expires in 21 days · special events: pay the difference", amount: 5000, maxQty: 1 },
     "gift-1":         { kind: "gift", name: "eGift Card · 1 Class", detail: "A class for someone special", amount: 3500 },
     "gift-2":         { kind: "gift", name: "eGift Card · 2 Classes", detail: "Two classes for someone special", amount: 5000 }
