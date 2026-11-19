@@ -1124,3 +1124,12 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cp-steps li{counter-increment:cp;position:relative;padding-left:52px;line-height:1.55;color:var(--c-ink);}
 .cp-steps li::before{content:counter(cp);position:absolute;left:0;top:-2px;width:36px;height:36px;border-radius:50%;background:var(--c-ink,#12314F);color:#fff;display:grid;place-items:center;font-family:"Cormorant Garamond",serif;font-size:1.25rem;}
 .cp-steps a{color:inherit;}
+
+/* Buy page: Black Friday hero card */
+.bf-card{position:relative;z-index:1;aspect-ratio:4/3;border-radius:var(--c-radius);box-shadow:var(--sun-lift);background:radial-gradient(120% 90% at 50% 0%,#2a2a2a 0%,#0d0d0d 60%,#000 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;overflow:hidden;}
+.bf-card::before{content:"";position:absolute;inset:14px;border:1px solid rgba(214,182,120,.55);border-radius:calc(var(--c-radius) - 6px);pointer-events:none;}
+.bf-kicker{font-family:"Jost",sans-serif;font-size:.78rem;letter-spacing:.32em;text-transform:uppercase;color:#D6B678;margin-bottom:10px;}
+.bf-title{font-family:"Cormorant Garamond",serif;font-weight:500;text-transform:uppercase;letter-spacing:.06em;line-height:.92;font-size:clamp(3rem,7vw,5.6rem);}
+.bf-sale{font-family:"Parisienne",cursive;color:#D6B678;font-size:clamp(2.6rem,6vw,4.6rem);line-height:1;margin-top:-4px;}
+.bf-line{font-family:"Jost",sans-serif;font-size:.85rem;letter-spacing:.18em;text-transform:uppercase;margin-top:14px;opacity:.9;}
+@media (max-width:900px){.bf-card{max-width:620px;}}
