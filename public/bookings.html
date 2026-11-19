@@ -144,6 +144,7 @@
     <button role="tab" data-view="sales" aria-selected="false">Sales</button>
     <button role="tab" data-view="bookings" aria-selected="false">Bookings</button>
     <button role="tab" data-view="members" aria-selected="false">Members</button>
+    <button role="tab" data-view="noshows" aria-selected="false">No-shows</button>
     <button role="tab" data-view="recovered" aria-selected="false">Past payments (before booking records)</button>
     <button role="tab" data-view="giftcards" aria-selected="false">eGift &amp; class codes</button>
     <button role="tab" data-view="forms" aria-selected="false">Form messages</button>
@@ -203,6 +204,7 @@
   function load(v, force) {
     if (v === "rosters") return load("bookings", force).then(function () { return loadExtras(force); });
     if (v === "sales") return load("bookings", force);
+    if (v === "noshows") return load("bookings", force).then(function () { return loadExtras(force); });
     if (v === "members" && !arguments[2]) return load("members", force, true).then(function () { return load("bookings").then(function () { return loadExtras(force); }); });
     if (data[v] && !force) return Promise.resolve(data[v]);
     $("appErr").textContent = ""; $("list").innerHTML = '<p class="note">Loading…</p>';
@@ -558,8 +560,39 @@
           '<td>' + m.spots + (m.spots === 1 ? " spot" : " spots") + ' <small>(' + m.bookings + (m.bookings === 1 ? " order" : " orders") + ')</small>' + (m.lastClass ? '<br><small>last: ' + esc(m.lastClass.name) + '</small>' : "") + (mns ? '<br><small class="ns-flag">' + mns + ' no-show' + (mns === 1 ? "" : "s") + '</small>' : "") + '</td></tr>';
       }).join("") + '</tbody></table></div></section>';
   }
+  function renderNoshows() {
+    var byId = {}, ckAll = data.checkins || {}, hist = buildHistory(), rows = [];
+    (data.bookings || []).forEach(function (r) { byId[r.id] = r; });
+    Object.keys(ckAll).forEach(function (cls) {
+      var people = ckAll[cls] || {};
+      Object.keys(people).forEach(function (pk) {
+        var m = people[pk]; if (!m || m.status !== "noshow") return;
+        var parts = pk.split(":"), ai = +parts.pop(), ii = +parts.pop(), r = byId[parts.join(":")];
+        var it = r && r.items && r.items[ii];
+        var name = (it && it.attendees && it.attendees[ai]) || m.name || (r && ai === 0 ? r.purchaser.name : "") || "Guest";
+        var isBuyer = ai === 0;
+        rows.push({ ck: cls, pk: pk, name: name, r: r, it: it, isBuyer: isBuyer, at: m.at, date: (it && it.date) || "", keys: personKeys(name, r && r.purchaser.email, isBuyer) });
+      });
+    });
+    rows.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : String(a.name).localeCompare(b.name); });
+    if (!rows.length) { $("list").innerHTML = '<div class="empty">No no-shows yet. Mark someone as a No-show on the Class rosters tab and they’ll appear here.</div>'; return; }
+    var people = {}; rows.forEach(function (x) { people[starKey(x.keys) || x.name] = 1; });
+    var src = function (r) { return !r ? "" : r.paymentMethod === "ClassPass" ? "ClassPass" : r.provider === "outside" ? (r.paymentMethod || "Outside") : r.provider === "paypal" ? (r.paymentMethod === "venmo" ? "Venmo" : "PayPal") : String(r.id).indexOf("gift_") === 0 ? "Class code" : "Card"; };
+    $("list").innerHTML = '<p class="note"><strong>' + rows.length + '</strong> no-show' + (rows.length === 1 ? "" : "s") + ' · ' + Object.keys(people).length + (Object.keys(people).length === 1 ? " person" : " people") + '. Tap <em>Undo</em> if someone was marked by mistake.</p><section class="group"><div class="scroll"><table><thead><tr><th>Class</th><th>Name</th><th>Booked by / contact</th><th>Paid with</th><th>Total no-shows</th><th></th></tr></thead><tbody>' +
+      rows.map(function (x) {
+        var r = x.r, it = x.it || {}, n = hist.noshows(x.keys) || 1;
+        var when = it.date ? new Date(it.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "";
+        return '<tr><td><strong>' + esc(it.className || x.ck) + '</strong><br><small>' + esc(when) + (it.time ? " · " + esc(it.time) : "") + '</small></td>' +
+          '<td><strong>' + esc(x.name) + '</strong>' + starHtml(x.keys, x.name, "") + '</td>' +
+          '<td>' + (r ? (x.isBuyer ? "Self" : esc(r.purchaser.name)) + '<br><small><a class="ref" href="mailto:' + esc(r.purchaser.email) + '">' + esc(r.purchaser.email) + '</a>' + (r.purchaser.phone ? ' · <a class="ref" href="tel:' + esc(r.purchaser.phone) + '">' + esc(r.purchaser.phone) + '</a>' : "") + '</small>' : '<span class="notes">booking not found</span>') + '</td>' +
+          '<td>' + esc(src(r)) + '</td>' +
+          '<td>' + (n > 1 ? '<strong class="ns-flag">' + n + '</strong>' : n) + '</td>' +
+          '<td><button type="button" class="ns-btn on small" data-st="noshow" data-ck="' + esc(x.ck) + '" data-pk="' + esc(x.pk) + '" data-name="' + esc(x.name) + '" aria-pressed="true" title="Remove the no-show mark">Undo</button></td></tr>';
+      }).join("") + '</tbody></table></div></section>';
+  }
   function render() {
     if (view === "rosters") return renderRosters();
+    if (view === "noshows") return renderNoshows();
     if (view === "sales") return renderSales();
     if (view === "members") return renderMembers();
     if (view === "forms") return renderForms();
@@ -622,14 +655,16 @@
     view = v;
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-view") === v)); });
     $("checkOnlyWrap").hidden = v !== "recovered";
-    var simple = v === "forms" || v === "giftcards" || v === "rosters" || v === "members" || v === "sales";
-    $("salesCtl").hidden = v !== "sales"; $("csv").hidden = v === "sales";
+    var simple = v === "forms" || v === "giftcards" || v === "rosters" || v === "members" || v === "sales" || v === "noshows";
+    $("salesCtl").hidden = v !== "sales"; $("csv").hidden = v === "sales" || v === "noshows";
     $("classFilter").hidden = simple; $("showTest").parentNode.hidden = simple;
     $("showPastRosterWrap").hidden = v !== "rosters"; $("addBookingBtn").hidden = v !== "rosters"; $("memberSearch").hidden = v !== "members";
     $("viewNote").textContent = v === "sales"
       ? "Live sales from your website: card (Stripe), PayPal and Venmo, updated the moment each payment goes through. Refunds made from customers' account cancellations are subtracted. Refunds you issue by hand in Stripe or PayPal aren't included."
       : v === "rosters"
       ? "Who's coming to each class, soonest first. Names come from checkout (Me / Friend). Injury notes, photo preferences and emergency contacts come from the person who booked. ★ = repeat customer (hover to see which class this is for them). Tap the faint ☆ next to anyone to star them yourself. On class day, tap Check in or No-show."
+      : v === "noshows"
+      ? "Everyone marked No-show on a class roster, newest class first. Total no-shows counts every class they've missed."
       : v === "members"
       ? "Everyone with a Sea Sculpt Club account, plus customers who booked as guests. Passwords are never shown or stored in readable form."
       : v === "giftcards"
