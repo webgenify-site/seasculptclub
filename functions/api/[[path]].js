@@ -368,6 +368,8 @@ var require_catalog = __commonJS({
         amount: 5e3,
         credits: 2,
         // redeemable for 2 class spots (any dated class, any price)
+        // Bonus (since Nov 19, 2026): the buyer also gets a free class voucher ($35 value) per card bought.
+        bonus: { credits: 1, creditValue: 3500, name: "Free class voucher (with your $50 eGift card)" },
         maxQty: 10
       }
     };
@@ -525,6 +527,28 @@ var require_giftcodes = __commonJS({
             createdAt: (/* @__PURE__ */ new Date()).toISOString()
           }, { onlyIfNew: true });
         }
+        if (it.kind === "gift" && it.bonusCode && cat && cat.bonus) {
+          await db.setJSON(keyOf(it.bonusCode), {
+            code: it.bonusCode,
+            kind: "pack",
+            bonus: true,
+            credits: cat.bonus.credits * (it.spots || 1),
+            creditValue: cat.bonus.creditValue || 3500,
+            uses: [],
+            holds: {},
+            maxPerBooking: null,
+            ownerEmail: null,
+            expiring: null,
+            toName: booking.purchaser && booking.purchaser.name || "",
+            toEmail: booking.purchaser && booking.purchaser.email || "",
+            fromName: "",
+            fromEmail: "",
+            purchaseRef: booking.ref || null,
+            purchaseBookingId: booking.id,
+            giftName: cat.bonus.name,
+            createdAt: (/* @__PURE__ */ new Date()).toISOString()
+          }, { onlyIfNew: true });
+        }
         if (it.kind !== "gift" || !Array.isArray(it.gifts)) continue;
         const credits = CATALOG[it.catalogId] && CATALOG[it.catalogId].credits || 0;
         for (const g of it.gifts) {
@@ -659,11 +683,16 @@ var require_email = __commonJS({
             t: `  For ${g.toName} (${g.toEmail}): ${g.sendOn === "now" ? "emailed right away" : "emailed on " + niceDate(g.sendOn)}`,
             h: `For ${esc(g.toName)} (${esc(g.toEmail)}): ${g.sendOn === "now" ? "emailed right away" : "emailed on " + esc(niceDate(g.sendOn))}`
           }));
+          const bn = it.bonusCode ? (CATALOG[it.catalogId] && CATALOG[it.catalogId].bonus ? CATALOG[it.catalogId].bonus.credits : 1) * (it.spots || 1) : 0;
+          const bt = bn ? `
+  Your free class: ${it.bonusCode}
+  A thank-you for buying a $50 eGift card. It covers ${bn} class ${bn === 1 ? "spot" : "spots"} (up to $35 each). Add any class to your cart at seasculptclub.com/classes and enter the code at checkout.` : "";
+          const bh = bn ? `<br><br><strong>Your free class:</strong> <strong style="letter-spacing:.08em">${esc(it.bonusCode)}</strong><br>A thank-you for buying a $50 eGift card. It covers ${bn} class ${bn === 1 ? "spot" : "spots"} (up to $35 each). Add any class to your cart at <a href="https://seasculptclub.com/classes" style="color:#3D6789">seasculptclub.com/classes</a> and enter the code at checkout.` : "";
           return {
             text: `${it.className} \xD7 ${it.spots}
 ` + gl.map((x) => x.t).join("\n") + `
-  You'll get a copy of each eGift when it's sent.`,
-            html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong> \xD7 ${it.spots}<br>` + gl.map((x) => x.h).join("<br>") + `<br>You'll get a copy of each eGift when it's sent.</p>`
+  You'll get a copy of each eGift when it's sent.` + bt,
+            html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong> \xD7 ${it.spots}<br>` + gl.map((x) => x.h).join("<br>") + `<br>You'll get a copy of each eGift when it's sent.` + bh + `</p>`
           };
         }
         if (it.packCode) {
@@ -1590,6 +1619,7 @@ var require_gifts = __commonJS({
       for (const it of booking.items || []) {
         const cat = require_catalog().CATALOG[it.catalogId];
         if (it.kind === "pack" && cat && cat.credits && !it.packCode) it.packCode = newCode();
+        if (it.kind === "gift" && cat && cat.bonus && !it.bonusCode) it.bonusCode = newCode();
         if (it.kind !== "gift" || !Array.isArray(it.gifts)) continue;
         it.gifts = it.gifts.map((g) => ({ ...g, code: g.code || newCode(), status: g.status || "scheduled", tries: g.tries || 0 }));
       }

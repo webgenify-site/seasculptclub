@@ -20,7 +20,7 @@
     "pack-6":         { kind: "pack", name: "6-Class Pack", detail: "$33.17/class · No expiration", amount: 19900 },
     "intro-bogo":     { kind: "pack", name: "BOGO 50% Off", detail: "New members · 2 classes · extra class expires in 21 days · special events: pay the difference", amount: 5000, maxQty: 1 },
     "gift-1":         { kind: "gift", name: "eGift Card · 1 Class", detail: "A class for someone special", amount: 3500 },
-    "gift-2":         { kind: "gift", name: "eGift Card · 2 Classes", detail: "Two classes for someone special", amount: 5000 }
+    "gift-2":         { kind: "gift", name: "eGift Card · 2 Classes", detail: "Two classes for someone special · Plus a free class for you", amount: 5000 }
   };
   var DETAILS_KEY = "seaSculptDetails";
   // Payment form look, as configured in Stripe Checkout Studio.
