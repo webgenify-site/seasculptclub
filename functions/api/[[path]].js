@@ -317,6 +317,21 @@ var require_catalog = __commonJS({
         retired: true,
         maxQty: 10
       },
+      "merch-clip-butter": {
+        kind: "merch",
+        // $18, charged inline at the catalog price; picked up at class
+        className: "Sea Sculpt Claw Clip \xB7 Butter Yellow",
+        retired: true, // "Coming soon": remove this line to start selling
+        amount: 1800,
+        maxQty: 10
+      },
+      "merch-clip-blue": {
+        kind: "merch",
+        className: "Sea Sculpt Claw Clip \xB7 Sea Sculpt Blue",
+        retired: true, // "Coming soon": remove this line to start selling
+        amount: 1800,
+        maxQty: 10
+      },
       "pack-6": {
         kind: "pack",
         // $199, charged inline at the catalog price (no Stripe price yet)
@@ -695,6 +710,13 @@ var require_email = __commonJS({
             html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong> \xD7 ${it.spots}<br>` + gl.map((x) => x.h).join("<br>") + `<br>You'll get a copy of each eGift when it's sent.` + bh + `</p>`
           };
         }
+        if (it.kind === "merch") {
+          return {
+            text: `${it.className} \xD7 ${it.spots}
+  Pick it up at your next class. We'll have it ready for you.`,
+            html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong> \xD7 ${it.spots}<br>Pick it up at your next class. We'll have it ready for you.</p>`
+          };
+        }
         if (it.packCode) {
           const cat = CATALOG[it.catalogId] || {}, rules = cat.codeRules || {};
           const start = Date.parse(booking.paidAt || booking.createdAt) || Date.now();
@@ -717,7 +739,7 @@ var require_email = __commonJS({
         };
       });
       const allGifts = booking.items.length && booking.items.every((it) => it.kind === "gift");
-      const subject = booking.items.length === 1 && booking.items[0].kind === "class" ? `You're booked: ${booking.items[0].className}, ${booking.items[0].dateLabel}` : allGifts ? "Your Sea Sculpt Club eGift order" : booking.items.length && booking.items.every((it) => it.packCode) ? `Your ${booking.items.map((it) => it.className.replace(/ \(.*\)$/, "")).join(" + ")} code: ${booking.items[0].packCode}` : "You're booked with Sea Sculpt Club";
+      const subject = booking.items.length && booking.items.every((it) => it.kind === "merch") ? "Your Sea Sculpt Club merch order" : booking.items.length === 1 && booking.items[0].kind === "class" ? `You're booked: ${booking.items[0].className}, ${booking.items[0].dateLabel}` : allGifts ? "Your Sea Sculpt Club eGift order" : booking.items.length && booking.items.every((it) => it.packCode) ? `Your ${booking.items.map((it) => it.className.replace(/ \(.*\)$/, "")).join(" + ")} code: ${booking.items[0].packCode}` : "You're booked with Sea Sculpt Club";
       const text = `Hi ${first},
 
 Thank you for booking with Sea Sculpt Club! Here are your details:

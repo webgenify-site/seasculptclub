@@ -1170,3 +1170,26 @@ html.bf-on .cl-buy-hero{display:none;}
 .merch-signup .club-banner-form input[type=email]{background:#fff;border:1.5px solid rgba(18,49,79,.35);color:#12314F;}
 .merch-signup .club-banner-form input[type=email]::placeholder{color:rgba(18,49,79,.55);}
 .merch-signup .club-banner-form button{background:#12314F;color:#fff;border-color:#12314F;box-shadow:none;}
+
+/* Merch shop */
+.merch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px;max-width:980px;margin:0 auto;}
+.merch-item{background:#fff;border-radius:var(--c-radius,10px);box-shadow:var(--sun-lift,0 10px 30px rgba(18,49,79,.08));overflow:hidden;display:flex;flex-direction:column;}
+.mg{position:relative;background:#fff;}
+.mg-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;outline:none;}
+.mg-track::-webkit-scrollbar{display:none;}
+.mg-track img{flex:0 0 100%;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;scroll-snap-align:start;user-select:none;}
+.mg-arrow{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#12314F;font-size:1.6rem;line-height:1;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.12);display:grid;place-items:center;padding-bottom:3px;}
+.mg-prev{left:10px;}.mg-next{right:10px;}
+.mg-dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:4px;}
+.mg-dot{width:24px;height:24px;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center;}
+.mg-dot::before{content:"";width:8px;height:8px;border-radius:50%;background:rgba(18,49,79,.25);}
+.mg-dot.on::before{background:#12314F;}
+@media (hover:none){.mg-arrow{display:none;}}
+.merch-info{padding:20px 22px 24px;display:flex;flex-direction:column;gap:6px;flex:1;}
+.merch-info h3{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-size:1.6rem;font-weight:500;color:#12314F;}
+.merch-price{margin:0;font-size:1.15rem;font-weight:600;color:#12314F;}
+.merch-desc{margin:4px 0 0;color:var(--c-ink);line-height:1.5;}
+.merch-pickup{margin:2px 0 12px;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;color:#3D6789;}
+.merch-info .cl-btn{margin-top:auto;align-self:flex-start;}
+.merch-soon{background:#FBF3C4;color:#12314F;border:1.5px solid #E9D98A;cursor:default;opacity:1;}
+.merch-soon:hover{transform:none;}
