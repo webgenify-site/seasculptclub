@@ -22,7 +22,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf7">
-<link rel="stylesheet" href="css/coastal.css?v=cf40">
+<link rel="stylesheet" href="css/coastal.css?v=cf41">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/buy">
@@ -33,6 +33,15 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Sea Sculpt Club — Themed experiences, beach at sunset">
 <meta name="twitter:card" content="summary_large_image">
+<script>
+  // Black Friday header: Nov 20 – Nov 30, 2026 (11:59 PM Eastern). Preview any time with ?bf=1
+  (function () {
+    try {
+      var d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+      if ((d >= "2026-11-20" && d <= "2026-11-30") || /[?&]bf=1/.test(location.search)) document.documentElement.classList.add("bf-on");
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
 <header>
@@ -66,11 +75,26 @@
 </header>
 <main class="cl">
 
+  <section class="bf-banner" aria-labelledby="bfTitle">
+    <div class="bf-frame">
+      <div class="bf-center">
+        <p class="bf-brand">Sea Sculpt Club</p>
+        <h1 class="bf-head" id="bfTitle"><span class="bf-bf">Black Friday</span> <span class="bf-script">Sale<svg class="bf-swash" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true"><path d="M6 30 C 70 18, 160 14, 250 14 S 370 18, 394 20 L 392 28 C 300 24, 200 24, 120 28 S 30 36, 10 38 Z"/></svg></span></h1>
+        <p class="bf-sub">Class packs &amp; eGift cards</p>
+        <div class="bf-actions">
+          <a href="#packs" class="bf-btn">Shop class packs</a>
+          <a href="#gift-cards" class="bf-btn bf-btn-ghost">eGift cards</a>
+        </div>
+        <p class="bf-ends">Ends Monday, Nov 30 at 11:59 PM</p>
+      </div>
+    </div>
+  </section>
+
   <section class="cl-hero cl-buy-hero sand-surface">
     <div class="cl-wrap cl-hero-grid">
     <div class="cl-hero-copy">
-      <span class="eyebrow">Black Friday</span>
-      <h1>Black Friday <span class="script">Sale.</span></h1>
+      <span class="eyebrow">Sea Sculpt Club</span>
+      <h1>Packs, gifts &amp; <span class="script">new member deals.</span></h1>
       <p>Save with a class pack, give someone an eGift card, or try us out with our new member deal. Each purchase comes as a code you enter at checkout when you book your classes.</p>
       <div class="cl-actions">
         <a href="#new-members" class="cl-link">New Member Deal</a>
@@ -79,8 +103,8 @@
         <a href="classes.html#events" class="cl-link">Book Class</a>
       </div>
     </div>
-      <figure class="cl-hero-photo bf-photo">
-        <img src="assets/black-friday-sale.jpg" alt="Sea Sculpt Club Black Friday Sale: class packs and eGift cards" width="1448" height="1086">
+      <figure class="cl-hero-photo">
+        <img src="assets/collab-gift-bags.jpg" alt="Sea Sculpt Club gift bags lined up for class" width="1536" height="2048">
       </figure>
     </div>
   </section>

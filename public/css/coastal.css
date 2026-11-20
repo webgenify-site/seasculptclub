@@ -1138,3 +1138,24 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .cl-pack-price .was{position:relative;display:inline-block;font-size:.5em;color:var(--c-ink);opacity:.55;text-decoration:none;margin-right:.35em;vertical-align:.45em;}
 .cl-pack-price .was::after{content:"";position:absolute;left:-10%;right:-10%;top:50%;height:.2em;min-height:4px;background:#4A8BCB;border-radius:3px;transform:rotate(-16deg);}
 .bf-photo img{aspect-ratio:1448/1086;object-position:50% 50%;}
+
+/* Buy page: full-width Black Friday header (shown Nov 20–30 via html.bf-on) */
+.bf-banner{display:none;}
+html.bf-on .bf-banner{display:block;}
+html.bf-on .cl-buy-hero{display:none;}
+.bf-banner{position:relative;background:repeating-linear-gradient(90deg,#FBF3C4 0 18px,#FFFBEA 18px 30px,#F7E89A 30px 44px,#FFFBEA 44px 56px);padding:clamp(12px,1.6vw,20px);}
+.bf-frame{position:relative;border:2px solid #12314F;box-shadow:inset 0 0 0 4px rgba(255,251,234,.9),inset 0 0 0 5px #12314F;padding:clamp(6px,1vw,10px);}
+.bf-center{max-width:1180px;margin:0 auto;background:#A9D1F3;background-image:radial-gradient(rgba(255,255,255,.18) 1px,transparent 1px);background-size:4px 4px;text-align:center;color:#12314F;padding:clamp(40px,6vw,84px) clamp(18px,4vw,48px) clamp(34px,5vw,64px);}
+.bf-brand{margin:0 0 clamp(10px,1.6vw,20px);font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;letter-spacing:.42em;text-transform:uppercase;font-size:clamp(.85rem,1.5vw,1.3rem);padding-left:.42em;}
+.bf-head{margin:0;font-weight:400;line-height:.9;}
+.bf-bf{display:block;font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;font-size:clamp(3.2rem,10.5vw,9.4rem);letter-spacing:-.01em;}
+.bf-script{position:relative;display:inline-block;font-family:"Parisienne",cursive;font-size:clamp(3.4rem,10vw,8.6rem);line-height:1.05;margin-top:-.08em;padding:0 .12em;z-index:0;}
+.bf-swash{position:absolute;left:-18%;right:-18%;width:136%;bottom:.06em;height:.26em;z-index:-1;}
+.bf-swash path{fill:#FBEFA6;}
+.bf-sub{margin:clamp(14px,2vw,26px) 0 0;font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;letter-spacing:.32em;text-transform:uppercase;font-size:clamp(.82rem,1.6vw,1.35rem);padding-left:.32em;}
+.bf-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:clamp(18px,2.6vw,30px);}
+.bf-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 26px;border-radius:4px;background:#12314F;color:#fff;font-family:"Jost",sans-serif;font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;border:1.5px solid #12314F;}
+.bf-btn-ghost{background:transparent;color:#12314F;}
+.bf-btn:hover{opacity:.88;}
+.bf-ends{margin:22px 0 0;font-family:"Jost",sans-serif;font-size:.85rem;letter-spacing:.04em;}
+@media (max-width:600px){.bf-banner{background:repeating-linear-gradient(90deg,#FBF3C4 0 8px,#FFFBEA 8px 14px,#F7E89A 14px 20px,#FFFBEA 20px 26px);}}
