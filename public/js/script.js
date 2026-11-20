@@ -216,8 +216,9 @@ document.addEventListener("DOMContentLoaded", function () {
       var email = form.email.value.trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { say("Please enter a valid email address."); form.email.focus(); return; }
       say("");
-      var btn = form.querySelector("button"); btn.disabled = true; btn.textContent = "Joining…";
+      var btn = form.querySelector("button"), label = btn.textContent; btn.disabled = true; btn.textContent = "Joining…";
       var data = new URLSearchParams(); data.append("form-name", "newsletter"); data.append("email", email);
+      form.querySelectorAll('input[type="hidden"]').forEach(function (h) { data.append(h.name, h.value); });
       fetch("/api/form", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: data.toString() })
         .then(function (r) {
           if (!r.ok) throw new Error("HTTP " + r.status);
@@ -226,7 +227,7 @@ document.addEventListener("DOMContentLoaded", function () {
           if (typeof gtag === "function") gtag("event", "email_signup", { form_location: "footer_banner" });
         })
         .catch(function () { say("Something went wrong. Please try again."); })
-        .then(function () { btn.disabled = false; btn.textContent = "Join"; });
+        .then(function () { btn.disabled = false; btn.textContent = label; });
     });
   });
 });

@@ -1163,3 +1163,10 @@ html.bf-on .cl-buy-hero{display:none;}
 /* $50 eGift: free class bonus */
 .gc .gc-flag{position:absolute;top:12px;right:12px;z-index:3;background:#12314F;color:#fff;font-family:"Jost",sans-serif;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px;border-radius:999px;}
 .cl-gift-bonus{margin:6px 0 14px;padding:10px 14px;background:#FBF3C4;border-radius:6px;color:var(--c-ink);font-size:.92rem;line-height:1.45;}
+
+/* Merch page signup */
+.merch-signup{position:static;left:auto;top:auto;transform:none;width:auto;padding:0;margin:22px 0 6px;max-width:460px;}
+.merch-signup .club-banner-msg,.merch-signup .club-banner-done{color:var(--c-ink);}
+.merch-signup .club-banner-form input[type=email]{background:#fff;border:1.5px solid rgba(18,49,79,.35);color:#12314F;}
+.merch-signup .club-banner-form input[type=email]::placeholder{color:rgba(18,49,79,.55);}
+.merch-signup .club-banner-form button{background:#12314F;color:#fff;border-color:#12314F;box-shadow:none;}
