@@ -1133,3 +1133,8 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .bf-sale{font-family:"Parisienne",cursive;color:#D6B678;font-size:clamp(2.6rem,6vw,4.6rem);line-height:1;margin-top:-4px;}
 .bf-line{font-family:"Jost",sans-serif;font-size:.85rem;letter-spacing:.18em;text-transform:uppercase;margin-top:14px;opacity:.9;}
 @media (max-width:900px){.bf-card{max-width:620px;}}
+
+/* Sale pricing: regular price with a blue slash */
+.cl-pack-price .was{position:relative;display:inline-block;font-size:.5em;color:var(--c-ink);opacity:.55;text-decoration:none;margin-right:.35em;vertical-align:.45em;}
+.cl-pack-price .was::after{content:"";position:absolute;left:-10%;right:-10%;top:50%;height:.2em;min-height:4px;background:#4A8BCB;border-radius:3px;transform:rotate(-16deg);}
+.bf-photo img{aspect-ratio:1448/1086;object-position:50% 50%;}
