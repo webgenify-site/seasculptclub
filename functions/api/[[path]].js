@@ -240,6 +240,7 @@ var require_catalog = __commonJS({
         priceId: "price_1UVBrH1UP4OSvubVkW6s7LNp",
         // Stripe product: Wave Friendsgiving ($35), same as buy.stripe.com/5kQeV64gL4G7arlea40co0f
         className: "Friendsgiving Pilates & Brunch",
+        soldOut: true, // Sold out (Nov 20, 2026): remove this line to reopen sales
         date: "2026-11-21",
         dateLabel: "Saturday, November 21, 2026",
         time: "10:00 AM",
@@ -901,6 +902,10 @@ var require_create_checkout = __commonJS({
       for (const raw of body.items || []) {
         const id = raw && raw.id;
         const item = CATALOG[id];
+        if (item && item.soldOut) {
+          errors.push(`Sorry, ${item.className}${item.dateLabel ? " (" + item.dateLabel + ")" : ""} is sold out. Please remove it from your cart.`);
+          continue;
+        }
         if (!item || item.retired) {
           errors.push("One of the items in your cart is no longer available. Please refresh the page.");
           continue;
