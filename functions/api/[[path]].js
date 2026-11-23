@@ -264,6 +264,7 @@ var require_catalog = __commonJS({
         kind: "class",
         // No Stripe price: charged its amount directly at checkout. Portion donated to the farm.
         className: "Ponies & Pilates at Acres at Magnolia",
+        retired: true, // Removed from the site Nov 23, 2026; kept so any existing bookings still show
         date: "2026-12-12",
         dateLabel: "Saturday, December 12, 2026",
         time: "9:00 AM",
