@@ -109,6 +109,7 @@
   .linkbtn{background:none;border:0;color:var(--warn);text-decoration:underline;cursor:pointer;font:inherit;font-size:.78rem;padding:0;}
   .vm-tag{display:inline-block;background:#008CFF;color:#fff;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
   .pp-tag{display:inline-block;background:#FFC439;color:#003087;border-radius:4px;padding:1px 6px;font:600 .7rem system-ui,sans-serif;}
+  .ship-flag{color:#12314F;background:#EAF3FB;border-radius:6px;padding:4px 8px;margin:2px 0;font-size:.85rem;}
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
@@ -230,6 +231,12 @@
   function intakeCell(q) {
     if (!q) return "";
     var bits = [];
+    if (q.delivery && q.delivery.method === "ship") {
+      var ad = q.delivery.address || {};
+      bits.push('<div class="ship-flag">&#128230; <strong>Ship to:</strong> ' + esc([ad.name, ad.line1, ad.line2, [ad.city, ad.state].filter(Boolean).join(", ") + (ad.zip ? " " + ad.zip : "")].filter(Boolean).join(", ")) + '</div>');
+    } else if (q.delivery && q.delivery.method === "pickup") {
+      bits.push('<div class="notes">Merch: pick up at class</div>');
+    }
     if (q.injuries) bits.push('<div class="intake-flag">&#9888; Injuries / modifications: ' + esc(q.injuries) + '</div>');
     if (q.photoConsent) bits.push('<div class="notes">Photos: ' + (q.photoConsent === "yes" ? "OK" : "<strong>No photos</strong>") + '</div>');
     if (q.heard) bits.push('<div class="notes">Heard about us: ' + esc(q.heard + (q.heardOther ? ": " + q.heardOther : "")) + '</div>');

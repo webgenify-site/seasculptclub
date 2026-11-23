@@ -326,6 +326,14 @@ var require_catalog = __commonJS({
         amount: 1800,
         maxQty: 10
       },
+      "shipping": {
+        kind: "shipping",
+        // Flat $4.99 per order; only added by the server when merch is set to ship (never added from the cart directly)
+        className: "Shipping",
+        amount: 499,
+        internal: true,
+        maxQty: 1
+      },
       "merch-clip-blue": {
         kind: "merch",
         className: "Sea Sculpt Claw Clip \xB7 Sea Sculpt Blue",
@@ -710,11 +718,23 @@ var require_email = __commonJS({
             html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong> \xD7 ${it.spots}<br>` + gl.map((x) => x.h).join("<br>") + `<br>You'll get a copy of each eGift when it's sent.` + bh + `</p>`
           };
         }
+        if (it.kind === "shipping") {
+          const a = booking.intake && booking.intake.delivery && booking.intake.delivery.address || {};
+          const addrT = [a.name, a.line1, a.line2, [a.city, a.state].filter(Boolean).join(", ") + (a.zip ? " " + a.zip : "")].filter(Boolean);
+          return {
+            text: `Shipping: ${money(it.unitAmount || 499)}
+  We'll ship your order to:
+  ` + addrT.join("\n  "),
+            html: `<p style="margin:0 0 14px"><strong>Shipping</strong>: ${esc(money(it.unitAmount || 499))}<br>We'll ship your order to:<br>${addrT.map(esc).join("<br>")}</p>`
+          };
+        }
         if (it.kind === "merch") {
+          const ship = booking.intake && booking.intake.delivery && booking.intake.delivery.method === "ship";
+          const note = ship ? "We'll mail it to the address below." : "Pick it up at your next class. We'll have it ready for you.";
           return {
             text: `${it.className} \xD7 ${it.spots}
-  Pick it up at your next class. We'll have it ready for you.`,
-            html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong> \xD7 ${it.spots}<br>Pick it up at your next class. We'll have it ready for you.</p>`
+  ${note}`,
+            html: `<p style="margin:0 0 14px"><strong>${esc(it.className)}</strong> \xD7 ${it.spots}<br>${note}</p>`
           };
         }
         if (it.packCode) {
@@ -739,7 +759,7 @@ var require_email = __commonJS({
         };
       });
       const allGifts = booking.items.length && booking.items.every((it) => it.kind === "gift");
-      const subject = booking.items.length && booking.items.every((it) => it.kind === "merch") ? "Your Sea Sculpt Club merch order" : booking.items.length === 1 && booking.items[0].kind === "class" ? `You're booked: ${booking.items[0].className}, ${booking.items[0].dateLabel}` : allGifts ? "Your Sea Sculpt Club eGift order" : booking.items.length && booking.items.every((it) => it.packCode) ? `Your ${booking.items.map((it) => it.className.replace(/ \(.*\)$/, "")).join(" + ")} code: ${booking.items[0].packCode}` : "You're booked with Sea Sculpt Club";
+      const subject = booking.items.length && booking.items.every((it) => it.kind === "merch" || it.kind === "shipping") ? "Your Sea Sculpt Club merch order" : booking.items.length === 1 && booking.items[0].kind === "class" ? `You're booked: ${booking.items[0].className}, ${booking.items[0].dateLabel}` : allGifts ? "Your Sea Sculpt Club eGift order" : booking.items.length && booking.items.every((it) => it.packCode) ? `Your ${booking.items.map((it) => it.className.replace(/ \(.*\)$/, "")).join(" + ")} code: ${booking.items[0].packCode}` : "You're booked with Sea Sculpt Club";
       const text = `Hi ${first},
 
 Thank you for booking with Sea Sculpt Club! Here are your details:
@@ -889,6 +909,7 @@ var require_create_checkout = __commonJS({
       if (process.env.BOOKING_TODAY_OVERRIDE) return process.env.BOOKING_TODAY_OVERRIDE;
       return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(/* @__PURE__ */ new Date());
     }
+    const US_STATES = "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY PR".split(" ");
     function validate(body) {
       const errors = [];
       const p = body.purchaser || {};
@@ -905,7 +926,7 @@ var require_create_checkout = __commonJS({
           errors.push(`Sorry, ${item.className}${item.dateLabel ? " (" + item.dateLabel + ")" : ""} is sold out. Please remove it from your cart.`);
           continue;
         }
-        if (!item || item.retired) {
+        if (!item || item.retired || item.internal) {
           errors.push("One of the items in your cart is no longer available. Please refresh the page.");
           continue;
         }
@@ -964,6 +985,23 @@ var require_create_checkout = __commonJS({
         waiver: null,
         cancelPolicy: null
       };
+      // Merch delivery: pick up at class (default) or ship for a flat $4.99 per order
+      const hasMerch = lines.some((l) => CATALOG[l.id] && CATALOG[l.id].kind === "merch");
+      if (hasMerch) {
+        const d = body.delivery || {};
+        if (d.method === "ship") {
+          const a = d.address || {};
+          const addr = { name: clean(a.name, 100) || purchaser.name, line1: clean(a.line1, 120), line2: clean(a.line2, 120), city: clean(a.city, 80), state: clean(a.state, 2).toUpperCase(), zip: clean(a.zip, 10) };
+          if (addr.line1.length < 3) errors.push("Please enter your street address for shipping.");
+          else if (addr.city.length < 2) errors.push("Please enter your city for shipping.");
+          else if (!US_STATES.includes(addr.state)) errors.push("Please choose your state for shipping.");
+          else if (!/^\d{5}(-\d{4})?$/.test(addr.zip)) errors.push("Please enter a 5-digit ZIP code for shipping.");
+          intake.delivery = { method: "ship", fee: CATALOG.shipping.amount, address: addr };
+          lines.push({ id: "shipping", qty: 1, attendees: [], gifts: [] });
+        } else {
+          intake.delivery = { method: "pickup" };
+        }
+      }
       if (hasClass) {
         if (q.waiver !== true) errors.push("Please agree to the Liability Waiver & Release to book a class.");
         else intake.waiver = { accepted: true, version: WAIVER_VERSION, at: (/* @__PURE__ */ new Date()).toISOString() };
@@ -1110,7 +1148,8 @@ var require_create_checkout = __commonJS({
           params.append(`line_items[${i}][price_data][currency]`, "usd");
           params.append(`line_items[${i}][price_data][unit_amount]`, String(c.amount));
           params.append(`line_items[${i}][price_data][product_data][name]`, c.className);
-          params.append(`line_items[${i}][price_data][product_data][description]`, [c.dateLabel, c.time, c.location].filter(Boolean).join(" \xB7 "));
+          const pdDesc = [c.dateLabel, c.time, c.location].filter(Boolean).join(" \xB7 ");
+          if (pdDesc) params.append(`line_items[${i}][price_data][product_data][description]`, pdDesc);
         } else {
           params.append(`line_items[${i}][price]`, priceId);
         }

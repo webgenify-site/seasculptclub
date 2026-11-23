@@ -18,8 +18,8 @@
     "pack-3":         { kind: "pack", name: "3-Class Pack", detail: "$33/class · No expiration", amount: 9900 },
     "pack-6":         { kind: "pack", name: "6-Class Pack", detail: "$33.17/class · No expiration", amount: 19900 },
     "intro-bogo":     { kind: "pack", name: "BOGO 50% Off", detail: "New members · 2 classes · extra class expires in 21 days · special events: pay the difference", amount: 5000, maxQty: 1 },
-    "merch-clip-butter": { kind: "merch", name: "Sea Sculpt Claw Clip · Butter Yellow", detail: "Pick up at your next class", amount: 1800 },
-    "merch-clip-blue":   { kind: "merch", name: "Sea Sculpt Claw Clip · Sea Sculpt Blue", detail: "Pick up at your next class", amount: 1800 },
+    "merch-clip-butter": { kind: "merch", name: "Sea Sculpt Claw Clip · Butter Yellow", detail: "Pick up at class or ship ($4.99)", amount: 1800 },
+    "merch-clip-blue":   { kind: "merch", name: "Sea Sculpt Claw Clip · Sea Sculpt Blue", detail: "Pick up at class or ship ($4.99)", amount: 1800 },
     "gift-1":         { kind: "gift", name: "eGift Card · 1 Class", detail: "A class for someone special", amount: 3500 },
     "gift-2":         { kind: "gift", name: "eGift Card · 2 Classes", detail: "Two classes for someone special · Plus a free class for you", amount: 5000 }
   };
@@ -172,6 +172,15 @@
     for (var i = 0; i < n; i++) { v += Math.min(spots[i], cv); t += Math.max(0, spots[i] - cv); }
     return { n: n, value: v, topUp: t };
   }
+  // Merch delivery: pick up at class (free) or ship for a flat $4.99 per order
+  var SHIP_FEE = 499, US_STATES = "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY PR".split(" ");
+  function hasMerch() { return cart.some(function (l) { return CATALOG[l.id] && CATALOG[l.id].kind === "merch"; }); }
+  function deliveryMethod() {
+    var r = attendeesEl && attendeesEl.querySelector('input[name="ssc-delivery"]:checked');
+    if (r) return r.value;
+    var s = loadDetails(); return s.delivery && s.delivery.method === "ship" ? "ship" : "pickup";
+  }
+  function shipFee() { return hasMerch() && deliveryMethod() === "ship" ? SHIP_FEE : 0; }
   function hasClass() { return cart.some(function (l) { return CATALOG[l.id].kind === "class"; }); }
   function render() {
     countEl.textContent = count();
@@ -197,11 +206,13 @@
       creditEl.querySelector("span").textContent = (giftState.kind === "pack" ? "Class code (" : "eGift (") + cov.n + (cov.n === 1 ? " class spot)" : " class spots)");
       creditEl.querySelector("strong").textContent = "−" + money(cov.value);
     }
-    totalLabel.textContent = cov.n ? "Total" : "Subtotal";
-    totalEl.textContent = money(total() - cov.value);
+    var fee = shipFee();
+    if (fee) body.insertAdjacentHTML("beforeend", '<div class="cart-line cart-ship-line"><div class="cart-line-info"><strong>Shipping</strong><span>Flat rate, mailed to you</span></div><div class="cart-line-side"><span class="cart-price">' + money(fee) + '</span></div></div>');
+    totalLabel.textContent = cov.n || fee ? "Total" : "Subtotal";
+    totalEl.textContent = money(total() - cov.value + fee);
     if (step === "account") checkoutBtn.textContent = "Continue";
-    if (step === "details") checkoutBtn.textContent = cov.n && total() - cov.value === 0 ? (giftState.kind === "pack" ? "Book with code" : "Book with eGift") : "Continue to payment";
-    renderPaypal(total() - cov.value);
+    if (step === "details") checkoutBtn.textContent = cov.n && total() - cov.value + fee === 0 ? (giftState.kind === "pack" ? "Book with code" : "Book with eGift") : "Continue to payment";
+    renderPaypal(total() - cov.value + fee);
     checkoutBtn.disabled = !cart.length;
     msg.textContent = "";
     if (!cart.length && step !== "cart") showStep("cart");
@@ -214,6 +225,13 @@
   function readDetails() {
     var d = { purchaser: { name: F.name.value.trim(), email: F.email.value.trim(), phone: F.phone.value.trim() }, attendees: {}, gifts: {},
       intake: { waiver: IN.waiver.checked, cancelPolicy: IN.cancelPolicy.checked } };
+    var dv = attendeesEl.querySelector("[data-delivery]");
+    if (dv) {
+      var g = function (k) { var el = dv.querySelector('[data-a="' + k + '"]'); return el ? el.value.trim() : ""; };
+      d.delivery = { method: deliveryMethod(), address: { line1: g("line1"), line2: g("line2"), city: g("city"), state: g("state"), zip: g("zip") } };
+    } else {
+      var prevD = loadDetails().delivery; if (prevD) d.delivery = prevD; // keep the choice when the delivery box isn't on screen
+    }
     attendeesEl.querySelectorAll("[data-spotbox]").forEach(function (box) {
       var id = box.getAttribute("data-line"), n = +box.getAttribute("data-spot");
       var me = box.querySelector('input[value="me"]').checked;
@@ -280,7 +298,24 @@
         '</fieldset>';
       }
     });
-    attendeesEl.innerHTML = (html ? '<h3>Who&rsquo;s coming?</h3>' + html : "") + (gh ? '<h3>Gift details</h3>' + gh : "");
+    var dh = "";
+    if (hasMerch()) {
+      var sd = saved.delivery || {}, sa = sd.address || {}, ship = sd.method === "ship";
+      var opt = function (v, label) { return '<label class="cart-pill"><input type="radio" name="ssc-delivery" value="' + v + '"' + ((v === "ship") === ship ? " checked" : "") + '><span>' + label + '</span></label>'; };
+      dh = '<fieldset class="cart-delivery" data-delivery="1"><legend>Merch delivery<span>How would you like to get your merch?</span></legend>' +
+        '<div class="cart-spot-pick" role="radiogroup" aria-label="Merch delivery">' + opt("pickup", "Pick up at class &middot; Free") + opt("ship", "Ship to me &middot; +$4.99") + '</div>' +
+        '<div class="cart-address"' + (ship ? "" : " hidden") + '>' +
+          '<label>Street address<input data-a="line1" maxlength="120" autocomplete="shipping address-line1" value="' + esc(sa.line1 || "") + '"></label>' +
+          '<label>Apt, suite, etc. <em>(optional)</em><input data-a="line2" maxlength="120" autocomplete="shipping address-line2" value="' + esc(sa.line2 || "") + '"></label>' +
+          '<div class="cart-address-row">' +
+            '<label>City<input data-a="city" maxlength="80" autocomplete="shipping address-level2" value="' + esc(sa.city || "") + '"></label>' +
+            '<label>State<select data-a="state" autocomplete="shipping address-level1"><option value="">State</option>' + US_STATES.map(function (s) { return '<option' + ((sa.state || "") === s ? " selected" : "") + '>' + s + '</option>'; }).join("") + '</select></label>' +
+            '<label>ZIP<input data-a="zip" inputmode="numeric" maxlength="10" autocomplete="shipping postal-code" value="' + esc(sa.zip || "") + '"></label>' +
+          '</div>' +
+          '<p class="cart-gift-note">We ship within the US. Flat $4.99 per order.</p>' +
+        '</div></fieldset>';
+    }
+    attendeesEl.innerHTML = (html ? '<h3>Who&rsquo;s coming?</h3>' + html : "") + (gh ? '<h3>Gift details</h3>' + gh : "") + (dh ? '<h3>Delivery</h3>' + dh : "");
     whoLine.innerHTML = F.name.value ? "Booking as <strong>" + esc(F.name.value) + "</strong> &middot; " + esc(F.email.value) + ' <button type="button" class="cart-edit-account">Edit</button>' : "";
     codeBox.hidden = !html; // eGift codes cover class spots
     // Waiver + cancellation policy before payment (class bookings); the other questions come after payment.
@@ -291,6 +326,14 @@
   }
   // Spot 1 follows the purchaser's name until it's edited by hand.
   details.addEventListener("change", function (e) {
+    if (e.target.name === "ssc-delivery") {
+      var box = attendeesEl.querySelector(".cart-address"), ship = e.target.value === "ship";
+      if (box) box.hidden = !ship;
+      var dd = readDetails(); saveDetails(dd);
+      render();
+      if (ship) { var f1 = attendeesEl.querySelector('[data-a="line1"]'); if (f1) f1.focus(); }
+      return;
+    }
     var spot = e.target.closest && e.target.closest("[data-spotbox]");
     if (spot && e.target.type === "radio") {
       var friend = e.target.value === "friend", fl = spot.querySelector(".cart-friend");
@@ -333,6 +376,13 @@
       if (!bad && box.querySelector('input[value="friend"]').checked && f.value.trim().length < 2) bad = f;
     });
     if (bad) return [bad, "Please enter your friend's name."];
+    if (d.delivery && d.delivery.method === "ship") {
+      var a = d.delivery.address, q = function (k) { return attendeesEl.querySelector('[data-a="' + k + '"]'); };
+      if (a.line1.length < 3) return [q("line1"), "Please enter your street address for shipping."];
+      if (a.city.length < 2) return [q("city"), "Please enter your city for shipping."];
+      if (!a.state) return [q("state"), "Please choose your state for shipping."];
+      if (!/^\d{5}(-\d{4})?$/.test(a.zip)) return [q("zip"), "Please enter a 5-digit ZIP code for shipping."];
+    }
     var gp = null, today = window.SEA_SCULPT_TODAY || new Date().toISOString().slice(0, 10);
     attendeesEl.querySelectorAll("fieldset[data-gift]").forEach(function (fs) {
       if (gp) return;
@@ -537,7 +587,7 @@
 
   var currentDetails = { purchaser: {}, attendees: {}, gifts: {} };
   function sessionPayload(extra) {
-    var b = { items: cart, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, intake: currentDetails.intake || {}, giftCode: giftState ? giftState.code : undefined, promoCode: promoState ? promoState.code : undefined };
+    var b = { items: cart, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, intake: currentDetails.intake || {}, delivery: currentDetails.delivery, giftCode: giftState ? giftState.code : undefined, promoCode: promoState ? promoState.code : undefined };
     for (var k in extra) b[k] = extra[k];
     return JSON.stringify(b);
   }

@@ -1197,3 +1197,13 @@ html.bf-on .cl-buy-hero{display:none;}
 /* Sold out */
 .sold-out-tag{display:inline-block;font-family:"Jost",sans-serif;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:#8A3A28;border:1.5px solid rgba(138,58,40,.45);border-radius:999px;padding:6px 12px;white-space:nowrap;}
 .sold-out-btn,.sold-out-btn:hover{background:#EFE9E1;color:#8A3A28;border:1.5px solid rgba(138,58,40,.35);cursor:default;transform:none;box-shadow:none;}
+
+/* Cart: merch delivery */
+.cart-delivery .cart-spot-pick{flex-wrap:wrap;}
+.cart-address{display:grid;gap:10px;margin-top:12px;}
+.cart-address[hidden]{display:none;}
+.cart-address label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;}
+.cart-address input,.cart-address select{width:100%;min-height:44px;padding:8px 10px;border:1px solid rgba(18,49,79,.25);border-radius:6px;font:inherit;background:#fff;color:#12314F;}
+.cart-address-row{display:grid;grid-template-columns:1.4fr .8fr .9fr;gap:8px;}
+@media (max-width:420px){.cart-address-row{grid-template-columns:1fr 1fr;}.cart-address-row label:first-child{grid-column:1/-1;}}
+.cart-ship-line .cart-line-info span{opacity:.8;}
