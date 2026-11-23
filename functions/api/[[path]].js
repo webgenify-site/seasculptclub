@@ -323,14 +323,12 @@ var require_catalog = __commonJS({
         kind: "merch",
         // $18, charged inline at the catalog price; picked up at class
         className: "Sea Sculpt Claw Clip \xB7 Butter Yellow",
-        retired: true, // "Coming soon": remove this line to start selling
         amount: 1800,
         maxQty: 10
       },
       "merch-clip-blue": {
         kind: "merch",
         className: "Sea Sculpt Claw Clip \xB7 Sea Sculpt Blue",
-        retired: true, // "Coming soon": remove this line to start selling
         amount: 1800,
         maxQty: 10
       },
