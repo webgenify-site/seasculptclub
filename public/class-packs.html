@@ -16,23 +16,32 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Class Packs | Sea Sculpt Club</title>
-<meta name="description" content="Sea Sculpt Club class packs: 3 classes for $99 or 6 classes for $199. Shareable, never expire, and good for any class or event up to $39.">
+<meta name="description" content="Sea Sculpt Club 3-class packs: shareable, never expire, and good for any class or event up to $39.">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf7">
-<link rel="stylesheet" href="css/coastal.css?v=cf47">
+<link rel="stylesheet" href="css/coastal.css?v=cf48">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/class-packs">
 <meta property="og:title" content="Class Packs | Sea Sculpt Club">
-<meta property="og:description" content="3 classes for $99 or 6 classes for $199. Share them with friends, and they never expire.">
+<meta property="og:description" content="Grab a 3-class pack. Share it with friends, and it never expires.">
 <meta property="og:image" content="https://seasculptclub.com/assets/og-home.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Sea Sculpt Club — Themed experiences, beach at sunset">
 <meta name="twitter:card" content="summary_large_image">
+<script>
+  // Black Friday pricing: Nov 19 – Nov 30, 2026 (11:59 PM Eastern). Preview any time with ?bf=1
+  (function () {
+    try {
+      var d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+      if ((d >= "2026-11-19" && d <= "2026-11-30") || /[?&]bf=1/.test(location.search)) document.documentElement.classList.add("bf-on");
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
 <header>
@@ -90,9 +99,17 @@
       <div class="cl-head cl-packs-head">
         <span class="eyebrow">Choose your pack</span>
         <h2>Save when you <span class="script">sculpt more.</span></h2>
-        <p class="cl-packs-sub">3 classes for $99 or 6 classes for $199.</p>
+        <p class="cl-packs-sub"><span class="bf-only">Black Friday: 3 classes for $90 (regularly $99), through Nov 30.</span><span class="bf-off">3 classes for $99.</span></p>
       </div>
       <div class="cl-pack-grid cl-compare" role="list">
+        <div class="cl-pack" role="listitem">
+          <h4 class="cl-pack-name"><span class="cl-label">New Member Deal</span>BOGO 50% Off</h4>
+          <p class="cl-pack-price"><s class="was" aria-label="Regular price $70">$70</s>$50</p>
+          <p class="cl-pack-per"><strong>$25</strong> per class</p>
+          <p class="cl-pack-save">2 classes &middot; Save $20</p>
+          <p class="cl-pack-terms">New members only &middot; One per person &middot; Extra class expires 21 days after purchase &middot; Special events not included (pay the difference)</p>
+          <button type="button" class="cl-btn cl-btn-fill" data-add="intro-bogo">Add to Cart</button>
+        </div>
         <div class="cl-pack" role="listitem">
           <h4 class="cl-pack-name"><span class="cl-label">Drop-In</span>Single Class</h4>
           <p class="cl-pack-price">$35</p>
@@ -101,22 +118,14 @@
           <p class="cl-pack-terms">One class</p>
           <button type="button" class="cl-btn cl-btn-fill" data-add="single">Add to Cart</button>
         </div>
-        <div class="cl-pack" role="listitem">
+        <div class="cl-pack cl-pack-best" role="listitem">
+          <span class="cl-best bf-only">Black Friday</span>
           <h4 class="cl-pack-name"><span class="cl-label">Class Pack</span>3-Class Pack</h4>
-          <p class="cl-pack-price"><s class="was" aria-label="Regular price $105">$105</s>$99</p>
-          <p class="cl-pack-per"><strong>$33</strong> per class</p>
-          <p class="cl-pack-save">Save $6</p>
+          <p class="cl-pack-price"><s class="was" aria-label="Regular price $105">$105</s><span class="bf-only">$90</span><span class="bf-off">$99</span></p>
+          <p class="cl-pack-per"><strong class="bf-only">$30</strong><strong class="bf-off">$33</strong> per class</p>
+          <p class="cl-pack-save"><span class="bf-only">Black Friday &middot; Save $15</span><span class="bf-off">Save $6</span></p>
           <p class="cl-pack-terms">No expiration &middot; Shareable</p>
           <button type="button" class="cl-btn cl-btn-fill" data-add="pack-3">Add to Cart</button>
-        </div>
-        <div class="cl-pack cl-pack-best" role="listitem">
-          <span class="cl-best">Most classes</span>
-          <h4 class="cl-pack-name"><span class="cl-label">Class Pack</span>6-Class Pack</h4>
-          <p class="cl-pack-price"><s class="was" aria-label="Regular price $210">$210</s>$199</p>
-          <p class="cl-pack-per"><strong>$33.17</strong> per class</p>
-          <p class="cl-pack-save">Save $11</p>
-          <p class="cl-pack-terms">No expiration &middot; Shareable</p>
-          <button type="button" class="cl-btn cl-btn-navy" data-add="pack-6">Add to Cart</button>
         </div>
       </div>
       <p class="cl-packs-fine"><strong>Events included:</strong> Each class on a pack covers any class or event up to $39, including our Sculpt &amp; Socialize events. Elevated events, like Santa Sculpt, are welcome too. Just pay the difference at checkout (for example, $6 for a $45 event).</p>
@@ -138,7 +147,7 @@
         <details><summary>Do class packs expire?</summary><p>No. Your classes stay on your code until you use them.</p></details>
         <details><summary>Can I share my pack?</summary><p>Yes. Use your code to book spots for friends, or book several spots in one checkout.</p></details>
         <details><summary>Can I use a pack for special events?</summary><p>Yes. Each class covers any class or event up to $39. For elevated events, you pay the difference at checkout.</p></details>
-        <details><summary>New to Sea Sculpt Club?</summary><p>Try two classes for $50 with our <a href="buy.html#new-members">new member deal</a>. Looking for a present? See our <a href="buy.html#gift-cards">eGift cards</a>.</p></details>
+        <details><summary>New to Sea Sculpt Club?</summary><p>Try two classes for $50 with our <a href="#packs">new member deal</a>. Looking for a present? See our <a href="buy.html#gift-cards">eGift cards</a>.</p></details>
       </div>
     </div>
   </section>
@@ -196,6 +205,6 @@
 </footer>
 <script src="js/script.js?v=cf11"></script>
 <script src="js/dates.js?v=cf7"></script>
-<script src="js/cart.js?v=cf31" defer></script>
+<script src="js/cart.js?v=cf32" defer></script>
 </body>
 </html>

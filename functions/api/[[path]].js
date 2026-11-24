@@ -298,10 +298,12 @@ var require_catalog = __commonJS({
       // ---- Packs and offers (class credits, scheduled later) ----
       "pack-3": {
         kind: "pack",
-        // $99 since Nov 19, 2026 (was $90 on Stripe price price_1UOH6o1UP4OSvubV1M6Khi0W); charged inline at the catalog price
+        // $99 since Nov 19, 2026; Black Friday sale $90 until Nov 30, 2026 11:59 PM ET, then back to $99 automatically
         className: "3-Class Pack",
         creditValue: 3900,
-        amount: 9900,
+        get amount() {
+          return Date.now() < Date.parse("2026-12-01T05:00:00Z") ? 9e3 : 9900;
+        },
         credits: 3,
         // buyer gets a class code worth 3 class spots; shareable, no expiration
         maxQty: 10
@@ -344,6 +346,7 @@ var require_catalog = __commonJS({
         kind: "pack",
         // $199, charged inline at the catalog price (no Stripe price yet)
         className: "6-Class Pack",
+        retired: true, // Removed Nov 24, 2026; kept so existing 6-pack codes and records still work
         creditValue: 3900,
         amount: 19900,
         credits: 6,

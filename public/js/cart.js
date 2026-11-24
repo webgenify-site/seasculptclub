@@ -3,6 +3,8 @@
    (netlify/functions source: lib/catalog.js). Keep ids, names and amounts in sync with it. */
 (function () {
   var TODAY_ET = (function () { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } })();
+  // Black Friday: 3-class pack $90 until Nov 30, 2026 11:59 PM ET (the server uses the same cutoff)
+  function BF_SALE() { return Date.now() < Date.parse("2026-12-01T05:00:00Z"); }
   var CATALOG = {
     "pumpkins-oct18": { kind: "class", date: "2026-10-18", name: "Pumpkins & Pilates", detail: "Sun, Oct 18 · 10:00 AM · Annie's Orchard, Cream Ridge, NJ", amount: 2500 },
     "wave-oct23":     { kind: "class", date: "2026-10-23", name: "Wave Sculpt", detail: "Fri, Oct 23 · 8:00 AM · Indoors at Wave Resort, Long Branch, NJ", amount: 3500 },
@@ -15,8 +17,7 @@
     "seaview-nov18":  { kind: "class", date: "2026-11-18", name: "Seaview Sculpt", detail: "Wed, Nov 18 · 10:00 AM · McLoone's Pier House, Long Branch, NJ", amount: 3500 },
     // Not bookable online until a Stripe Price ID is added for it in the server catalog.
     "single":         { kind: "pack", name: "Single Class", detail: "One class", amount: 3500 },
-    "pack-3":         { kind: "pack", name: "3-Class Pack", detail: "$33/class · No expiration", amount: 9900 },
-    "pack-6":         { kind: "pack", name: "6-Class Pack", detail: "$33.17/class · No expiration", amount: 19900 },
+    "pack-3":         { kind: "pack", name: "3-Class Pack", get detail() { return BF_SALE() ? "Black Friday · $30/class · No expiration" : "$33/class · No expiration"; }, get amount() { return BF_SALE() ? 9000 : 9900; } },
     "intro-bogo":     { kind: "pack", name: "BOGO 50% Off", detail: "New members · 2 classes · extra class expires in 21 days · special events: pay the difference", amount: 5000, maxQty: 1 },
     "merch-clip-butter": { kind: "merch", name: "Sea Sculpt Claw Clip · Butter Yellow", detail: "Pick up at class or ship ($4.99)", amount: 1800 },
     "merch-clip-blue":   { kind: "merch", name: "Sea Sculpt Claw Clip · Sea Sculpt Blue", detail: "Pick up at class or ship ($4.99)", amount: 1800 },
