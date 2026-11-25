@@ -1218,8 +1218,8 @@ html.bf-on .bf-off{display:none !important;}
 @media(max-width:900px){.cl-hero-photo-tall img{aspect-ratio:1/1;object-position:50% 60%;}}
 
 /* ── Winter decor (seasonal: delete this block and the winter.js script tags to remove) ── */
-.wd-garland{position:relative;height:0;z-index:60;pointer-events:none;}
-.wd-garland::before{content:"";position:absolute;left:0;right:0;top:-10px;height:64px;background:url(../assets/win-garland-thin.webp) repeat-x left top/auto 64px;filter:drop-shadow(0 4px 5px rgba(30,45,70,.18));}
+.wd-garland{position:absolute;left:0;right:0;bottom:0;height:0;z-index:5;pointer-events:none;}
+.wd-garland::before{content:"";position:absolute;left:0;right:0;top:-22px;height:64px;background:url(../assets/win-garland-thin.webp) repeat-x left top/auto 64px;filter:drop-shadow(0 4px 5px rgba(30,45,70,.18));}
 .wd-host{position:relative;}
 .wd-host>.wd{position:absolute;z-index:1;height:auto;filter:drop-shadow(0 10px 14px rgba(30,45,70,.16));}
 .wd-presents{width:230px;right:4%;top:40px;}
@@ -1229,7 +1229,7 @@ html.bf-on .bf-off{display:none !important;}
 .wd-tree{width:190px;right:4%;bottom:0;}
 .wd-tree.wd-left{right:auto;bottom:auto;left:5%;top:24px;width:140px;}
 @media (prefers-reduced-motion:no-preference){.wd-hang,.wd-stockings{animation:wdSway 7s ease-in-out infinite alternate;}}
-@media(max-width:900px){.wd-garland::before{height:52px;background-size:auto 52px;top:-8px;}.wd-presents{width:150px;top:16px;right:12px;}.wd-hang{width:70px;right:12px;}.wd-hang.wd-drop{width:44px;}.wd-stockings{width:100px;right:10px;top:8px;}.wd-tree{width:130px;right:10px;}.wd-tree.wd-left{display:none;}}
-@media(max-width:600px){.wd-garland::before{height:42px;background-size:auto 42px;top:-6px;}.wd-presents{width:110px;top:10px;}.wd-hang{width:54px;}.wd-hang.wd-drop{width:34px;}.wd-stockings{width:78px;}.wd-tree{width:96px;}}
+@media(max-width:900px){.wd-garland::before{height:52px;background-size:auto 52px;top:-24px;}.wd-presents{width:150px;top:16px;right:12px;}.wd-hang{width:70px;right:12px;}.wd-hang.wd-drop{width:44px;}.wd-stockings{width:100px;right:10px;top:8px;}.wd-tree{width:130px;right:10px;}.wd-tree.wd-left{display:none;}}
+@media(max-width:600px){.wd-garland::before{height:42px;background-size:auto 42px;top:-20px;}.wd-presents{width:110px;top:10px;}.wd-hang{width:54px;}.wd-hang.wd-drop{width:34px;}.wd-stockings{width:78px;}.wd-tree{width:96px;}}
 .wd-presents.wd-bottom{top:auto;bottom:-6px;right:3%;width:180px;}
 @media(max-width:900px){.wd-presents.wd-bottom{width:116px;bottom:-4px;}}

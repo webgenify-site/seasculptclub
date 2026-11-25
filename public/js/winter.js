@@ -5,16 +5,16 @@
   function img(src, cls) { var i = new Image(); i.src = A + src; i.alt = ""; i.className = "wd " + cls; i.decoding = "async"; i.setAttribute("aria-hidden", "true"); return i; }
   // 1. Garland under the header, at the top of every page (scrolls away with the page)
   var header = document.querySelector("body > header");
-  if (header && !document.querySelector(".wd-garland")) {
+  var garlandPage = /(^|\/)(merch|account|buy|classes)(\.html)?$/.test(location.pathname.replace(/\/$/, ""));
+  if (header && garlandPage && !document.querySelector(".wd-garland")) {
     var g = document.createElement("div"); g.className = "wd-garland"; g.setAttribute("aria-hidden", "true");
-    header.insertAdjacentElement("afterend", g);
+    header.appendChild(g); // sits on the header's bottom edge
   }
   // 2. A few accents on key sections (only where that section exists on the page)
   var spots = [
     ["#packs", "win-tree.webp", "wd-tree wd-left"],
     ["#packs", "win-presents.webp", "wd-presents"],
     ["#gift-cards", "win-bow-bulb.webp", "wd-hang"],
-    ["#faq", "win-stockings.webp", "wd-stockings"],
     ["#how", "win-drop-yellow.webp", "wd-hang wd-drop"],
     ["#shop", "win-ball-blue.webp", "wd-hang"],
     ["#shop", "win-tree.webp", "wd-tree wd-left"],
