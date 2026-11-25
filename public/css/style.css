@@ -1004,7 +1004,7 @@ section[id]{scroll-margin-top:86px;}
 }
 
 /* ══════════════ CLASSES PAGE (classes.html) ══════════════ */
-.cl{--cl-warm:#FBF6EE;--cl-amber:#B07A45;--cl-pale:#EEF5FC;--cl-ink:#12314F;--cl-soft:#4A6683;--cl-rule:rgba(18,49,79,.12);}
+.cl{--cl-warm:#FBF6EE;--cl-amber:#5E8FC2; /* winter accent (was fall amber #B07A45) */--cl-pale:#EEF5FC;--cl-ink:#12314F;--cl-soft:#4A6683;--cl-rule:rgba(18,49,79,.12);}
 .cl-wrap{max-width:1280px;margin:0 auto;padding:0 48px;}
 .cl h2{font-size:clamp(2rem,3.4vw,2.9rem);line-height:1.08;color:var(--cl-ink);}
 .cl p{margin:0;}
@@ -1035,7 +1035,7 @@ section[id]{scroll-margin-top:86px;}
 .cl-events .eyebrow{color:var(--cl-amber);}
 .cl-hero .eyebrow{color:#3C6E9F;}
 .cl-hero h1{font-size:clamp(3rem,5.6vw,4.8rem);line-height:.98;color:var(--cl-ink);}
-.cl-hero h1 .script{display:block;font-size:1.02em;color:#D46F2A;margin-top:6px;}
+.cl-hero h1 .script{display:block;font-size:1.02em;color:#5E8FC2;margin-top:6px;}
 .cl-hero-copy p{max-width:520px;margin-top:24px;font-size:1.05rem;line-height:1.75;color:var(--cl-soft);}
 
 /* 2. events */
@@ -1207,7 +1207,7 @@ button.cl-link{cursor:pointer;}
 .cl-packs-sub{margin-top:14px !important;font-size:1rem;color:var(--cl-soft);}
 .cl-pack-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;}
 .cl-pack{display:flex;flex-direction:column;align-items:flex-start;padding:34px 30px 30px;background:#fff;border-top:3px solid var(--baby-blue);}
-.cl-pack-intro{border-top-color:#D46F2A;}
+.cl-pack-intro{border-top-color:#EFCF6A;}
 .cl-pack{position:relative;}
 .cl-pack-best{border-top-color:var(--navy,#12314F);box-shadow:0 18px 40px -22px rgba(18,49,79,.45);}
 .cl-best{position:absolute;top:-14px;right:20px;padding:7px 12px;border-radius:999px;background:var(--navy,#12314F);color:#fff;font:600 .6rem/1 'Jost',sans-serif;letter-spacing:.2em;text-transform:uppercase;}
@@ -1675,4 +1675,49 @@ button.cl-link{cursor:pointer;}
   .pp-price{font-size:2.9rem;}
   .pp-btn{display:flex;width:100%;}
   .pp-cta{margin-top:20px;}
+}
+
+/* ── Classes page: minimal winter accents (seasonal: delete the .cl-winter blocks to remove) ── */
+.cl-hero,.cl-events,.cl-schedule{position:relative;overflow:visible;overflow-x:clip;}
+.cl-winter{position:absolute;inset:0;pointer-events:none;z-index:0;}
+.cl-winter .w{position:absolute;height:auto;filter:drop-shadow(2px 8px 10px rgba(18,49,79,.12));}
+.cl-winter .w-h-snow,.cl-winter .w-s-snow{filter:none;opacity:.7;}
+/* hero: garland across the top-right corner of the photo with two stockings hanging from it; presents beside the photo */
+.cl-hero .cl-winter{z-index:2;}
+.w-h-garland{width:400px;right:-10px;top:-6px;}
+.w-h-sb{width:60px;right:118px;top:44px;transform-origin:50% 0;}
+.w-h-sy{width:56px;right:44px;top:30px;transform-origin:50% 0;}
+.w-h-gifts{width:180px;right:44%;bottom:10px;}
+.w-h-snow{width:90px;left:-6px;top:20px;}
+/* schedule: the tree */
+.w-s-tree{width:150px;left:150px;bottom:20px;}
+.w-s-snow{width:70px;right:4%;top:24px;}
+/* events: ornaments + a small present */
+.w-e-orn{width:240px;right:6%;top:36px;}
+.w-e-gift{width:86px;left:6px;bottom:30px;}
+@media (prefers-reduced-motion:no-preference){
+  .cl-winter .sway{animation:wSwayA 6s ease-in-out infinite alternate;}
+  .cl-winter .sway-b{animation:wSwayB 7.5s ease-in-out infinite alternate;}
+}
+@keyframes wSwayA{from{transform:rotate(-2.5deg);}to{transform:rotate(2.5deg);}}
+@keyframes wSwayB{from{transform:rotate(2deg);}to{transform:rotate(-2deg);}}
+@media(max-width:1100px){
+  .w-h-garland{width:300px;}
+  .w-h-sb{width:48px;right:92px;top:34px;}
+  .w-h-sy{width:44px;right:34px;top:24px;}
+  .w-h-gifts{width:150px;right:46%;}
+  .w-e-orn{width:180px;right:3%;top:56px;}
+  .w-s-tree{display:none;}
+}
+@media(max-width:680px){
+  .cl-hero{padding-bottom:110px;}
+  .w-h-snow{display:none;}
+  .w-h-garland{width:200px;right:-8px;top:-2px;}
+  .w-h-sb{width:32px;right:62px;top:22px;}
+  .w-h-sy{width:30px;right:22px;top:16px;}
+  .w-h-gifts{width:120px;right:14px;bottom:10px;}
+  .cl-events{padding-top:96px;}
+  .w-e-orn{width:120px;right:-4px;top:12px;}
+  .w-e-gift{width:56px;}
+  .w-s-snow{width:44px;}
 }

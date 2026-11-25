@@ -411,9 +411,8 @@ header .nav-dropdown-menu a{text-shadow:none !important;}
 .palm-shade.is-left::before{right:auto !important;left:-60px !important;transform:scaleX(-1) !important;background-position:right top !important;}
 @media(max-width:760px){.palm-shade::before{width:80vw !important;right:-24vw !important;opacity:.10 !important;}}
 
-/* Fall accents: let leaves and their drop shadows breathe vertically */
+/* Seasonal accents: let decor and its drop shadows breathe vertically */
 .cl-hero,.cl-events,.cl-schedule{overflow:visible !important;overflow-x:clip !important;}
-.cl-fall .f{filter:drop-shadow(4px 10px 12px rgba(90,50,10,.16));}
 
 /* Sunlit, consistent decorative shadows (photos keep crisp edges) */
 .pv-hero-photo,.co-hero-photo{box-shadow:var(--sun-lift) !important;}
