@@ -11,13 +11,13 @@
   }
   // 2. A few accents on key sections (only where that section exists on the page)
   var spots = [
-    [".cl-buy-hero", "win-tree.webp", "wd-tree"],
     ["#packs", "win-tree.webp", "wd-tree wd-left"],
     ["#packs", "win-presents.webp", "wd-presents"],
     ["#gift-cards", "win-bow-bulb.webp", "wd-hang"],
     ["#faq", "win-stockings.webp", "wd-stockings"],
     ["#how", "win-drop-yellow.webp", "wd-hang wd-drop"],
     ["#shop", "win-ball-blue.webp", "wd-hang"],
+    ["#shop", "win-tree.webp", "wd-tree wd-left"],
     ["#upcoming", "win-presents.webp", "wd-presents wd-bottom"],
     [".ed-reviews", "win-bow-bulb.webp", "wd-hang"],
     [".ed-signup", "win-stockings.webp", "wd-stockings"]
@@ -25,6 +25,7 @@
   spots.forEach(function (s) {
     var sec = document.querySelector(s[0]);
     if (!sec || sec.querySelector('.wd[src$="' + s[1] + '"]') || getComputedStyle(sec).display === "none") return;
+    if (/tree/.test(s[1]) && document.querySelector('img[src*="tree"]')) return; // one tree per page
     sec.classList.add("wd-host");
     sec.appendChild(img(s[1], s[2]));
   });
