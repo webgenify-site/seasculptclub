@@ -7,23 +7,24 @@
   var header = document.querySelector("body > header");
   if (header && !document.querySelector(".wd-garland")) {
     var g = document.createElement("div"); g.className = "wd-garland"; g.setAttribute("aria-hidden", "true");
-    g.appendChild(img("deco-garland-scallop.svg", "wd-garland-img"));
     header.insertAdjacentElement("afterend", g);
   }
   // 2. A few accents on key sections (only where that section exists on the page)
   var spots = [
-    ["#packs", "deco-presents-pair.svg", "wd-presents"],
-    ["#gift-cards", "deco-ornaments-pair.svg", "wd-hang"],
-    ["#faq", "deco-stockings-pair.svg", "wd-stockings"],
-    ["#how", "deco-ornaments-pair.svg", "wd-hang"],
-    ["#shop", "deco-ornaments-pair.svg", "wd-hang"],
-    ["#upcoming", "deco-presents-pair.svg", "wd-presents wd-bottom"],
-    [".ed-reviews", "deco-ornaments-pair.svg", "wd-hang"],
-    [".ed-signup", "deco-stockings-pair.svg", "wd-stockings"]
+    [".cl-buy-hero", "win-tree.webp", "wd-tree"],
+    ["#packs", "win-tree.webp", "wd-tree wd-left"],
+    ["#packs", "win-presents.webp", "wd-presents"],
+    ["#gift-cards", "win-bow-bulb.webp", "wd-hang"],
+    ["#faq", "win-stockings.webp", "wd-stockings"],
+    ["#how", "win-drop-yellow.webp", "wd-hang wd-drop"],
+    ["#shop", "win-ball-blue.webp", "wd-hang"],
+    ["#upcoming", "win-presents.webp", "wd-presents wd-bottom"],
+    [".ed-reviews", "win-bow-bulb.webp", "wd-hang"],
+    [".ed-signup", "win-stockings.webp", "wd-stockings"]
   ];
   spots.forEach(function (s) {
     var sec = document.querySelector(s[0]);
-    if (!sec || sec.querySelector(".wd")) return;
+    if (!sec || sec.querySelector('.wd[src$="' + s[1] + '"]') || getComputedStyle(sec).display === "none") return;
     sec.classList.add("wd-host");
     sec.appendChild(img(s[1], s[2]));
   });

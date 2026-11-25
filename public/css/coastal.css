@@ -1219,16 +1219,17 @@ html.bf-on .bf-off{display:none !important;}
 
 /* ── Winter decor (seasonal: delete this block and the winter.js script tags to remove) ── */
 .wd-garland{position:relative;height:0;z-index:60;pointer-events:none;}
-.wd-garland-img{position:absolute;left:0;top:-10px;width:100%;height:auto;max-height:120px;object-fit:cover;object-position:center top;}
+.wd-garland::before{content:"";position:absolute;left:0;right:0;top:-16px;height:124px;background:url(../assets/win-garland.webp) repeat-x center top/auto 124px;filter:drop-shadow(0 6px 8px rgba(30,45,70,.14));}
 .wd-host{position:relative;}
-.wd{pointer-events:none;user-select:none;}
-.wd-host>.wd{position:absolute;z-index:1;height:auto;}
-.wd-presents{width:210px;right:5%;top:42px;}
-.wd-hang{width:120px;right:7%;top:-6px;transform-origin:50% 0;}
-.wd-stockings{width:150px;right:5%;top:16px;transform-origin:50% 0;}
+.wd-host>.wd{position:absolute;z-index:1;height:auto;filter:drop-shadow(0 10px 14px rgba(30,45,70,.16));}
+.wd-presents{width:230px;right:4%;top:40px;}
+.wd-hang{width:96px;right:7%;top:-10px;transform-origin:50% 0;}
+.wd-hang.wd-drop{width:60px;}
+.wd-stockings{width:140px;right:5%;top:-34px;transform-origin:50% 0;}
+.wd-tree{width:190px;right:4%;bottom:0;}
+.wd-tree.wd-left{right:auto;bottom:auto;left:5%;top:24px;width:140px;}
 @media (prefers-reduced-motion:no-preference){.wd-hang,.wd-stockings{animation:wdSway 7s ease-in-out infinite alternate;}}
-@keyframes wdSway{from{transform:rotate(-1.5deg);}to{transform:rotate(1.5deg);}}
-@media(max-width:900px){.wd-presents{width:140px;top:18px;right:12px;}.wd-hang{width:84px;right:12px;}.wd-stockings{width:104px;right:10px;top:10px;}}
-@media(max-width:600px){.wd-garland-img{top:-6px;width:180%;max-width:none;left:-40%;}.wd-presents{width:104px;top:10px;}.wd-hang{width:64px;}.wd-stockings{width:84px;}}
-.wd-presents.wd-bottom{top:auto;bottom:-6px;right:3%;width:170px;}
-@media(max-width:900px){.wd-presents.wd-bottom{width:110px;bottom:-4px;}}
+@media(max-width:900px){.wd-garland::before{height:84px;background-size:auto 84px;top:-12px;}.wd-presents{width:150px;top:16px;right:12px;}.wd-hang{width:70px;right:12px;}.wd-hang.wd-drop{width:44px;}.wd-stockings{width:100px;right:10px;top:8px;}.wd-tree{width:130px;right:10px;}.wd-tree.wd-left{display:none;}}
+@media(max-width:600px){.wd-garland::before{height:66px;background-size:auto 66px;top:-10px;}.wd-presents{width:110px;top:10px;}.wd-hang{width:54px;}.wd-hang.wd-drop{width:34px;}.wd-stockings{width:78px;}.wd-tree{width:96px;}}
+.wd-presents.wd-bottom{top:auto;bottom:-6px;right:3%;width:180px;}
+@media(max-width:900px){.wd-presents.wd-bottom{width:116px;bottom:-4px;}}
