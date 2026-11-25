@@ -875,7 +875,7 @@ var require_create_checkout = __commonJS({
     var { store } = require_store();
     var { lookup, planCoverage, creditValueOf, spend, hold, emptyReason } = require_giftcodes();
     var { sendConfirmation } = require_email();
-    var WAIVER_VERSION = "2026-10-27";
+    var WAIVER_VERSION = "2026-11-24"; // photo/video notice is part of the waiver checkbox
     var CANCEL_POLICY_VERSION = "2026-11-03";
     var STRIPE_VERSION = "2026-03-25.dahlia; custom_checkout_payment_form_preview=v1";
     var INTEGRATION_ID = "538e8f4c-e01b-496b-96d2-98c3c2f2bee8";
@@ -1007,7 +1007,10 @@ var require_create_checkout = __commonJS({
       }
       if (hasClass) {
         if (q.waiver !== true) errors.push("Please agree to the Liability Waiver & Release to book a class.");
-        else intake.waiver = { accepted: true, version: WAIVER_VERSION, at: (/* @__PURE__ */ new Date()).toISOString() };
+        else {
+          intake.waiver = { accepted: true, version: WAIVER_VERSION, at: (/* @__PURE__ */ new Date()).toISOString() };
+          intake.photoConsent = "yes"; // agreed as part of the waiver checkbox
+        }
         if (q.cancelPolicy !== true) errors.push("Please confirm you understand the cancellation policy to book a class.");
         else intake.cancelPolicy = { accepted: true, version: CANCEL_POLICY_VERSION, at: (/* @__PURE__ */ new Date()).toISOString() };
       }

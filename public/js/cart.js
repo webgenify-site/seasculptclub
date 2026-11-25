@@ -72,7 +72,7 @@
         '<div class="cart-intake">' +
           '<div class="cart-intake-class">' +
             '<h3>Before you pay</h3>' +
-            '<label class="cart-check"><input type="checkbox" name="waiver"> <span>I have read and agree to the <a href="/waiver" target="_blank" rel="noopener">Liability Waiver &amp; Release</a>, for myself and everyone in my booking.</span></label>' +
+            '<label class="cart-check"><input type="checkbox" name="waiver"> <span>I have read and agree to the <a href="/waiver" target="_blank" rel="noopener">Liability Waiver &amp; Release</a>, for myself and everyone in my booking, and I understand that photos and videos may be taken during class and shared on Sea Sculpt Club&rsquo;s website and social media.</span></label>' +
             '<label class="cart-check"><input type="checkbox" name="cancelPolicy"> <span>I understand the <a href="/terms#cancellations" target="_blank" rel="noopener">cancellation policy</a>: refunds are available up to 12 hours before class, with no refunds less than 12 hours before class. If weather cancels a class, I can choose a credit toward the next class or a refund.</span></label>' +
           '</div>' +
         '</div>' +
@@ -106,10 +106,6 @@
         '<div class="cart-q-class">' +
           '<label>Any injuries, health conditions or modifications we should know about? <em>(optional)</em>' +
             '<textarea name="qinjuries" rows="3" maxlength="600" placeholder="For example: lower back pain, pregnancy, recent surgery. Leave blank if none."></textarea></label>' +
-          '<fieldset class="cart-photo"><legend>Photo &amp; video consent<span>We sometimes take photos and videos in class to share on our website and social media.</span></legend>' +
-            '<label class="cart-radio"><input type="radio" name="qphoto" value="yes"> Yes, I&rsquo;m happy to be in photos and videos</label>' +
-            '<label class="cart-radio"><input type="radio" name="qphoto" value="no"> No, please keep me out of photos and videos</label>' +
-          '</fieldset>' +
         '</div>' +
         '<p class="cart-q-msg" role="alert"></p>' +
         '<button type="submit" class="cl-btn cl-btn-navy cart-q-send">Send answers</button>' +
@@ -739,9 +735,8 @@
   }
   qForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    var photo = qForm.querySelector('input[name="qphoto"]:checked');
-    var body = { bookingId: qBooking, heard: qForm.qheard.value, heardOther: qForm.qheardOther.value.trim(), injuries: qForm.qinjuries.value.trim(), photo: photo ? photo.value : "" };
-    if (!body.heard && !body.injuries && !body.photo) { finishQuestions(); return; }
+    var body = { bookingId: qBooking, heard: qForm.qheard.value, heardOther: qForm.qheardOther.value.trim(), injuries: qForm.qinjuries.value.trim() };
+    if (!body.heard && !body.injuries) { finishQuestions(); return; }
     qSend.disabled = true; qMsg.textContent = "Saving…";
     sendAnswers(body, 6).then(function () { track("booking_questions", { heard: body.heard }); finishQuestions(); })
       .catch(function () { qMsg.textContent = "Couldn't save your answers. You can reply to your confirmation email instead."; })
