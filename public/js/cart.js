@@ -200,7 +200,7 @@
     var cov = coverage();
     creditEl.hidden = !cov.n;
     if (cov.n) {
-      creditEl.querySelector("span").textContent = (giftState.kind === "pack" ? "Class code (" : "eGift (") + cov.n + (cov.n === 1 ? " class spot)" : " class spots)");
+      creditEl.querySelector("span").textContent = giftState.kind === "promo" ? "Promo " + giftState.code : (giftState.kind === "pack" ? "Class code (" : "eGift (") + cov.n + (cov.n === 1 ? " class spot)" : " class spots)");
       creditEl.querySelector("strong").textContent = "−" + money(cov.value);
     }
     var fee = shipFee();
@@ -480,11 +480,12 @@
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && drawer.classList.contains("open")) closeDrawer(); });
 
   /* ---------- eGift code ---------- */
+  var SITE_PROMOS = /^\s*BLACK\s*FRIDAY\s*$/i; // checked by our server (works with card, PayPal and Venmo)
   function applyCode() {
     var code = codeInput.value.trim();
     if (!code) { codeMsg.textContent = "Enter the code from your email."; codeInput.focus(); return; }
     // Anything that isn't an SSC- eGift/class code is a promo code (e.g. SANTA5): Stripe checks it at payment.
-    if (!/^\s*SSC[-\s]?/i.test(code)) {
+    if (!/^\s*SSC[-\s]?/i.test(code) && !SITE_PROMOS.test(code)) {
       promoState = { code: code.toUpperCase().replace(/[^A-Z0-9_-]/g, "") };
       giftState = null; codeInput.value = promoState.code; render();
       codeMsg.className = "cart-code-msg is-good";
@@ -504,6 +505,13 @@
         codeInput.value = x.d.code;
         render();
         var cov = coverage();
+        if (x.d.kind === "promo") {
+          codeMsg.className = "cart-code-msg is-good";
+          codeMsg.innerHTML = "&#10003; " + esc(x.d.code) + ": " + money(cov.value) + " off your " + esc((x.d.onlyForNames || ["class"])[0]) + " ticket. One per person." +
+            ' <button type="button" class="cart-code-remove">Remove</button>';
+          track("apply_promo", { code: x.d.code });
+          return;
+        }
         codeMsg.className = "cart-code-msg is-good";
         codeMsg.innerHTML = "&#10003; " + esc(x.d.code) + " covers " + cov.n + (cov.n === 1 ? " class spot" : " class spots") +
           (x.d.creditsLeft > cov.n ? " (" + (x.d.creditsLeft - cov.n) + " left for next time" + (x.d.perBooking ? ", " + x.d.perBooking + " per booking" : "") + ")" : "") +

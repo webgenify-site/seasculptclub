@@ -493,8 +493,22 @@ var require_giftcodes = __commonJS({
   "cf/src/lib/giftcodes.js"(exports, module) {
     var { CATALOG } = require_catalog();
     var CODE_RE = /^SSC-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/;
+    // Site promo codes (not SSC- codes): fixed $ off specific classes, with an end time and one use per email.
+    var PROMOS = {
+      BLACKFRIDAY: {
+        kind: "promo",
+        giftName: "BLACKFRIDAY: $5 off Santa Sculpt",
+        onlyFor: ["santa-dec5"],
+        creditValue: 500, // the code "covers" $5 of one spot; the rest of the ticket is paid
+        credits: 1e5,
+        maxPerBooking: 1,
+        perEmail: true,
+        endsAt: "2026-11-28T04:59:59.999Z" // Black Friday, Nov 27, 2026, 11:59 PM Eastern
+      }
+    };
     function normalizeCode(input) {
       let s = String(input || "").toUpperCase().replace(/[\s_]+/g, "").replace(/[–—]/g, "-");
+      if (PROMOS[s.replace(/-/g, "")]) return s.replace(/-/g, "");
       const bare = s.replace(/-/g, "");
       if (/^SSC[A-Z0-9]{8}$/.test(bare)) s = `SSC-${bare.slice(3, 7)}-${bare.slice(7)}`;
       return CODE_RE.test(s) ? s : null;
@@ -515,9 +529,11 @@ var require_giftcodes = __commonJS({
       return Math.max(0, e.n - usedBefore);
     }
     function available(rec, now, exceptSession) {
+      if (rec && PROMOS[rec.code] && !rec.credits) rec = { ...rec, ...PROMOS[rec.code] };
       return Math.max(0, (rec.credits || 0) - used(rec) - held(rec, now, exceptSession) - expiredLost(rec, now));
     }
     function usableNow(rec, now, exceptSession) {
+      if (rec && PROMOS[rec.code] && !rec.credits) rec = { ...rec, ...PROMOS[rec.code] };
       const a = available(rec, now, exceptSession);
       return rec.maxPerBooking ? Math.min(a, rec.maxPerBooking) : a;
     }
@@ -599,7 +615,20 @@ var require_giftcodes = __commonJS({
     async function lookup(db, code, email) {
       const c = normalizeCode(code);
       if (!c) return { error: "That doesn't look like an eGift code (they look like SSC-XXXX-XXXX). Have a promo code? Enter it on the next step, in the payment form." };
-      const rec = await db.get(keyOf(c));
+      if (PROMOS[c]) {
+        const P = PROMOS[c], nowIso = (/* @__PURE__ */ new Date()).toISOString();
+        if (nowIso > P.endsAt) return { error: `Sorry, ${c} has ended.`, code: c };
+        await db.setJSON(keyOf(c), { code: c, uses: [], holds: {}, byEmail: {}, createdAt: nowIso }, { onlyIfNew: true });
+      }
+      const rec0 = await db.get(keyOf(c));
+      const rec = rec0 && PROMOS[c] ? { ...rec0, ...PROMOS[c] } : rec0;
+      if (rec && rec.perEmail) {
+        const who0 = String(email || "").trim().toLowerCase(), prior = who0 && (rec.byEmail || {})[who0];
+        const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+        if (prior && ((rec.uses || []).some((u) => u.bookingId === prior.session) || ((rec.holds || {})[prior.session] && rec.holds[prior.session].until > nowIso))) {
+          return { error: `You've already used ${c}. It's one per person.`, code: c };
+        }
+      }
       if (!rec) return { error: "We couldn't find that code. Please check it and try again." };
       const who = String(email || "").trim().toLowerCase();
       if (rec.ownerEmail && who && who !== rec.ownerEmail) {
@@ -636,6 +665,14 @@ var require_giftcodes = __commonJS({
         if (diff) { topUp[s.id] = { unit: diff, qty: ((topUp[s.id] && topUp[s.id].qty) || 0) + 1 }; topUpTotal += diff; }
       }
       return { n, cover, value, topUp, topUpTotal, classSpots: spots.length };
+    }
+    async function notePromoEmail(db, code, email, session) {
+      const who = String(email || "").trim().toLowerCase();
+      if (!who) return;
+      await db.update(keyOf(code), (rec) => {
+        rec.byEmail = { ...rec.byEmail || {}, [who]: { session, at: (/* @__PURE__ */ new Date()).toISOString() } };
+        return rec;
+      });
     }
     async function spend(db, code, n, bookingId, ref) {
       return db.update(keyOf(code), (rec) => {
@@ -677,7 +714,7 @@ var require_giftcodes = __commonJS({
       }
       return rec.kind === "pack" ? "This class code has already been fully used." : "This eGift code has already been fully used.";
     }
-    module.exports = { emptyReason, normalizeCode, keyOf, available, usableNow, expiringLeft, expiredLost, used, createCodesForBooking, lookup, planCoverage, creditValueOf, spend, hold, confirmHold, releaseHold };
+    module.exports = { emptyReason, normalizeCode, keyOf, available, usableNow, expiringLeft, expiredLost, used, createCodesForBooking, lookup, planCoverage, creditValueOf, spend, hold, confirmHold, releaseHold, notePromoEmail, PROMOS };
   }
 });
 
@@ -695,7 +732,8 @@ var require_email = __commonJS({
       const first = (booking.purchaser.name || "").split(" ")[0] || "there";
       const lines = booking.items.map((it) => {
         if (it.kind === "class") {
-          const gc = it.giftCovered ? ` (${it.giftCovered} covered by your ${booking.giftRedemption && booking.giftRedemption.kind === "pack" ? "class code" : "eGift"})` : "";
+          const gr = booking.giftRedemption || {};
+          const gc = !it.giftCovered ? "" : gr.kind === "promo" ? ` ($5 off with ${gr.code})` : ` (${it.giftCovered} covered by your ${gr.kind === "pack" ? "class code" : "eGift"})`;
           return {
             text: `${it.className}
   ${it.dateLabel} at ${it.time}
@@ -873,7 +911,7 @@ var require_create_checkout = __commonJS({
     var { randomHex } = require_webcrypto();
     var { CATALOG, priceIdFor, describe } = require_catalog();
     var { store } = require_store();
-    var { lookup, planCoverage, creditValueOf, spend, hold, emptyReason } = require_giftcodes();
+    var { lookup, planCoverage, creditValueOf, spend, hold, emptyReason, notePromoEmail } = require_giftcodes();
     var { sendConfirmation } = require_email();
     var WAIVER_VERSION = "2026-11-24"; // photo/video notice is part of the waiver checkbox
     var CANCEL_POLICY_VERSION = "2026-11-03";
@@ -1119,8 +1157,11 @@ var require_create_checkout = __commonJS({
         }
       }
       const summary = lines.map((l) => describe(CATALOG[l.id], l.qty));
-      if (gift) summary.push(`${gift.kind === "pack" ? "Class code" : "eGift"} ${gift.code} covers ${gift.credits} ${gift.credits === 1 ? "spot" : "spots"}`);
-      if (gift && gift.topUpTotal) summary.push(`premium event difference $${(gift.topUpTotal / 100).toFixed(2).replace(/\.00$/, "")}`);
+      if (gift && gift.kind === "promo") summary.push(`Promo ${gift.code}: $${(gift.value / 100).toFixed(2).replace(/\.00$/, "")} off`);
+      else {
+        if (gift) summary.push(`${gift.kind === "pack" ? "Class code" : "eGift"} ${gift.code} covers ${gift.credits} ${gift.credits === 1 ? "spot" : "spots"}`);
+        if (gift && gift.topUpTotal) summary.push(`premium event difference $${(gift.topUpTotal / 100).toFixed(2).replace(/\.00$/, "")}`);
+      }
       const params = new URLSearchParams();
       params.append("ui_mode", hosted ? "hosted_page" : "form");
       params.append("mode", "payment");
@@ -1168,7 +1209,7 @@ var require_create_checkout = __commonJS({
         for (const [id, t] of Object.entries(gift.topUp)) {
           params.append(`line_items[${i}][price_data][currency]`, "usd");
           params.append(`line_items[${i}][price_data][unit_amount]`, String(t.unit));
-          params.append(`line_items[${i}][price_data][product_data][name]`, `${CATALOG[id].className}: premium event difference`);
+          params.append(`line_items[${i}][price_data][product_data][name]`, gift.kind === "promo" ? `${CATALOG[id].className} (${gift.code}: $${(gift.value / 100).toFixed(0)} off)` : `${CATALOG[id].className}: premium event difference`);
           params.append(`line_items[${i}][quantity]`, String(t.qty));
           params.append(`line_items[${i}][metadata][items]`, `${id}:topup:${t.qty}`);
           i++;
@@ -1248,6 +1289,7 @@ var require_create_checkout = __commonJS({
         const until = new Date(Date.now() + 36 * 60 * 1e3).toISOString();
         try {
           await hold(store(event), gift.code, gift.credits, data.id, until);
+          if (gift.kind === "promo") await notePromoEmail(store(event), gift.code, purchaser.email, data.id);
         } catch (err) {
           await expireSession(secret, data.id);
           if (err.code === "not_enough") return json(409, { error: "This code was just used. Please check it and try again.", code: "gift_invalid" });
@@ -1299,7 +1341,7 @@ var require_create_checkout = __commonJS({
       }
       if (gift && gift.topUpTotal) {
         for (const [id, t] of Object.entries(gift.topUp)) {
-          items.push({ name: `${CATALOG[id].className}: premium event difference`.slice(0, 127), sku: `${id}-difference`.slice(0, 127), quantity: String(t.qty), category: "DIGITAL_GOODS", unit_amount: { currency_code: "USD", value: ppMoney(t.unit) } });
+          items.push({ name: (gift.kind === "promo" ? `${CATALOG[id].className} (${gift.code}: $${(gift.value / 100).toFixed(0)} off)` : `${CATALOG[id].className}: premium event difference`).slice(0, 127), sku: `${id}-difference`.slice(0, 127), quantity: String(t.qty), category: "DIGITAL_GOODS", unit_amount: { currency_code: "USD", value: ppMoney(t.unit) } });
         }
       }
       const total = items.reduce((n, i) => n + ppCents(i.unit_amount.value) * Number(i.quantity), 0);
@@ -1336,8 +1378,10 @@ var require_create_checkout = __commonJS({
       if (gift) {
         try {
           await hold(db, gift.code, gift.credits, id, new Date(Date.now() + 3 * 3600e3).toISOString());
+          if (gift.kind === "promo") await notePromoEmail(db, gift.code, purchaser.email, id);
         } catch (err) {
           if (err.code === "not_enough") return json(409, { error: "This code was just used. Please check it and try again.", code: "gift_invalid" });
+          console.error("Could not hold code credits (PayPal):", err && err.message);
           return json(424, { error: "Checkout couldn't start. Please try again in a moment.", code: "gift_hold_failed" });
         }
       }
@@ -1355,6 +1399,7 @@ var require_create_checkout = __commonJS({
       const id = "gift_" + ref;
       try {
         await spend(db, gift.code, gift.credits, id, ref);
+        if (gift.kind === "promo") await notePromoEmail(db, gift.code, purchaser.email, id);
       } catch (err) {
         if (err.code === "not_enough") return json(409, { error: "This code was just used. Please check it and try again.", code: "gift_invalid" });
         console.error("Could not use eGift credits:", err && err.message);
