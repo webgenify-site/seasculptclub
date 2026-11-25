@@ -1218,7 +1218,8 @@ html.bf-on .bf-off{display:none !important;}
 @media(max-width:900px){.cl-hero-photo-tall img{aspect-ratio:1/1;object-position:50% 60%;}}
 
 /* ── Winter decor (seasonal: delete this block and the winter.js script tags to remove) ── */
-.wd-garland{position:absolute;left:0;right:0;bottom:0;height:0;z-index:5;pointer-events:none;}
+.wd-garland{position:absolute;left:0;right:0;bottom:0;height:0;z-index:5;pointer-events:none;transition:opacity .35s ease,transform .35s ease;}
+.wd-garland.wd-away{opacity:0;transform:translateY(-14px);}
 .wd-garland::before{content:"";position:absolute;left:0;right:0;top:-10px;height:64px;background:url(../assets/win-garland-thin.webp) repeat-x left top/auto 64px;filter:drop-shadow(0 4px 5px rgba(30,45,70,.18));}
 .wd-host{position:relative;}
 .wd-host>.wd{position:absolute;z-index:1;height:auto;filter:drop-shadow(0 10px 14px rgba(30,45,70,.16));}
@@ -1242,12 +1243,12 @@ html.bf-on .bf-off{display:none !important;}
 .gc::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(120deg,rgba(255,255,255,.28),rgba(255,255,255,0) 40%,rgba(0,0,0,.05));}
 .gc .gc-ribbon-v,.gc .gc-ribbon-h,.gc-butter .gc-ribbon-v,.gc-butter .gc-ribbon-h{background:linear-gradient(90deg,#E2D6BC,#F6EEDD 38%,#FFFBF2 50%,#F3EAD6 62%,#DDD0B4);box-shadow:0 1px 3px rgba(60,50,30,.18);}
 .gc .gc-ribbon-h,.gc-butter .gc-ribbon-h{background:linear-gradient(180deg,#E2D6BC,#F6EEDD 38%,#FFFBF2 50%,#F3EAD6 62%,#DDD0B4);}
-.gc .gc-ribbon-v{width:26px;right:22%;}
-.gc .gc-ribbon-h{height:26px;top:46%;}
-.gc-bow-photo{position:absolute;z-index:2;width:118px;height:auto;right:calc(22% + 13px);top:calc(46% + 13px);transform:translate(50%,-46%);filter:drop-shadow(0 6px 8px rgba(40,40,30,.28));transition:transform .4s ease;}
-.cl-gift-item:hover .gc-bow-photo{transform:translate(50%,-46%) rotate(-4deg) scale(1.04);}
+.gc .gc-ribbon-v{width:12px;right:22%;}
+.gc .gc-ribbon-h{height:12px;top:46%;}
+.gc-bow-photo{position:absolute;z-index:2;width:62px;height:auto;right:calc(22% + 6px);top:calc(46% + 6px);transform:translate(50%,-40%);filter:drop-shadow(0 6px 8px rgba(40,40,30,.28));transition:transform .4s ease;}
+.cl-gift-item:hover .gc-bow-photo{transform:translate(50%,-40%) rotate(-4deg) scale(1.04);}
 .gc-tag{position:absolute;z-index:3;right:5%;top:8%;font:italic 400 .95rem/1 'Cormorant Garamond',serif;color:#1E3A55;background:#FFFCF4;padding:7px 12px 7px 18px;border-radius:3px 12px 12px 3px;box-shadow:0 2px 6px rgba(30,58,85,.18);transform:rotate(4deg);}
 .gc-tag::before{content:"";position:absolute;left:6px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:#C9B99A;}
 .gc-butter .gc-tag{display:none;}
 .gc .gc-flag{background:#FFFCF4;color:#1E3A55;box-shadow:0 2px 6px rgba(30,58,85,.18);transform:rotate(3deg);}
-@media(max-width:700px){.gc-bow-photo{width:92px;}.gc .gc-ribbon-v{width:20px;}.gc .gc-ribbon-h{height:20px;}.gc-bow-photo{right:calc(22% + 10px);top:calc(46% + 10px);}}
+@media(max-width:700px){.gc-bow-photo{width:52px;}.gc .gc-ribbon-v{width:10px;}.gc .gc-ribbon-h{height:10px;}.gc-bow-photo{right:calc(22% + 5px);top:calc(46% + 5px);}}

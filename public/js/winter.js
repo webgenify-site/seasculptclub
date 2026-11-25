@@ -9,6 +9,9 @@
   if (header && garlandPage && !document.querySelector(".wd-garland")) {
     var g = document.createElement("div"); g.className = "wd-garland"; g.setAttribute("aria-hidden", "true");
     header.appendChild(g); // sits on the header's bottom edge
+    // stays at the top of the page: tucks away once you scroll down, comes back at the top
+    var onScroll = function () { g.classList.toggle("wd-away", window.scrollY > 40); };
+    window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
   }
   // 2. A few accents on key sections (only where that section exists on the page)
   var spots = [
