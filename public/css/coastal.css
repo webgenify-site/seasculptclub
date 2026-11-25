@@ -1219,7 +1219,9 @@ html.bf-on .bf-off{display:none !important;}
 
 /* ── Winter decor (seasonal: delete this block and the winter.js script tags to remove) ── */
 .wd-garland{position:relative;height:0;z-index:60;pointer-events:none;}
-.wd-garland::before{content:"";position:absolute;left:0;right:0;top:-16px;height:124px;background:url(../assets/win-garland.webp) repeat-x center top/auto 124px;filter:drop-shadow(0 6px 8px rgba(30,45,70,.14));}
+.wd-garland::before,.wd-garland::after{content:"";position:absolute;top:-30px;width:190px;height:182px;background:no-repeat top/contain;filter:drop-shadow(0 6px 8px rgba(30,45,70,.14));}
+.wd-garland::before{left:0;background-image:url(../assets/win-garland-l.webp);background-position:left top;-webkit-mask-image:linear-gradient(90deg,#000 70%,transparent);mask-image:linear-gradient(90deg,#000 70%,transparent);}
+.wd-garland::after{right:0;background-image:url(../assets/win-garland-r.webp);background-position:right top;-webkit-mask-image:linear-gradient(270deg,#000 70%,transparent);mask-image:linear-gradient(270deg,#000 70%,transparent);}
 .wd-host{position:relative;}
 .wd-host>.wd{position:absolute;z-index:1;height:auto;filter:drop-shadow(0 10px 14px rgba(30,45,70,.16));}
 .wd-presents{width:230px;right:4%;top:40px;}
@@ -1229,7 +1231,7 @@ html.bf-on .bf-off{display:none !important;}
 .wd-tree{width:190px;right:4%;bottom:0;}
 .wd-tree.wd-left{right:auto;bottom:auto;left:5%;top:24px;width:140px;}
 @media (prefers-reduced-motion:no-preference){.wd-hang,.wd-stockings{animation:wdSway 7s ease-in-out infinite alternate;}}
-@media(max-width:900px){.wd-garland::before{height:84px;background-size:auto 84px;top:-12px;}.wd-presents{width:150px;top:16px;right:12px;}.wd-hang{width:70px;right:12px;}.wd-hang.wd-drop{width:44px;}.wd-stockings{width:100px;right:10px;top:8px;}.wd-tree{width:130px;right:10px;}.wd-tree.wd-left{display:none;}}
-@media(max-width:600px){.wd-garland::before{height:66px;background-size:auto 66px;top:-10px;}.wd-presents{width:110px;top:10px;}.wd-hang{width:54px;}.wd-hang.wd-drop{width:34px;}.wd-stockings{width:78px;}.wd-tree{width:96px;}}
+@media(max-width:900px){.wd-garland::before,.wd-garland::after{width:140px;height:134px;top:-22px;}.wd-presents{width:150px;top:16px;right:12px;}.wd-hang{width:70px;right:12px;}.wd-hang.wd-drop{width:44px;}.wd-stockings{width:100px;right:10px;top:8px;}.wd-tree{width:130px;right:10px;}.wd-tree.wd-left{display:none;}}
+@media(max-width:600px){.wd-garland::before,.wd-garland::after{width:96px;height:92px;top:-14px;}.wd-presents{width:110px;top:10px;}.wd-hang{width:54px;}.wd-hang.wd-drop{width:34px;}.wd-stockings{width:78px;}.wd-tree{width:96px;}}
 .wd-presents.wd-bottom{top:auto;bottom:-6px;right:3%;width:180px;}
 @media(max-width:900px){.wd-presents.wd-bottom{width:116px;bottom:-4px;}}
