@@ -1212,3 +1212,23 @@ html:not(.bf-on) .bf-only{display:none !important;}
 html.bf-on .bf-off{display:none !important;}
 .cl-compare.cl-compare-2{grid-template-columns:repeat(2,minmax(0,1fr)) !important;max-width:780px;margin-left:auto;margin-right:auto;}
 @media (max-width:700px){.cl-compare.cl-compare-2{grid-template-columns:1fr !important;}}
+
+/* Classes hero: taller crop for the winter portrait photo */
+.cl-hero-photo-tall img{aspect-ratio:4/5;object-position:50% 45%;}
+@media(max-width:900px){.cl-hero-photo-tall img{aspect-ratio:1/1;object-position:50% 60%;}}
+
+/* ── Winter decor (seasonal: delete this block and the winter.js script tags to remove) ── */
+.wd-garland{position:relative;height:0;z-index:60;pointer-events:none;}
+.wd-garland-img{position:absolute;left:0;top:-10px;width:100%;height:auto;max-height:120px;object-fit:cover;object-position:center top;}
+.wd-host{position:relative;}
+.wd{pointer-events:none;user-select:none;}
+.wd-host>.wd{position:absolute;z-index:1;height:auto;}
+.wd-presents{width:210px;right:5%;top:42px;}
+.wd-hang{width:120px;right:7%;top:-6px;transform-origin:50% 0;}
+.wd-stockings{width:150px;right:5%;top:16px;transform-origin:50% 0;}
+@media (prefers-reduced-motion:no-preference){.wd-hang,.wd-stockings{animation:wdSway 7s ease-in-out infinite alternate;}}
+@keyframes wdSway{from{transform:rotate(-1.5deg);}to{transform:rotate(1.5deg);}}
+@media(max-width:900px){.wd-presents{width:140px;top:18px;right:12px;}.wd-hang{width:84px;right:12px;}.wd-stockings{width:104px;right:10px;top:10px;}}
+@media(max-width:600px){.wd-garland-img{top:-6px;width:180%;max-width:none;left:-40%;}.wd-presents{width:104px;top:10px;}.wd-hang{width:64px;}.wd-stockings{width:84px;}}
+.wd-presents.wd-bottom{top:auto;bottom:-6px;right:3%;width:170px;}
+@media(max-width:900px){.wd-presents.wd-bottom{width:110px;bottom:-4px;}}
