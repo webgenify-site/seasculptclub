@@ -215,10 +215,11 @@ document.addEventListener("DOMContentLoaded", function () {
       e.preventDefault();
       var email = form.email.value.trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { say("Please enter a valid email address."); form.email.focus(); return; }
+      if (form.querySelector('input[name="size"]') && !form.querySelector('input[name="size"]:checked')) { say("Please pick a size."); return; }
       say("");
       var btn = form.querySelector("button"), label = btn.textContent; btn.disabled = true; btn.textContent = "Joining…";
       var data = new URLSearchParams(); data.append("form-name", "newsletter"); data.append("email", email);
-      form.querySelectorAll('input[type="hidden"]').forEach(function (h) { data.append(h.name, h.value); });
+      form.querySelectorAll('input[type="hidden"], input[type="radio"]:checked').forEach(function (h) { data.append(h.name, h.value); });
       fetch("/api/form", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: data.toString() })
         .then(function (r) {
           if (!r.ok) throw new Error("HTTP " + r.status);
