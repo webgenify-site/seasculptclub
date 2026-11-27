@@ -1252,3 +1252,19 @@ html.bf-on .bf-off{display:none !important;}
 .gc-butter .gc-tag{display:none;}
 .gc .gc-flag{background:#FFFCF4;color:#1E3A55;box-shadow:0 2px 6px rgba(30,58,85,.18);transform:rotate(3deg);}
 @media(max-width:700px){.gc-bow-photo{width:52px;}.gc .gc-ribbon-v{width:10px;}.gc .gc-ribbon-h{height:10px;}.gc-bow-photo{right:calc(22% + 5px);top:calc(46% + 5px);}}
+
+/* merch: coming-soon sets with waitlist */
+.mg-single{position:relative;background:#fff;}
+.mg-single img{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;background:#fff;padding:10px 0;}
+.merch-badge{position:absolute;top:12px;left:12px;background:#12314F;color:#fff;font:500 .66rem/1 "Jost",sans-serif;letter-spacing:.16em;text-transform:uppercase;padding:7px 11px;border-radius:999px;}
+.merch-soon .merch-price{font-style:italic;}
+.merch-waitlist{margin:6px 0 0;max-width:none;}
+.merch-waitlist .club-banner-form{display:flex;gap:8px;flex-wrap:wrap;}
+.merch-waitlist .club-banner-form input[type=email]{flex:1 1 160px;min-width:0;}
+.merch-waitlist .club-banner-form button{white-space:nowrap;}
+.merch-soon,.merch-soon .merch-info{background:#fff;}
+.merch-waitlist .club-banner-done{font:500 .95rem/1.5 "Jost",sans-serif;font-style:normal;text-align:left;margin:4px 0 0;color:#12314F;}
+@media(min-width:700px){.merch-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-width:860px;}}
+.merch-waitlist .club-banner-form input[type=email]{flex:1 1 100%;}
+.merch-waitlist .club-banner-form button{flex:1 1 100%;min-height:46px;padding:13px 18px;border-radius:999px;font:500 .74rem/1 "Jost",sans-serif;letter-spacing:.2em;text-transform:uppercase;}
+.merch-waitlist .club-banner-done,.merch-waitlist .club-banner-msg{text-shadow:none;}
