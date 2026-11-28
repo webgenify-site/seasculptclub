@@ -420,8 +420,8 @@
     if (!rows.length) { $("list").innerHTML = '<div class="empty">No form messages yet. Newsletter signups and messages from the website appear here.</div>'; return; }
     $("list").innerHTML = '<section class="group"><div class="scroll"><table><thead><tr><th>Received</th><th>Form</th><th>Name</th><th>Email</th><th>Message and details</th><th>Emailed</th></tr></thead><tbody>' +
       rows.map(function (r) {
-        var f = r.fields || {}, extra = Object.keys(f).filter(function (k) { return ["name", "email", "message"].indexOf(k) < 0; });
-        return '<tr><td>' + esc(new Date(r.createdAt).toLocaleString()) + '</td><td>' + esc(FORM_NAMES[r.form] || r.form) + '</td><td>' + esc(f.name || "") + '</td>' +
+        var f = r.fields || {}, extra = Object.keys(f).filter(function (k) { return ["name", "email", "message"].indexOf(k) < 0 && !(f.preorder && ["preorder", "size", "interest"].indexOf(k) >= 0); });
+        return '<tr><td>' + esc(new Date(r.createdAt).toLocaleString()) + '</td><td>' + (f.preorder ? '<strong>Merch preorder</strong><br>' + esc(f.preorder) + (f.size ? '<br>Size ' + esc(f.size) : '') : esc(FORM_NAMES[r.form] || r.form)) + '</td><td>' + esc(f.name || "") + '</td>' +
           '<td><a class="ref" href="mailto:' + esc(f.email || "") + '">' + esc(f.email || "") + '</a></td>' +
           '<td>' + (f.message ? esc(f.message).replace(/\n/g, "<br>") : "") + (extra.length ? '<div class="notes">' + extra.map(function (k) { return esc(k) + ": " + esc(f[k]); }).join("<br>") + '</div>' : "") + '</td>' +
           '<td>' + esc(r.email && r.email.status ? r.email.status.replace("_", " ") : "") + '</td></tr>';

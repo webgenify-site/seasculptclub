@@ -2876,7 +2876,7 @@ var require_form = __commonJS({
     }
     async function sendFormEmail(rec, env) {
       if (!env.RESEND_API_KEY) return { status: "not_sent", reason: "Email service not configured: see the Form messages tab on the bookings page." };
-      const title = FORMS[rec.form] || rec.form;
+      const title = rec.fields && rec.fields.preorder ? "Merch preorder" : FORMS[rec.form] || rec.form;
       const who = rec.fields.name || rec.fields.email || "Someone";
       const rows = Object.entries(rec.fields);
       const text = `${title} from seasculptclub.com
@@ -2888,7 +2888,7 @@ Sent ${rec.createdAt}`;
       const payload = {
         from: env.BOOKING_EMAIL_FROM || "Sea Sculpt Club <bookings@seasculptclub.com>",
         to: [env.FORMS_EMAIL_TO || "seasculptclub@gmail.com"],
-        subject: rec.form === "newsletter" ? `New newsletter signup: ${rec.fields.email}` : `${title}: ${who}`,
+        subject: rec.fields.preorder ? `New merch preorder: ${rec.fields.preorder}${rec.fields.size ? ", size " + rec.fields.size : ""} (${rec.fields.email})` : rec.form === "newsletter" ? `New newsletter signup: ${rec.fields.email}` : `${title}: ${who}`,
         text,
         html
       };
