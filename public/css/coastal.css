@@ -1287,3 +1287,21 @@ html.bf-on .bf-off{display:none !important;}
 .merch-size-needed span{border-color:#C0392B;animation:sscShake .3s;}
 @keyframes sscShake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 .cart-pre-later{display:block;font-size:.72rem;font-weight:400;opacity:.7;margin-top:2px;white-space:nowrap;}
+/* merch preorder pop-up */
+.pre-dlg{border:0;border-radius:18px;padding:0;width:min(420px,calc(100vw - 32px));box-shadow:0 30px 80px rgba(18,49,79,.35);color:#12314F;background:#fff;}
+.pre-dlg::backdrop{background:rgba(18,49,79,.45);}
+.pre-form,.pre-done{position:relative;display:flex;flex-direction:column;gap:12px;padding:30px 28px 24px;}
+.pre-x{position:absolute;top:12px;right:14px;width:34px;height:34px;border:0;border-radius:50%;background:#EEF4FA;color:#12314F;font-size:1.3rem;cursor:pointer;}
+.pre-eyebrow{font:500 .68rem/1 "Jost",sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#5E8FC2;}
+.pre-dlg h3{margin:0;font:400 1.6rem/1.2 'Cormorant Garamond',Georgia,serif;}
+.pre-sub{margin:-4px 0 4px;font:400 .95rem/1.4 "Jost",sans-serif;color:rgba(18,49,79,.75);}
+.pre-form label{display:flex;flex-direction:column;gap:6px;font:500 .7rem/1 "Jost",sans-serif;letter-spacing:.16em;text-transform:uppercase;}
+.pre-form input{padding:13px 14px;border:1.5px solid rgba(18,49,79,.3);border-radius:10px;font:400 1rem "Jost",sans-serif;letter-spacing:0;text-transform:none;color:#12314F;}
+.pre-form input:focus{outline:2px solid #5E8FC2;outline-offset:1px;}
+.pre-err{margin:0;min-height:1em;color:#B03A2E;font:400 .85rem "Jost",sans-serif;}
+.pre-go,.pre-close{width:100%;}
+.pre-fine,.pre-done-text{margin:0;font:400 .85rem/1.45 "Jost",sans-serif;color:rgba(18,49,79,.7);text-align:center;}
+.pre-done-text{text-align:left;font-size:.95rem;}
+.pre-form[hidden],.pre-done[hidden]{display:none;}
+.cl-hero-cutout{align-self:center;}
+.cl-hero-cutout img{aspect-ratio:auto;object-fit:contain;border-radius:0;box-shadow:none;background:none;filter:drop-shadow(0 22px 26px rgba(18,49,79,.18));}

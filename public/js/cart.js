@@ -464,6 +464,62 @@
     track("add_to_cart", { currency: "USD", value: p.amount / 100, items: gaItems([{ id: id, qty: 1 }]) });
   }
 
+  /* ---------- merch preorder pop-up: name + email, no cart, no payment ---------- */
+  var preDlg = null;
+  function openPreorder(it) {
+    if (!it) return;
+    if (!preDlg) {
+      preDlg = document.createElement("dialog");
+      preDlg.className = "pre-dlg";
+      preDlg.innerHTML = '<form method="dialog" class="pre-form" novalidate>' +
+        '<button type="button" class="pre-x" aria-label="Close">&times;</button>' +
+        '<span class="pre-eyebrow">Preorder</span><h3 class="pre-title"></h3><p class="pre-sub"></p>' +
+        '<label>Your name<input name="name" autocomplete="name" maxlength="80" required></label>' +
+        '<label>Email<input name="email" type="email" autocomplete="email" maxlength="200" required></label>' +
+        '<p class="pre-err" role="alert"></p>' +
+        '<button type="submit" class="cl-btn cl-btn-navy pre-go">Place preorder</button>' +
+        '<p class="pre-fine">No payment today. We&rsquo;ll email you when it drops.</p>' +
+        '</form><div class="pre-done" hidden><span class="pre-eyebrow">You&rsquo;re on the list</span><h3>Preorder placed!</h3><p class="pre-done-text"></p><button type="button" class="cl-btn cl-btn-navy pre-close">Done</button></div>';
+      document.body.appendChild(preDlg);
+      var close = function () { preDlg.close(); };
+      preDlg.querySelector(".pre-x").addEventListener("click", close);
+      preDlg.querySelector(".pre-close").addEventListener("click", close);
+      preDlg.addEventListener("click", function (e) { if (e.target === preDlg) close(); });
+      preDlg.querySelector(".pre-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var f = e.target, cur = preDlg._item, err = preDlg.querySelector(".pre-err");
+        var name = f.name.value.trim(), email = f.email.value.trim().toLowerCase();
+        if (name.length < 2) { err.textContent = "Please enter your name."; f.name.focus(); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { err.textContent = "Please enter a valid email address."; f.email.focus(); return; }
+        err.textContent = "";
+        var btn = f.querySelector(".pre-go"); btn.disabled = true; btn.textContent = "Saving…";
+        var data = new URLSearchParams();
+        data.append("form-name", "newsletter"); data.append("email", email); data.append("name", name);
+        data.append("preorder", cur.product); if (cur.size) data.append("size", cur.size); data.append("interest", "preorder-popup");
+        fetch("/api/form", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: data.toString() })
+          .then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            try { var d = loadDetails(); d.purchaser = d.purchaser || {}; d.purchaser.name = d.purchaser.name || name; d.purchaser.email = d.purchaser.email || email; saveDetails(d); } catch (x) {}
+            f.hidden = true; var done = preDlg.querySelector(".pre-done"); done.hidden = false;
+            done.querySelector(".pre-done-text").textContent = cur.product + (cur.size ? ", size " + cur.size : "") + ". No payment today: we'll email " + email + " when it's ready.";
+            track("preorder", { item_name: cur.product, size: cur.size || "" });
+          })
+          .catch(function () { err.textContent = "Something went wrong. Please try again."; })
+          .then(function () { btn.disabled = false; btn.textContent = "Place preorder"; });
+      });
+    }
+    preDlg._item = it;
+    var f = preDlg.querySelector(".pre-form");
+    f.hidden = false; preDlg.querySelector(".pre-done").hidden = true; preDlg.querySelector(".pre-err").textContent = "";
+    preDlg.querySelector(".pre-title").textContent = it.product;
+    preDlg.querySelector(".pre-sub").textContent = (it.size ? "Size " + it.size + " · " : "") + money(it.amount) + " when it drops";
+    var saved = (loadDetails().purchaser) || {};
+    if (!f.name.value) f.name.value = saved.name || (member && member.name) || "";
+    if (!f.email.value) f.email.value = saved.email || (member && member.email) || "";
+    preDlg.showModal();
+    (f.name.value ? f.email : f.name).focus();
+  }
+
   /* ---------- events ---------- */
   document.addEventListener("click", function (e) {
     var preBtn = e.target.closest("[data-preorder]");
@@ -472,7 +528,7 @@
       var picked = sizes && sizes.querySelector("input:checked");
       if (sizes && !picked) { sizes.classList.add("merch-size-needed"); showToast("Please pick a size first"); return; }
       if (sizes) sizes.classList.remove("merch-size-needed");
-      add("pre-" + pk + (picked ? "-" + picked.value : ""));
+      openPreorder(CATALOG["pre-" + pk + (picked ? "-" + picked.value : "")]);
       return;
     }
     var addBtn = e.target.closest("[data-add]");
