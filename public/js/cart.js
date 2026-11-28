@@ -14,7 +14,7 @@
     "friendsgiving-nov21": { kind: "class", soldOut: true, date: "2026-11-21", name: "Friendsgiving Pilates & Brunch", detail: "Sat, Nov 21 · 10:00 AM · High Crest at Wave Resort, Long Branch, NJ · Complimentary Bellini", amount: 3500 },
     "santa-dec5":     { kind: "class", date: "2026-12-05", name: "Santa Sculpt: A Christmas Party", detail: "Sat, Dec 5 · 12:00–2:00 PM · Tim McLoone's Supper Club, Asbury Park, NJ" + (TODAY_ET <= "2026-11-21" ? " · Early bird: code SANTA5 for $40 until Nov 21" : ""), amount: 4500 },
     "wave-dec12":     { kind: "class", date: "2026-12-12", name: "Wave Sculpt: Ocean View Pilates", detail: "Sat, Dec 12 · 10:00 AM · Wave Resort, Long Branch, NJ", amount: 3500 },
-    "newyear-jan2":   { kind: "class", date: "2027-01-02", name: "New Year's Party: Sweat Into the New Year", detail: "Sat, Jan 2 · 10:00 AM–12:00 PM · Wave Resort, Long Branch, NJ · Goodie bags & drinks by the bar", amount: 4000 },
+    "newyear-jan2":   { kind: "class", date: "2027-01-02", name: "New Year's Party: Sweat Into the New Year", detail: "Sat, Jan 2 · 10:00 AM–12:00 PM · Wave Resort, Long Branch, NJ · Goodie bags, drinks by the bar & local vendors", amount: 4000 },
     "porta-dec16":    { kind: "class", date: "2026-12-16", name: "Holiday Spritz & Sculpt at Porta", detail: "Wed, Dec 16 · 6:00–8:00 PM · Porta, Asbury Park, NJ · DJ & discounted spritz", amount: 3900 },
     "seaview-nov18":  { kind: "class", date: "2026-11-18", name: "Seaview Sculpt", detail: "Wed, Nov 18 · 10:00 AM · McLoone's Pier House, Long Branch, NJ", amount: 3500 },
     // Not bookable online until a Stripe Price ID is added for it in the server catalog.
