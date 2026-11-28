@@ -289,7 +289,7 @@ var require_catalog = __commonJS({
         className: "New Year's Party: Sweat Into the New Year",
         date: "2027-01-02",
         dateLabel: "Saturday, January 2, 2027",
-        time: "10:00 AM",
+        time: "10:00 AM–12:00 PM",
         location: "Wave Resort, Long Branch, NJ",
         amount: 4000,
         maxQty: 10
