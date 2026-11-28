@@ -26,6 +26,25 @@
     "gift-1":         { kind: "gift", name: "eGift Card · 1 Class", detail: "A class for someone special", amount: 3500 },
     "gift-2":         { kind: "gift", name: "eGift Card · 2 Classes", detail: "Two classes for someone special · Plus a free class for you", amount: 5000 }
   };
+  // Merch preorders: added to the cart like anything else, but nothing is charged. At checkout we
+  // record each one (name, email, product, size) for the Merch waitlist and email the studio.
+  var PREORDERS = [
+    { key: "set-yellow", name: "Butter Yellow Sweatsuit Set", amount: 11000, sizes: true },
+    { key: "set-blue", name: "Sea Sculpt Blue Sweatsuit Set", amount: 11000, sizes: true },
+    { key: "sweatshirt-yellow", name: "Butter Yellow Sweatshirt", amount: 6000, sizes: true },
+    { key: "sweatshirt-blue", name: "Sea Sculpt Blue Sweatshirt", amount: 6000, sizes: true },
+    { key: "sweatpants-yellow", name: "Butter Yellow Sweatpants", amount: 5000, sizes: true },
+    { key: "sweatpants-blue", name: "Sea Sculpt Blue Sweatpants", amount: 5000, sizes: true },
+    { key: "socks", name: "Sea Sculpt Grippy Socks", amount: 2200, sizes: false }
+  ];
+  PREORDERS.forEach(function (p) {
+    (p.sizes ? ["S", "M", "L", "XL"] : [""]).forEach(function (z) {
+      CATALOG["pre-" + p.key + (z ? "-" + z : "")] = { kind: "preorder", product: p.name, size: z, name: "Preorder: " + p.name + (z ? " · Size " + z : ""), detail: "No payment today · we'll email you when it drops", amount: p.amount };
+    });
+  });
+  function isPre(id) { return CATALOG[id] && CATALOG[id].kind === "preorder"; }
+  function hasPre() { return cart.some(function (l) { return isPre(l.id); }); }
+  function hasPaid() { return cart.some(function (l) { return !isPre(l.id); }); }
   var DETAILS_KEY = "seaSculptDetails";
   // Payment form look, as configured in Stripe Checkout Studio.
   var APPEARANCE = {
@@ -46,7 +65,7 @@
   }
   function save(c) { try { localStorage.setItem(KEY, JSON.stringify(c)); } catch (e) {} }
   var cart = load();
-  function total() { return cart.reduce(function (s, i) { return s + CATALOG[i.id].amount * i.qty; }, 0); }
+  function total() { return cart.reduce(function (s, i) { return isPre(i.id) ? s : s + CATALOG[i.id].amount * i.qty; }, 0); }
   function count() { return cart.reduce(function (s, i) { return s + i.qty; }, 0); }
   function gaItems(list) { return list.map(function (i) { return { item_id: i.id, item_name: CATALOG[i.id].name, price: CATALOG[i.id].amount / 100, quantity: i.qty }; }); }
 
@@ -192,7 +211,7 @@
         return '<div class="cart-line" data-id="' + i.id + '">' +
           '<div class="cart-line-info"><strong>' + p.name + '</strong><span>' + p.detail + '</span>' +
             '<button type="button" class="cart-remove">Remove</button></div>' +
-          '<div class="cart-line-side"><span class="cart-price">' + money(p.amount * i.qty) + '</span>' +
+          '<div class="cart-line-side"><span class="cart-price">' + (p.kind === "preorder" ? 'Preorder<small class="cart-pre-later">' + money(p.amount * i.qty) + ' later</small>' : money(p.amount * i.qty)) + '</span>' +
             (cap > 1 ? '<div class="cart-qty"><button type="button" class="cart-dec" aria-label="One fewer">&minus;</button><span>' + i.qty +
               '</span><button type="button" class="cart-inc" aria-label="One more"' + (i.qty >= cap ? " disabled" : "") + '>+</button></div>' : '') +
           '</div></div>';
@@ -209,7 +228,7 @@
     if (fee) body.insertAdjacentHTML("beforeend", '<div class="cart-line cart-ship-line"><div class="cart-line-info"><strong>Shipping</strong><span>Flat rate, mailed to you</span></div><div class="cart-line-side"><span class="cart-price">' + money(fee) + '</span></div></div>');
     totalLabel.textContent = cov.n || fee ? "Total" : "Subtotal";
     totalEl.textContent = money(total() - cov.value + fee);
-    if (step === "account") checkoutBtn.textContent = "Continue";
+    if (step === "account") checkoutBtn.textContent = hasPaid() ? "Continue" : "Place preorder";
     if (step === "details") checkoutBtn.textContent = cov.n && total() - cov.value + fee === 0 ? (giftState.kind === "pack" ? "Book with code" : "Book with eGift") : "Continue to payment";
     renderPaypal(total() - cov.value + fee);
     checkoutBtn.disabled = !cart.length;
@@ -363,7 +382,7 @@
   function validateAccount(d) {
     if (d.purchaser.name.length < 2) return ["name", "Please enter your full name."];
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.purchaser.email)) return ["email", "Please enter a valid email address."];
-    if (d.purchaser.phone.replace(/\D/g, "").length < 10) return ["phone", "Please enter a phone number we can reach you at."];
+    if (hasPaid() && d.purchaser.phone.replace(/\D/g, "").length < 10) return ["phone", "Please enter a phone number we can reach you at."];
     return null;
   }
   function validateDetails(d) {
@@ -416,7 +435,7 @@
     shell.querySelector(".cart-head h2").textContent = which === "account" || which === "details" ? "Checkout" : "Your Cart";
     checkoutBtn.textContent = which === "account" ? "Continue" : which === "details" ? "Continue to payment" : "Checkout";
     detailsErr.textContent = "";
-    if (which === "account") { fillAccount(); render(); checkoutBtn.textContent = "Continue"; (F.name.value ? (F.phone.value ? F.email : F.phone) : F.name).focus(); }
+    if (which === "account") { fillAccount(); render(); checkoutBtn.textContent = hasPaid() ? "Continue" : "Place preorder"; (F.name.value ? (F.phone.value ? F.email : F.phone) : F.name).focus(); }
     if (which === "details") { buildDetails(); render(); var first = details.querySelector(".cart-step-details input:not([type=radio]):not([hidden]), .cart-step-details select"); if (first && first.offsetParent) first.focus(); }
   }
   shell.querySelector(".cart-back").addEventListener("click", function () { showStep(step === "details" ? "account" : "cart"); });
@@ -447,6 +466,15 @@
 
   /* ---------- events ---------- */
   document.addEventListener("click", function (e) {
+    var preBtn = e.target.closest("[data-preorder]");
+    if (preBtn) {
+      var pk = preBtn.getAttribute("data-preorder"), box = preBtn.closest(".merch-item"), sizes = box && box.querySelector(".merch-sizes");
+      var picked = sizes && sizes.querySelector("input:checked");
+      if (sizes && !picked) { sizes.classList.add("merch-size-needed"); showToast("Please pick a size first"); return; }
+      if (sizes) sizes.classList.remove("merch-size-needed");
+      add("pre-" + pk + (picked ? "-" + picked.value : ""));
+      return;
+    }
     var addBtn = e.target.closest("[data-add]");
     if (addBtn) {
       var id = addBtn.getAttribute("data-add");
@@ -594,7 +622,7 @@
 
   var currentDetails = { purchaser: {}, attendees: {}, gifts: {} };
   function sessionPayload(extra) {
-    var b = { items: cart, purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, intake: currentDetails.intake || {}, delivery: currentDetails.delivery, giftCode: giftState ? giftState.code : undefined, promoCode: promoState ? promoState.code : undefined };
+    var b = { items: cart.filter(function (l) { return !isPre(l.id); }), purchaser: currentDetails.purchaser, attendees: currentDetails.attendees, gifts: currentDetails.gifts || {}, intake: currentDetails.intake || {}, delivery: currentDetails.delivery, giftCode: giftState ? giftState.code : undefined, promoCode: promoState ? promoState.code : undefined };
     for (var k in extra) b[k] = extra[k];
     return JSON.stringify(b);
   }
@@ -641,6 +669,25 @@
   }
   pay.querySelector(".cart-hosted").addEventListener("click", goHosted);
 
+  // Record every preorder line (one sign-up per line) and take them out of the cart.
+  function submitPreorders(purchaser) {
+    var lines = cart.filter(function (l) { return isPre(l.id); });
+    if (!lines.length) return Promise.resolve(0);
+    return Promise.all(lines.map(function (l) {
+      var it = CATALOG[l.id], data = new URLSearchParams();
+      data.append("form-name", "newsletter"); data.append("email", purchaser.email); data.append("name", purchaser.name);
+      if (purchaser.phone) data.append("phone", purchaser.phone);
+      data.append("preorder", it.product); if (it.size) data.append("size", it.size);
+      if (l.qty > 1) data.append("quantity", String(l.qty));
+      data.append("interest", "preorder-cart");
+      return fetch("/api/form", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: data.toString() })
+        .then(function (r) { if (!r.ok) throw new Error("preorder_failed"); });
+    })).then(function () {
+      cart = cart.filter(function (l) { return !isPre(l.id); }); save(cart);
+      track("preorder", { items: gaItems(lines) });
+      return lines.length;
+    });
+  }
   checkoutBtn.addEventListener("click", function () {
     if (!cart.length) return;
     msg.textContent = "";
@@ -653,7 +700,16 @@
     if (step === "account") {
       var a = readDetails(), ap = validateAccount(a);
       if (ap) { detailsErr.textContent = ap[1]; var af = F[ap[0]]; if (af && af.focus) af.focus(); return; }
-      saveDetails(a); showStep("details"); return;
+      saveDetails(a);
+      if (!hasPaid()) {
+        checkoutBtn.disabled = true; checkoutBtn.textContent = "Saving…";
+        submitPreorders(a.purchaser).then(function (n) {
+          closeDrawer(); render();
+          showThanks("Your preorder" + (n > 1 ? "s are" : " is") + " saved. No payment today: we'll email " + esc(a.purchaser.email) + " when your merch is ready.", "Preorder placed &mdash; thank you!");
+        }).catch(function () { detailsErr.textContent = "We couldn't save your preorder. Please try again."; checkoutBtn.disabled = false; checkoutBtn.textContent = "Place preorder"; });
+        return;
+      }
+      showStep("details"); return;
     }
     var d = readDetails(), problem = validateDetails(d);
     if (problem) {
@@ -666,7 +722,7 @@
     currentDetails = d; saveDetails(d);
     checkoutBtn.disabled = true; checkoutBtn.textContent = "Loading…";
     track("begin_checkout", { currency: "USD", value: total() / 100, items: gaItems(cart) });
-    requestSession("embedded")
+    submitPreorders(d.purchaser).catch(function () {}).then(function () { return requestSession("embedded"); })
       .then(function (d) {
         if (d.free) { bookedWithGift(d); return; }
         return loadStripe().then(function () {
@@ -755,10 +811,10 @@
   qForm.querySelector(".cart-q-skip").addEventListener("click", finishQuestions);
   qDlg.addEventListener("cancel", function (e) { e.preventDefault(); finishQuestions(); });
 
-  function showThanks(text) {
+  function showThanks(text, title) {
     var note = document.createElement("div");
     note.className = "cart-thanks"; note.setAttribute("role", "status");
-    note.innerHTML = '<div><strong>You&rsquo;re booked &mdash; thank you!</strong> ' + text + '</div>' +
+    note.innerHTML = '<div><strong>' + (title || "You&rsquo;re booked &mdash; thank you!") + '</strong> ' + text + '</div>' +
       '<button type="button" aria-label="Dismiss">&times;</button>';
     note.querySelector("button").addEventListener("click", function () { note.remove(); });
     document.body.appendChild(note);
@@ -805,7 +861,7 @@
     if (!ppWrap) return;
     var show = !!ppConfig && step === "details" && cart.length > 0 && due > 0 && !promoState;
     ppWrap.hidden = !show;
-    fineEl.textContent = ppConfig && step === "details" ? "Secure payment by Stripe or PayPal. A receipt is emailed to you after checkout." : "Secure payment by Stripe. A receipt is emailed to you after checkout.";
+    fineEl.textContent = cart.length && !hasPaid() ? "Preorders: no payment today. We'll email you when your merch is ready." : ppConfig && step === "details" ? "Secure payment by Stripe or PayPal. A receipt is emailed to you after checkout." : "Secure payment by Stripe. A receipt is emailed to you after checkout.";
     if (ppConfig && step === "details" && promoState && due > 0) { ppWrap.hidden = false; ppBtns.hidden = true; ppSay("Promo codes work with card payment, so PayPal isn't available with a promo code."); return; }
     ppBtns.hidden = false;
     if (!show || ppRendered) return;
@@ -825,7 +881,7 @@
           }
           currentDetails = d; saveDetails(d);
           track("begin_checkout", { currency: "USD", value: total() / 100, payment_type: "paypal", items: gaItems(cart) });
-          return actions.resolve();
+          return submitPreorders(d.purchaser).catch(function () {}).then(function () { return actions.resolve(); });
         },
         createOrder: function (data) {
           var funding = data && data.paymentSource === "venmo" ? "venmo" : (ppFunding || "paypal");

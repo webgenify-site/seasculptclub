@@ -1280,3 +1280,10 @@ html.bf-on .bf-off{display:none !important;}
 .merch-waitlist .club-banner-form input[type=text]{flex:1 1 100%;min-width:0;}
 .merch-signup .club-banner-form input[type=text]{background:#fff;border:1.5px solid rgba(18,49,79,.35);color:#12314F;}
 .merch-signup .club-banner-form input[type=text]::placeholder{color:rgba(18,49,79,.55);}
+/* merch preorders go through the cart */
+.merch-soon .merch-sizes{margin:6px 0 12px;}
+.merch-preorder-btn{width:100%;}
+.merch-pre-note{margin:8px 0 0;font:400 .8rem/1.4 "Jost",sans-serif;color:rgba(18,49,79,.7);}
+.merch-size-needed span{border-color:#C0392B;animation:sscShake .3s;}
+@keyframes sscShake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.cart-pre-later{display:block;font-size:.72rem;font-weight:400;opacity:.7;margin-top:2px;white-space:nowrap;}

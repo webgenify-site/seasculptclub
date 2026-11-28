@@ -434,14 +434,14 @@
   function waitlistRows() {
     return (data.forms || []).map(function (r) {
       var f = r.fields || {}, product = f.preorder || PREORDER_SLUGS[f.interest];
-      return product ? { at: r.createdAt, name: f.name || "", email: f.email || "", product: product, size: f.size || "" } : null;
+      return product ? { at: r.createdAt, name: f.name || "", email: f.email || "", phone: f.phone || "", product: product, size: f.size || "", qty: Math.max(1, parseInt(f.quantity, 10) || 1) } : null;
     }).filter(Boolean).sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
   }
   function renderWaitlist() {
     var rows = waitlistRows();
     if (!rows.length) { $("list").innerHTML = '<div class="empty">No merch preorders yet. When someone preorders on the Merch page, they show up here with the product and size.</div>'; return; }
     var tally = {};
-    rows.forEach(function (x) { var t = tally[x.product] = tally[x.product] || { n: 0, sizes: {} }; t.n++; if (x.size) t.sizes[x.size] = (t.sizes[x.size] || 0) + 1; });
+    rows.forEach(function (x) { var t = tally[x.product] = tally[x.product] || { n: 0, sizes: {} }; t.n += x.qty; if (x.size) t.sizes[x.size] = (t.sizes[x.size] || 0) + x.qty; });
     var order = ["S", "M", "L", "XL"];
     var summary = '<section class="group"><div class="group-head"><h2>Totals</h2><span class="count">' + rows.length + (rows.length === 1 ? " preorder" : " preorders") + '</span>' +
       ' <button type="button" class="btn" id="wlCsv">Download CSV</button></div><div class="scroll"><table><thead><tr><th>Product</th><th>Preorders</th><th>By size</th></tr></thead><tbody>' +
@@ -456,7 +456,7 @@
     $("list").innerHTML = summary + list;
     $("wlCsv").addEventListener("click", function () {
       var q = function (v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; };
-      var csv = ["Name,Email,Interested in,Size,Signed up"].concat(rows.map(function (x) { return [x.name, x.email, x.product, x.size, x.at].map(q).join(","); })).join("\n");
+      var csv = ["Name,Email,Phone,Interested in,Size,Quantity,Signed up"].concat(rows.map(function (x) { return [x.name, x.email, x.phone, x.product, x.size, x.qty, x.at].map(q).join(","); })).join("\n");
       var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "sea-sculpt-merch-waitlist.csv";
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
     });
