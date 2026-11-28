@@ -1305,3 +1305,5 @@ html.bf-on .bf-off{display:none !important;}
 .pre-form[hidden],.pre-done[hidden]{display:none;}
 .cl-hero-cutout{align-self:center;}
 .cl-hero-cutout img{aspect-ratio:auto;object-fit:contain;border-radius:0;box-shadow:none;background:none;filter:drop-shadow(0 22px 26px rgba(18,49,79,.18));}
+.acct-merch>div{flex:1;}
+.acct-pre-tag{flex:0 0 auto;font:500 .62rem/1 "Jost",sans-serif;letter-spacing:.16em;text-transform:uppercase;background:#12314F;color:#fff;padding:6px 10px;border-radius:999px;}

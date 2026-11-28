@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Parisienne&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=cf11">
-<link rel="stylesheet" href="css/coastal.css?v=cf69">
+<link rel="stylesheet" href="css/coastal.css?v=cf70">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sea Sculpt Club">
 <meta property="og:url" content="https://seasculptclub.com/account">
@@ -175,6 +175,11 @@
         <div id="acctPast"></div>
       </div>
 
+      <div class="acct-section" id="acctMerchWrap">
+        <h2>My merch</h2>
+        <div id="acctMerch"></div>
+      </div>
+
       <div class="acct-section" id="acctGiftsWrap" hidden>
         <h2>eGifts you&rsquo;ve sent</h2>
         <div id="acctGifts"></div>
@@ -308,6 +313,18 @@
       var st = g.status === "sent" ? "Delivered" : g.status === "scheduled" ? (g.sendOn && g.sendOn !== "now" ? "Scheduled for " + esc(fmtDate(g.sendOn + "T12:00:00")) : "Sending") : esc(g.status || "");
       return '<div class="acct-res acct-gift"><div><strong>' + esc(g.name) + '</strong><span>To ' + esc(g.toName || "a friend") + (st ? " · " + st : "") + '</span></div></div>';
     }).join("");
+    var merch = d.merch || [], pre = d.preorders || [];
+    var mrows = merch.map(function (m) {
+      return '<div class="acct-res acct-merch"><div><strong>' + esc(m.name) + (m.qty > 1 ? " &times; " + m.qty : "") + '</strong><span>' +
+        (m.delivery === "ship" ? "Shipping to you" + (m.city ? " (" + esc(m.city) + ")" : "") : "Pick up at your next class") + ' &middot; Ordered ' + esc(fmtDate(m.at)) + '</span>' +
+        '<span class="acct-sub">Paid &middot; Ref ' + esc(m.ref || "") + '</span></div></div>';
+    }).concat(pre.map(function (p) {
+      return '<div class="acct-res acct-merch is-pre"><div><strong>' + esc(p.product) + (p.qty > 1 ? " &times; " + p.qty : "") + '</strong><span>' +
+        (p.size ? "Size " + esc(p.size) + " &middot; " : "") + 'Preordered ' + esc(fmtDate(p.at)) + '</span>' +
+        '<span class="acct-sub">Preorder &middot; No payment yet. We&rsquo;ll email you when it drops.</span></div><span class="acct-pre-tag">Preorder</span></div>';
+    }));
+    $("acctMerch").innerHTML = mrows.length ? mrows.join("") + '<p class="acct-hint"><a href="merch.html">Shop more Sea Sculpt merch &rarr;</a></p>'
+      : '<p class="acct-empty">No merch yet. Claw clips, sweatsuits and grippy socks are on the <a href="merch.html">Merch page &rarr;</a></p>';
     show("acctDash");
   }
 

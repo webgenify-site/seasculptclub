@@ -375,7 +375,7 @@ async function me(request, env, db) {
 
   const bookings = (await db.search("bookings/", email))
     .filter((b) => b && b.status === "paid" && b.source !== "test" && cleanEmail(b.purchaser && b.purchaser.email) === email);
-  const reservations = [], purchases = [], giftsSent = [];
+  const reservations = [], purchases = [], giftsSent = [], merch = [];
   for (const b of bookings) {
     for (const it of b.items || []) {
       if (it.kind === "class") {
@@ -391,6 +391,10 @@ async function me(request, env, db) {
       } else {
         purchases.push({ ref: b.ref, name: it.className, kind: it.kind, qty: it.spots || 1, at: b.paidAt || b.createdAt });
         if (it.kind === "gift") for (const g of it.gifts || []) giftsSent.push({ name: it.className, toName: g.toName || "", sendOn: g.sendOn || "now", status: g.status || "" });
+        if (it.kind === "merch") {
+          const dl = (b.intake && b.intake.delivery) || {};
+          merch.push({ ref: b.ref, name: it.className, qty: it.spots || it.qty || 1, at: b.paidAt || b.createdAt, delivery: dl.method === "ship" ? "ship" : "pickup", city: dl.method === "ship" && dl.address ? [dl.address.city, dl.address.state].filter(Boolean).join(", ") : "" });
+        }
       }
     }
   }
@@ -401,13 +405,21 @@ async function me(request, env, db) {
     .map(codeSummary)
     .sort((a, b) => (b.left - a.left) || String(b.createdAt).localeCompare(String(a.createdAt)));
 
+  // Merch preorders (no payment yet): saved as website form sign-ups with a product + size.
+  let preorders = [];
+  try {
+    preorders = (await db.search("forms/", email))
+      .filter((f) => f && f.fields && f.fields.preorder && cleanEmail(f.fields.email) === email)
+      .map((f) => ({ product: f.fields.preorder, size: f.fields.size || "", qty: Math.max(1, parseInt(f.fields.quantity, 10) || 1), at: f.createdAt }))
+      .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  } catch (e) {}
   const latest = bookings.slice().sort((a, b) => String(b.paidAt || b.createdAt || "").localeCompare(String(a.paidAt || a.createdAt || "")))[0];
   const phone = user.phone || (latest && latest.purchaser && latest.purchaser.phone) || "";
   const name = user.name || (latest && latest.purchaser && latest.purchaser.name) || "";
   return json(200, {
     user: { email, name, phone, birthday: user.birthday || "", hasPassword: !!user.password, since: user.createdAt || null,
       comms: user.comms ? { email: user.comms.email !== false, sms: !!user.comms.sms, smsReminders: user.comms.smsReminders != null ? !!user.comms.smsReminders : !!user.comms.sms, smsOffers: user.comms.smsOffers != null ? !!user.comms.smsOffers : !!user.comms.sms } : { email: true, sms: false, smsReminders: false, smsOffers: false }, emergency: user.emergency || null },
-    reservations, codes, giftsSent, purchases, creditValue: CREDIT_VALUE
+    reservations, codes, giftsSent, purchases, merch, preorders, creditValue: CREDIT_VALUE
   });
 }
 
