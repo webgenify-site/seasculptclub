@@ -320,12 +320,10 @@ var require_catalog = __commonJS({
       // ---- Packs and offers (class credits, scheduled later) ----
       "pack-3": {
         kind: "pack",
-        // $99 since Nov 19, 2026; Black Friday sale $90 until Nov 30, 2026 11:59 PM ET, then back to $99 automatically
+        // $99 (Black Friday $90 sale ended early, Nov 27, 2026)
         className: "3-Class Pack",
         creditValue: 3900,
-        get amount() {
-          return Date.now() < Date.parse("2026-12-01T05:00:00Z") ? 9e3 : 9900;
-        },
+        amount: 9900,
         credits: 3,
         // buyer gets a class code worth 3 class spots; shareable, no expiration
         maxQty: 10

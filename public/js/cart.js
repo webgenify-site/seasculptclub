@@ -4,7 +4,7 @@
 (function () {
   var TODAY_ET = (function () { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } })();
   // Black Friday: 3-class pack $90 until Nov 30, 2026 11:59 PM ET (the server uses the same cutoff)
-  function BF_SALE() { return Date.now() < Date.parse("2026-12-01T05:00:00Z"); }
+  function BF_SALE() { return false; } // Black Friday sale ended
   var CATALOG = {
     "pumpkins-oct18": { kind: "class", date: "2026-10-18", name: "Pumpkins & Pilates", detail: "Sun, Oct 18 · 10:00 AM · Annie's Orchard, Cream Ridge, NJ", amount: 2500 },
     "wave-oct23":     { kind: "class", date: "2026-10-23", name: "Wave Sculpt", detail: "Fri, Oct 23 · 8:00 AM · Indoors at Wave Resort, Long Branch, NJ", amount: 3500 },
