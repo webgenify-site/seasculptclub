@@ -272,6 +272,28 @@ var require_catalog = __commonJS({
         amount: 3900,
         maxQty: 10
       },
+      "wave-dec12": {
+        kind: "class",
+        // No Stripe price: charged its amount directly at checkout.
+        className: "Wave Sculpt: Ocean View Pilates",
+        date: "2026-12-12",
+        dateLabel: "Saturday, December 12, 2026",
+        time: "10:00 AM",
+        location: "Wave Resort, Long Branch, NJ",
+        amount: 3500,
+        maxQty: 10
+      },
+      "newyear-jan2": {
+        kind: "class",
+        // No Stripe price: charged its amount directly at checkout.
+        className: "New Year's Party: Sweat Into the New Year",
+        date: "2027-01-02",
+        dateLabel: "Saturday, January 2, 2027",
+        time: "10:00 AM",
+        location: "Wave Resort, Long Branch, NJ",
+        amount: 4000,
+        maxQty: 10
+      },
       "porta-dec16": {
         kind: "class",
         // No Stripe price: charged its amount directly at checkout.
